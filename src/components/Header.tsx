@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { LogIn } from "lucide-react";
+import { Link } from "react-router-dom";
+import kidenLogo from "@/assets/kiden-logo.png";
 
 const Header = () => {
   return (
@@ -13,12 +15,10 @@ const Header = () => {
       <div className="container mx-auto px-6">
         <nav className="flex items-center justify-between">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-foreground flex items-center justify-center">
-              <span className="text-background font-bold text-sm">●</span>
-            </div>
+          <Link to="/" className="flex items-center gap-2">
+            <img src={kidenLogo} alt="Kiden" className="w-8 h-8 rounded-lg" />
             <span className="font-serif text-xl font-semibold text-foreground italic">kiden</span>
-          </a>
+          </Link>
 
           {/* Center Navigation */}
           <div className="hidden md:flex items-center nav-pill">
@@ -38,13 +38,17 @@ const Header = () => {
 
           {/* Right Actions */}
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="hidden sm:flex gap-2 text-muted-foreground hover:text-foreground">
-              <LogIn className="w-4 h-4" />
-              SIGN IN
-            </Button>
-            <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-5">
-              GET STARTED
-            </Button>
+            <Link to="/auth">
+              <Button variant="ghost" size="sm" className="hidden sm:flex gap-2 text-muted-foreground hover:text-foreground">
+                <LogIn className="w-4 h-4" />
+                SIGN IN
+              </Button>
+            </Link>
+            <Link to="/auth">
+              <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-5">
+                GET STARTED
+              </Button>
+            </Link>
           </div>
         </nav>
       </div>
