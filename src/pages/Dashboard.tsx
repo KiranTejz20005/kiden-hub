@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, FocusSession, Collection, FocusSettings } from '@/lib/types';
@@ -11,9 +12,12 @@ import AIChat from '@/components/app/AIChat';
 import Notebook from '@/components/app/Notebook';
 import FocusMode from '@/components/app/FocusMode';
 import Templates from '@/components/app/Templates';
+import OnboardingFlow from '@/components/app/OnboardingFlow';
 import { Loader2 } from 'lucide-react';
 
 type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates';
+
+const ONBOARDING_KEY = 'kiden_onboarding_completed';
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -23,6 +27,7 @@ const Dashboard = () => {
   const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -33,8 +38,21 @@ const Dashboard = () => {
   useEffect(() => {
     if (user) {
       fetchUserData();
+      checkOnboarding();
     }
   }, [user]);
+
+  const checkOnboarding = () => {
+    const completed = localStorage.getItem(ONBOARDING_KEY);
+    if (!completed) {
+      setShowOnboarding(true);
+    }
+  };
+
+  const completeOnboarding = () => {
+    localStorage.setItem(ONBOARDING_KEY, 'true');
+    setShowOnboarding(false);
+  };
 
   const fetchUserData = async () => {
     if (!user) return;
@@ -85,7 +103,10 @@ const Dashboard = () => {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm animate-pulse">Loading your workspace...</p>
+        </div>
       </div>
     );
   }
@@ -123,16 +144,27 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <AppSidebar
-        activeView={activeView}
-        onViewChange={setActiveView}
-        profile={profile}
-      />
-      <main className="flex-1 overflow-auto">
-        {renderActiveView()}
-      </main>
-    </div>
+    <>
+      <AnimatePresence>
+        {showOnboarding && (
+          <OnboardingFlow
+            onComplete={completeOnboarding}
+            userName={profile?.display_name || undefined}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="min-h-screen bg-background flex">
+        <AppSidebar
+          activeView={activeView}
+          onViewChange={setActiveView}
+          profile={profile}
+        />
+        <main className="flex-1 overflow-auto">
+          {renderActiveView()}
+        </main>
+      </div>
+    </>
   );
 };
 
