@@ -87,8 +87,9 @@ const AppSidebar = ({ activeView, onViewChange, profile }: AppSidebarProps) => {
           x: isOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024) ? -300 : 0,
           width: isCollapsed ? 72 : 260
         }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className={cn(
-          "fixed lg:relative z-40 h-screen bg-card border-r border-border flex flex-col transition-all duration-300",
+          "fixed lg:relative z-40 h-screen bg-card border-r border-border flex flex-col",
           "lg:translate-x-0"
         )}
       >
