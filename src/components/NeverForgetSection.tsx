@@ -80,7 +80,7 @@ const NeverForgetSection = () => {
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.5 }}
           >
-            <Button variant="glow" size="xl">
+            <Button variant="hero" size="xl">
               Join The Waitlist
             </Button>
           </motion.div>
