@@ -3,8 +3,9 @@ import { format, isSameDay, parseISO, startOfMonth, endOfMonth, eachDayOfInterva
 import { 
   BookOpen, Video, VideoOff, Download, Trash2, Plus, Calendar, 
   Smile, Frown, Meh, Heart, Zap, Cloud, Sun, Moon, Loader2,
-  Camera, Square, Play, X, ChevronLeft, ChevronRight
+  Camera, Square, Play, X, ChevronLeft, ChevronRight, BarChart3
 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { JournalAnalytics } from './JournalAnalytics';
 
 interface JournalEntry {
   id: string;
@@ -312,7 +314,26 @@ export function Journal() {
   };
 
   return (
-    <div className="h-full flex flex-col lg:flex-row gap-4 p-4">
+    <Tabs defaultValue="journal" className="h-full flex flex-col">
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <TabsList className="bg-secondary/50">
+          <TabsTrigger value="journal" className="gap-2">
+            <BookOpen className="h-4 w-4" />
+            <span className="hidden sm:inline">Journal</span>
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Analytics</span>
+          </TabsTrigger>
+        </TabsList>
+      </div>
+      
+      <TabsContent value="analytics" className="flex-1 m-0 overflow-auto">
+        <JournalAnalytics />
+      </TabsContent>
+      
+      <TabsContent value="journal" className="flex-1 m-0 overflow-hidden">
+        <div className="h-full flex flex-col lg:flex-row gap-4 p-4 pt-0">
       {/* Calendar Sidebar */}
       <Card className="lg:w-80 flex-shrink-0 border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader className="pb-2">
@@ -551,5 +572,7 @@ export function Journal() {
         </CardContent>
       </Card>
     </div>
+      </TabsContent>
+    </Tabs>
   );
 }
