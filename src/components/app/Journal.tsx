@@ -165,12 +165,15 @@ export function Journal() {
       }
     };
     
-    mediaRecorder.onstop = () => {
+    mediaRecorder.onstop = async () => {
       const blob = new Blob(chunksRef.current, { type: 'video/webm' });
       setRecordedBlob(blob);
       const url = URL.createObjectURL(blob);
       setRecordedUrl(url);
       stopCamera();
+      
+      // Transcribe the video audio
+      await transcribeVideo(blob);
     };
     
     mediaRecorderRef.current = mediaRecorder;
@@ -181,6 +184,47 @@ export function Journal() {
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
+    }
+  };
+
+  const transcribeVideo = async (blob: Blob) => {
+    setTranscribing(true);
+    try {
+      // Convert blob to base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+      });
+      reader.readAsDataURL(blob);
+      const base64Audio = await base64Promise;
+
+      const { data, error } = await supabase.functions.invoke('transcribe-video', {
+        body: { audio: base64Audio }
+      });
+
+      if (error) throw error;
+      
+      if (data?.text) {
+        setTranscript(data.text);
+        toast({
+          title: 'Transcription Complete',
+          description: 'Your video has been transcribed.',
+        });
+      } else if (data?.message) {
+        console.log('Transcription note:', data.message);
+      }
+    } catch (error: any) {
+      console.error('Transcription error:', error);
+      toast({
+        title: 'Transcription Failed',
+        description: 'Could not transcribe video. You can still save the entry.',
+        variant: 'destructive',
+      });
+    } finally {
+      setTranscribing(false);
     }
   };
 
@@ -239,6 +283,7 @@ export function Journal() {
         content: content || null,
         mood: selectedMood,
         video_url: videoUrl,
+        transcript: transcript || null,
         entry_date: format(selectedDate, 'yyyy-MM-dd'),
       };
 
@@ -571,6 +616,20 @@ export function Journal() {
               <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Uploading video...
+              </div>
+            )}
+            
+            {transcribing && (
+              <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Transcribing video...
+              </div>
+            )}
+            
+            {transcript && (
+              <div className="mt-4 p-3 bg-secondary/50 rounded-lg">
+                <label className="text-xs text-muted-foreground mb-1 block font-medium">Transcript</label>
+                <p className="text-sm whitespace-pre-wrap">{transcript}</p>
               </div>
             )}
           </div>
