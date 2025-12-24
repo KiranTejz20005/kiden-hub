@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Profile, Collection } from '@/lib/types';
+import { Profile } from '@/lib/types';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { Search, Plus, Monitor, Sparkles, Clock, Globe, Folder, ArrowRight, Zap, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,6 @@ import { cn } from '@/lib/utils';
 interface CommandCenterProps {
   profile: Profile | null;
   totalFocusMinutes: number;
-  collections: Collection[];
   onEnterFocus: () => void;
   onNewThought: () => void;
   onAIAssistant: () => void;
@@ -17,11 +17,11 @@ interface CommandCenterProps {
 const CommandCenter = ({
   profile,
   totalFocusMinutes,
-  collections,
   onEnterFocus,
   onNewThought,
   onAIAssistant
 }: CommandCenterProps) => {
+  const { collections } = useWorkspace();
   const displayName = profile?.display_name || 'there';
   const hours = Math.floor(totalFocusMinutes / 60);
   const mins = totalFocusMinutes % 60;
