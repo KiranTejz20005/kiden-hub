@@ -52,7 +52,7 @@ const FinalCTA = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="flex flex-col items-center gap-4"
           >
-            <Button variant="glow" size="xl" className="group">
+            <Button variant="hero" size="xl" className="group">
               Join the Kaiden Waitlist
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>

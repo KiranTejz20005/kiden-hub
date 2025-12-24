@@ -6,47 +6,44 @@
 
 @layer base {
   :root {
-    /* Kaiden Brand - Dark cinematic theme with teal/green accents */
-    --background: 160 20% 6%;
+    /* Kiden Brand - Deep forest green theme */
+    --background: 150 25% 8%;
     --foreground: 60 10% 95%;
     
-    --card: 160 15% 10%;
+    --card: 150 20% 12%;
     --card-foreground: 60 10% 95%;
     
-    --popover: 160 15% 8%;
+    --popover: 150 20% 10%;
     --popover-foreground: 60 10% 95%;
     
-    /* Primary - Teal/Cyan accent */
-    --primary: 168 60% 45%;
-    --primary-foreground: 160 20% 6%;
+    /* Primary - Emerald green accent */
+    --primary: 160 65% 45%;
+    --primary-foreground: 150 25% 8%;
     
-    /* Secondary - Muted forest green */
-    --secondary: 160 15% 15%;
+    /* Secondary - Muted forest */
+    --secondary: 150 20% 15%;
     --secondary-foreground: 60 10% 90%;
     
-    --muted: 160 10% 18%;
-    --muted-foreground: 160 10% 55%;
+    --muted: 150 15% 20%;
+    --muted-foreground: 150 10% 55%;
     
-    /* Accent - Bright teal glow */
-    --accent: 168 70% 50%;
-    --accent-foreground: 160 20% 6%;
+    /* Accent - Bright emerald */
+    --accent: 160 70% 50%;
+    --accent-foreground: 150 25% 8%;
     
     --destructive: 0 84% 60%;
     --destructive-foreground: 60 10% 95%;
     
-    --border: 160 15% 20%;
-    --input: 160 15% 15%;
-    --ring: 168 60% 45%;
+    --border: 150 15% 20%;
+    --input: 150 15% 15%;
+    --ring: 160 65% 45%;
     
     --radius: 0.75rem;
     
-    /* Custom Kaiden tokens */
-    --glow-primary: 168 70% 50%;
-    --glow-soft: 160 40% 30%;
-    --surface-glass: 160 20% 8%;
-    --text-dim: 160 10% 45%;
-    --hero-gradient-start: 160 25% 4%;
-    --hero-gradient-end: 168 30% 8%;
+    /* Custom tokens */
+    --glow-primary: 160 70% 50%;
+    --glow-soft: 150 40% 25%;
+    --surface-glass: 150 20% 10%;
   }
 }
 
@@ -70,54 +67,62 @@
 }
 
 @layer components {
-  /* Glass morphism effect */
+  /* Glass morphism */
   .glass {
-    @apply bg-card/60 backdrop-blur-xl border border-border/40;
+    @apply bg-card/40 backdrop-blur-xl border border-border/30;
   }
   
   .glass-strong {
-    @apply bg-card/80 backdrop-blur-2xl border border-border/60;
+    @apply bg-card/70 backdrop-blur-2xl border border-border/50;
   }
   
   /* Gradient text */
-  .text-gradient {
-    @apply bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent;
-  }
-  
   .text-gradient-primary {
     @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
   }
   
   /* Glow effects */
   .glow-primary {
-    box-shadow: 0 0 60px -15px hsl(var(--glow-primary) / 0.4);
+    box-shadow: 0 0 80px -20px hsl(var(--glow-primary) / 0.5);
   }
   
   .glow-soft {
-    box-shadow: 0 0 80px -20px hsl(var(--glow-soft) / 0.3);
+    box-shadow: 0 0 60px -15px hsl(var(--glow-soft) / 0.4);
   }
   
-  .glow-card {
-    box-shadow: 
-      0 0 0 1px hsl(var(--border) / 0.5),
-      0 4px 20px -4px hsl(var(--background) / 0.8),
-      0 0 40px -10px hsl(var(--glow-primary) / 0.15);
-  }
-  
-  /* Hero gradient background */
+  /* Hero background */
   .hero-gradient {
     background: 
-      radial-gradient(ellipse 80% 60% at 50% 0%, hsl(var(--glow-primary) / 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse 60% 50% at 80% 20%, hsl(var(--glow-soft) / 0.1) 0%, transparent 40%),
-      linear-gradient(180deg, hsl(var(--hero-gradient-start)) 0%, hsl(var(--hero-gradient-end)) 100%);
+      radial-gradient(ellipse 100% 80% at 50% 20%, hsl(var(--glow-primary) / 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 20% 80%, hsl(var(--glow-soft) / 0.08) 0%, transparent 50%),
+      hsl(var(--background));
   }
   
-  /* Section divider gradient */
-  .section-gradient {
-    background: linear-gradient(180deg, transparent 0%, hsl(var(--background)) 100%);
+  /* Floating icon style */
+  .floating-icon {
+    @apply w-14 h-14 rounded-2xl flex items-center justify-center bg-card/60 backdrop-blur-sm border border-border/30 shadow-lg;
   }
   
-  /* Animated underline for links */
+  /* Navigation pill */
+  .nav-pill {
+    @apply bg-card/70 backdrop-blur-xl border border-border/40 rounded-full px-2 py-1.5;
+  }
+  
+  /* Badge pill */
+  .badge-pill {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium tracking-wider uppercase;
+  }
+  
+  /* Product preview window */
+  .preview-window {
+    @apply bg-card/50 backdrop-blur-xl border border-border/30 rounded-3xl overflow-hidden;
+    box-shadow: 
+      0 0 0 1px hsl(var(--border) / 0.3),
+      0 25px 80px -20px hsl(0 0% 0% / 0.5),
+      0 0 100px -30px hsl(var(--glow-primary) / 0.2);
+  }
+  
+  /* Link underline animation */
   .link-underline {
     @apply relative;
   }
@@ -131,59 +136,21 @@
     @apply scale-x-100 origin-left;
   }
   
-  /* Card hover effect */
+  /* Card hover */
   .card-hover {
     @apply transition-all duration-300 ease-out;
   }
   
   .card-hover:hover {
     @apply -translate-y-1;
-    box-shadow: 
-      0 0 0 1px hsl(var(--primary) / 0.2),
-      0 8px 30px -8px hsl(var(--background) / 0.9),
-      0 0 50px -15px hsl(var(--glow-primary) / 0.25);
-  }
-  
-  /* Feature card grid lines */
-  .grid-pattern {
-    background-image: 
-      linear-gradient(hsl(var(--border) / 0.3) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border) / 0.3) 1px, transparent 1px);
-    background-size: 40px 40px;
-  }
-  
-  /* Noise texture overlay */
-  .noise-overlay::before {
-    content: '';
-    @apply absolute inset-0 opacity-[0.015] pointer-events-none;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    box-shadow: 0 0 50px -15px hsl(var(--glow-primary) / 0.3);
   }
 }
 
 @layer utilities {
-  /* Animation delays */
   .delay-100 { animation-delay: 100ms; }
   .delay-200 { animation-delay: 200ms; }
   .delay-300 { animation-delay: 300ms; }
   .delay-400 { animation-delay: 400ms; }
   .delay-500 { animation-delay: 500ms; }
-  .delay-600 { animation-delay: 600ms; }
-  
-  /* Custom scrollbar */
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  
-  .scrollbar-thin::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
-  
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full;
-  }
-  
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/40;
-  }
 }
