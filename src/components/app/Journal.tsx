@@ -26,6 +26,7 @@ interface JournalEntry {
   content: string | null;
   mood: string | null;
   video_url: string | null;
+  transcript: string | null;
   entry_date: string;
   created_at: string;
   updated_at: string;
@@ -53,6 +54,8 @@ export function Journal() {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [transcript, setTranscript] = useState('');
   const [showCamera, setShowCamera] = useState(false);
   const [existingEntry, setExistingEntry] = useState<JournalEntry | null>(null);
   
@@ -82,6 +85,7 @@ export function Journal() {
       setContent(entry.content || '');
       setSelectedMood(entry.mood);
       setRecordedUrl(entry.video_url);
+      setTranscript(entry.transcript || '');
       setRecordedBlob(null);
     } else {
       setExistingEntry(null);
@@ -89,6 +93,7 @@ export function Journal() {
       setContent('');
       setSelectedMood(null);
       setRecordedUrl(null);
+      setTranscript('');
       setRecordedBlob(null);
     }
   }, [selectedDate, entries]);

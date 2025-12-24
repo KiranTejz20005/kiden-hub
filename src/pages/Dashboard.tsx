@@ -15,9 +15,11 @@ import FocusMode from '@/components/app/FocusMode';
 import Templates from '@/components/app/Templates';
 import OnboardingFlow from '@/components/app/OnboardingFlow';
 import { Journal } from '@/components/app/Journal';
+import { BookTracker } from '@/components/app/BookTracker';
+import { HabitTracker } from '@/components/app/HabitTracker';
 import { Loader2 } from 'lucide-react';
 
-type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal';
+type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits';
 
 const ONBOARDING_KEY = 'kiden_onboarding_completed';
 
@@ -130,6 +132,10 @@ const DashboardContent = () => {
         return <Templates />;
       case 'journal':
         return <Journal />;
+      case 'books':
+        return <BookTracker />;
+      case 'habits':
+        return <HabitTracker />;
       default:
         return null;
     }

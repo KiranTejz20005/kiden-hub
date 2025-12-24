@@ -16,7 +16,9 @@ import {
   Menu,
   X,
   ChevronLeft,
-  BookOpen
+  BookOpen,
+  Library,
+  Target
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -24,7 +26,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal';
+type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits';
 
 interface AppSidebarProps {
   activeView: ActiveView;
@@ -39,6 +41,8 @@ const navItems = [
   { id: 'chat', label: 'AI CHAT', icon: MessageSquare },
   { id: 'notebook', label: 'NOTEBOOK', icon: FileText },
   { id: 'journal', label: 'JOURNAL', icon: BookOpen },
+  { id: 'books', label: 'BOOKS', icon: Library },
+  { id: 'habits', label: 'HABITS', icon: Target },
   { id: 'templates', label: 'TEMPLATES', icon: LayoutTemplate },
 ] as const;
 
