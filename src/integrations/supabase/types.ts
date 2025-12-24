@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      books: {
+        Row: {
+          author: string | null
+          completed_at: string | null
+          cover_url: string | null
+          created_at: string
+          current_page: number
+          id: string
+          notes: string | null
+          started_at: string | null
+          status: string
+          title: string
+          total_pages: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author?: string | null
+          completed_at?: string | null
+          cover_url?: string | null
+          created_at?: string
+          current_page?: number
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string
+          title: string
+          total_pages?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author?: string | null
+          completed_at?: string | null
+          cover_url?: string | null
+          created_at?: string
+          current_page?: number
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string
+          title?: string
+          total_pages?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
@@ -126,6 +174,68 @@ export type Database = {
           },
         ]
       }
+      habit_logs: {
+        Row: {
+          completed_date: string
+          created_at: string
+          habit_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          completed_date: string
+          created_at?: string
+          habit_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          completed_date?: string
+          created_at?: string
+          habit_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_logs_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          color: string
+          created_at: string
+          icon: string
+          id: string
+          is_active: boolean
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ideas: {
         Row: {
           category: string
@@ -172,6 +282,7 @@ export type Database = {
           id: string
           mood: string | null
           title: string | null
+          transcript: string | null
           updated_at: string
           user_id: string
           video_url: string | null
@@ -183,6 +294,7 @@ export type Database = {
           id?: string
           mood?: string | null
           title?: string | null
+          transcript?: string | null
           updated_at?: string
           user_id: string
           video_url?: string | null
@@ -194,6 +306,7 @@ export type Database = {
           id?: string
           mood?: string | null
           title?: string | null
+          transcript?: string | null
           updated_at?: string
           user_id?: string
           video_url?: string | null
