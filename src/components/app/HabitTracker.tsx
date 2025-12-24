@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Target, Plus, Trash2, Edit2, Check, X, 
   ChevronLeft, ChevronRight, Loader2, Flame
@@ -279,93 +280,102 @@ export function HabitTracker() {
   };
 
   return (
-    <div className="h-full flex flex-col p-4 gap-4">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="h-full flex flex-col p-4 gap-4"
+    >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Target className="h-6 w-6 text-primary" />
-            Habit Tracker
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Track your daily habits and build consistency
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Target className="h-6 w-6 text-primary" />
+              Habit Tracker
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Track your daily habits and build consistency
+            </p>
+          </div>
+          
+          <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
+            <DialogTrigger asChild>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Habit
+                </Button>
+              </motion.div>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>{editingHabit ? 'Edit Habit' : 'Add New Habit'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <Input
+                  placeholder="Habit name *"
+                  value={habitName}
+                  onChange={(e) => setHabitName(e.target.value)}
+                />
+                
+                <div>
+                  <label className="text-xs text-muted-foreground mb-2 block">Icon</label>
+                  <div className="flex flex-wrap gap-2">
+                    {iconOptions.map(icon => (
+                      <button
+                        key={icon}
+                        onClick={() => setHabitIcon(icon)}
+                        className={cn(
+                          "w-10 h-10 rounded-lg text-lg flex items-center justify-center transition-all duration-200",
+                          habitIcon === icon 
+                            ? "bg-primary text-primary-foreground scale-110" 
+                            : "bg-secondary hover:bg-secondary/80"
+                        )}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-xs text-muted-foreground mb-2 block">Color</label>
+                  <div className="flex flex-wrap gap-2">
+                    {colorOptions.map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setHabitColor(color)}
+                        className={cn(
+                          "w-8 h-8 rounded-full transition-all duration-200",
+                          habitColor === color && "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110"
+                        )}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                
+                <Button onClick={saveHabit} disabled={saving || !habitName.trim()} className="w-full">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {editingHabit ? 'Update Habit' : 'Add Habit'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
         
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
+        <div className="flex items-center justify-center gap-2 bg-card/50 rounded-lg p-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium min-w-32 text-center">
+          <span className="text-sm font-medium min-w-40 text-center">
             {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d, yyyy')}
           </span>
-          <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, 1))}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekStart(addWeeks(weekStart, 1))}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Habit
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>{editingHabit ? 'Edit Habit' : 'Add New Habit'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <Input
-                placeholder="Habit name *"
-                value={habitName}
-                onChange={(e) => setHabitName(e.target.value)}
-              />
-              
-              <div>
-                <label className="text-xs text-muted-foreground mb-2 block">Icon</label>
-                <div className="flex flex-wrap gap-2">
-                  {iconOptions.map(icon => (
-                    <button
-                      key={icon}
-                      onClick={() => setHabitIcon(icon)}
-                      className={cn(
-                        "w-10 h-10 rounded-lg text-lg flex items-center justify-center transition-colors",
-                        habitIcon === icon 
-                          ? "bg-primary text-primary-foreground" 
-                          : "bg-secondary hover:bg-secondary/80"
-                      )}
-                    >
-                      {icon}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-xs text-muted-foreground mb-2 block">Color</label>
-                <div className="flex flex-wrap gap-2">
-                  {colorOptions.map(color => (
-                    <button
-                      key={color}
-                      onClick={() => setHabitColor(color)}
-                      className={cn(
-                        "w-8 h-8 rounded-full transition-transform",
-                        habitColor === color && "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110"
-                      )}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
-              </div>
-              
-              <Button onClick={saveHabit} disabled={saving || !habitName.trim()} className="w-full">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {editingHabit ? 'Update Habit' : 'Add Habit'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Habits Table */}
@@ -481,6 +491,6 @@ export function HabitTracker() {
           </div>
         </ScrollArea>
       </Card>
-    </div>
+    </motion.div>
   );
 }

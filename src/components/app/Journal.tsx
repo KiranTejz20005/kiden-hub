@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isToday } from 'date-fns';
 import { 
   BookOpen, Video, VideoOff, Download, Trash2, Plus, Calendar, 
@@ -364,28 +365,34 @@ export function Journal() {
   };
 
   return (
-    <Tabs defaultValue="journal" className="h-full flex flex-col">
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <TabsList className="bg-secondary/50">
-          <TabsTrigger value="journal" className="gap-2">
-            <BookOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">Journal</span>
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="gap-2">
-            <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Analytics</span>
-          </TabsTrigger>
-        </TabsList>
-      </div>
-      
-      <TabsContent value="analytics" className="flex-1 m-0 overflow-auto">
-        <JournalAnalytics />
-      </TabsContent>
-      
-      <TabsContent value="journal" className="flex-1 m-0 overflow-hidden">
-        <div className="h-full flex flex-col lg:flex-row gap-4 p-4 pt-0">
-      {/* Calendar Sidebar */}
-      <Card className="lg:w-80 flex-shrink-0 border-border/50 bg-card/50 backdrop-blur-sm">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="h-full"
+    >
+      <Tabs defaultValue="journal" className="h-full flex flex-col">
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <TabsList className="bg-secondary/50">
+            <TabsTrigger value="journal" className="gap-2">
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Journal</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Analytics</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        
+        <TabsContent value="analytics" className="flex-1 m-0 overflow-auto">
+          <JournalAnalytics />
+        </TabsContent>
+        
+        <TabsContent value="journal" className="flex-1 m-0 overflow-hidden">
+          <div className="h-full flex flex-col lg:flex-row gap-4 p-4 pt-0">
+            {/* Calendar Sidebar */}
+            <Card className="lg:w-80 flex-shrink-0 border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -634,9 +641,10 @@ export function Journal() {
             )}
           </div>
         </CardContent>
-      </Card>
-    </div>
-      </TabsContent>
-    </Tabs>
+          </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </motion.div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BookOpen, Plus, Trash2, Edit2, Check, X, Search,
   BookMarked, BookCheck, Pause, Library, Loader2
@@ -205,7 +206,12 @@ export function BookTracker() {
   };
 
   return (
-    <div className="h-full flex flex-col p-4 gap-4">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="h-full flex flex-col p-4 gap-4"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -386,6 +392,6 @@ export function BookTracker() {
           </div>
         )}
       </ScrollArea>
-    </div>
+    </motion.div>
   );
 }
