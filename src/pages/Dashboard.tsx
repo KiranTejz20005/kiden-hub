@@ -17,9 +17,10 @@ import OnboardingFlow from '@/components/app/OnboardingFlow';
 import { Journal } from '@/components/app/Journal';
 import { BookTracker } from '@/components/app/BookTracker';
 import { HabitTracker } from '@/components/app/HabitTracker';
+import { SpotifyPlayer } from '@/components/app/SpotifyPlayer';
 import { Loader2 } from 'lucide-react';
 
-type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits';
+type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify';
 
 const ONBOARDING_KEY = 'kiden_onboarding_completed';
 
@@ -136,6 +137,8 @@ const DashboardContent = () => {
         return <BookTracker />;
       case 'habits':
         return <HabitTracker />;
+      case 'spotify':
+        return <SpotifyPlayer />;
       default:
         return null;
     }
