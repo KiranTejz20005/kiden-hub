@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Trash2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
+import { cn } from '@/lib/utils';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -14,6 +15,13 @@ interface Message {
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
+const suggestedPrompts = [
+  "Help me brainstorm ideas for a new project",
+  "Summarize my recent notes",
+  "Create a study plan for learning something new",
+  "Help me write a professional email"
+];
 
 const AIChat = () => {
   const { user } = useAuth();
@@ -27,11 +35,12 @@ const AIChat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  const sendMessage = async (content?: string) => {
+    const messageContent = content || input.trim();
+    if (!messageContent || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: input.trim() };
-    setMessages((prev) => [...prev, userMessage]);
+    const userMessage: Message = { role: 'user', content: messageContent };
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
@@ -53,27 +62,18 @@ const AIChat = () => {
         return;
       }
 
-      if (response.status === 402) {
-        toast.error('AI usage limit reached. Please add credits.');
-        setIsLoading(false);
-        return;
-      }
-
-      if (!response.ok || !response.body) {
-        throw new Error('Failed to start stream');
-      }
+      if (!response.ok || !response.body) throw new Error('Failed to start stream');
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let textBuffer = '';
 
-      // Add empty assistant message
-      setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         textBuffer += decoder.decode(value, { stream: true });
 
         let newlineIndex: number;
@@ -90,10 +90,10 @@ const AIChat = () => {
 
           try {
             const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
               assistantContent += content;
-              setMessages((prev) => {
+              setMessages(prev => {
                 const newMessages = [...prev];
                 const lastIndex = newMessages.length - 1;
                 if (newMessages[lastIndex]?.role === 'assistant') {
@@ -109,7 +109,6 @@ const AIChat = () => {
         }
       }
 
-      // Save messages to database
       if (user && assistantContent) {
         await supabase.from('chat_messages').insert([
           { user_id: user.id, conversation_id: conversationId, role: 'user', content: userMessage.content },
@@ -124,86 +123,175 @@ const AIChat = () => {
     }
   };
 
-  return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col p-4">
-      <div className="mb-4">
-        <h1 className="text-xl font-bold text-foreground">AI Assistant</h1>
-        <p className="text-sm text-muted-foreground">Powered by Kiden Intelligence</p>
-      </div>
+  const clearChat = () => {
+    setMessages([]);
+    toast.success('Chat cleared');
+  };
 
-      {/* Messages */}
-      <div className="flex-1 overflow-auto space-y-4 mb-4">
-        {messages.length === 0 && (
-          <div className="text-center py-20">
-            <Bot className="w-16 h-16 mx-auto mb-4 text-primary/30" />
-            <h3 className="text-lg text-muted-foreground mb-2">Start a conversation</h3>
-            <p className="text-sm text-muted-foreground/60">
-              Ask me anything about your projects, ideas, or get help with writing.
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="h-[calc(100vh-2rem)] flex flex-col p-4 pt-16 lg:pt-4"
+    >
+      {/* Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-4 flex items-center justify-between"
+      >
+        <div className="flex items-center gap-3">
+          <motion.div
+            animate={{ rotate: [0, 360] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet to-primary flex items-center justify-center"
+          >
+            <Bot className="w-5 h-5 text-white" />
+          </motion.div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">AI Assistant</h1>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              Powered by Kiden Intelligence
             </p>
           </div>
+        </div>
+        {messages.length > 0 && (
+          <Button variant="ghost" size="sm" onClick={clearChat} className="text-muted-foreground">
+            <Trash2 className="w-4 h-4 mr-1" />
+            Clear
+          </Button>
         )}
+      </motion.div>
 
-        {messages.map((message, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            {message.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                <Bot className="w-4 h-4 text-primary" />
-              </div>
-            )}
-            <div
-              className={`max-w-[70%] rounded-2xl px-4 py-3 ${
-                message.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card border border-border text-foreground'
-              }`}
+      {/* Messages */}
+      <div className="flex-1 overflow-auto space-y-4 mb-4 px-2">
+        <AnimatePresence mode="popLayout">
+          {messages.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="h-full flex flex-col items-center justify-center py-20"
             >
-              <p className="whitespace-pre-wrap">{message.content}</p>
-            </div>
-            {message.role === 'user' && (
-              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                <User className="w-4 h-4 text-foreground" />
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              >
+                <Bot className="w-20 h-20 text-primary/20 mb-6" />
+              </motion.div>
+              <h3 className="text-xl text-muted-foreground mb-2">Start a Conversation</h3>
+              <p className="text-sm text-muted-foreground/60 text-center max-w-md mb-6">
+                Ask me anything about your projects, ideas, or get help with writing.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-lg">
+                {suggestedPrompts.map((prompt, i) => (
+                  <motion.button
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    onClick={() => sendMessage(prompt)}
+                    className="p-3 rounded-xl bg-secondary/50 border border-border text-left text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
+                  >
+                    {prompt}
+                  </motion.button>
+                ))}
               </div>
-            )}
-          </motion.div>
-        ))}
+            </motion.div>
+          )}
 
-        {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-          <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-              <Loader2 className="w-4 h-4 text-primary animate-spin" />
-            </div>
-            <div className="bg-card border border-border rounded-2xl px-4 py-3">
-              <p className="text-muted-foreground">Thinking...</p>
-            </div>
-          </div>
-        )}
+          {messages.map((message, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className={cn("flex gap-3", message.role === 'user' ? 'justify-end' : 'justify-start')}
+            >
+              {message.role === 'assistant' && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="w-8 h-8 rounded-full bg-gradient-to-br from-violet to-primary flex items-center justify-center flex-shrink-0"
+                >
+                  <Bot className="w-4 h-4 text-white" />
+                </motion.div>
+              )}
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                className={cn(
+                  "max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 shadow-lg",
+                  message.role === 'user'
+                    ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-tr-sm'
+                    : 'bg-card border border-border text-foreground rounded-tl-sm'
+                )}
+              >
+                <p className="whitespace-pre-wrap text-sm md:text-base">{message.content}</p>
+              </motion.div>
+              {message.role === 'user' && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"
+                >
+                  <User className="w-4 h-4 text-foreground" />
+                </motion.div>
+              )}
+            </motion.div>
+          ))}
 
+          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex gap-3"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet to-primary flex items-center justify-center">
+                <RefreshCw className="w-4 h-4 text-white animate-spin" />
+              </div>
+              <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3">
+                <motion.div
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="flex items-center gap-1"
+                >
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="w-2 h-2 rounded-full bg-primary animation-delay-200" />
+                  <span className="w-2 h-2 rounded-full bg-primary animation-delay-400" />
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <div className="flex gap-3">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex gap-3 p-2 bg-card/50 backdrop-blur-sm rounded-2xl border border-border"
+      >
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
-          className="flex-1 bg-card border-border h-12"
+          className="flex-1 bg-transparent border-none h-12 focus-visible:ring-0"
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
         />
         <Button
-          onClick={sendMessage}
+          onClick={() => sendMessage()}
           disabled={isLoading || !input.trim()}
-          className="h-12 w-12 bg-primary hover:bg-primary/90"
+          size="icon"
+          className="h-12 w-12 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
         >
           <Send className="w-5 h-5" />
         </Button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
