@@ -1,5 +1,8 @@
 import { motion } from 'framer-motion';
 import { Profile } from '@/lib/types';
+import { useWorkspace } from '@/hooks/useWorkspace';
+import WorkspaceManager from './WorkspaceManager';
+import CollectionsManager from './CollectionsManager';
 import kidenLogo from '@/assets/kiden-logo.png';
 import {
   LayoutDashboard,
@@ -9,7 +12,6 @@ import {
   FileText,
   Timer,
   LayoutTemplate,
-  Plus,
   LogOut,
   Menu,
   X,
@@ -19,6 +21,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates';
 
@@ -39,6 +42,7 @@ const navItems = [
 
 const AppSidebar = ({ activeView, onViewChange, profile }: AppSidebarProps) => {
   const { signOut } = useAuth();
+  const { activeWorkspace, activeCollection, setActiveWorkspace, setActiveCollection } = useWorkspace();
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -75,7 +79,7 @@ const AppSidebar = ({ activeView, onViewChange, profile }: AppSidebarProps) => {
         initial={false}
         animate={{ 
           x: isOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024) ? -300 : 0,
-          width: isCollapsed ? 72 : 224
+          width: isCollapsed ? 72 : 260
         }}
         className={cn(
           "fixed lg:relative z-40 h-screen bg-card border-r border-border flex flex-col transition-all duration-300",
@@ -127,44 +131,52 @@ const AppSidebar = ({ activeView, onViewChange, profile }: AppSidebarProps) => {
           </Button>
         )}
 
-        {/* Navigation */}
-        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-          {navItems.map((item, index) => (
-            <motion.button
-              key={item.id}
-              onClick={() => handleViewChange(item.id as ActiveView)}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
-              whileHover={{ scale: 1.02, x: 4 }}
-              whileTap={{ scale: 0.98 }}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200",
-                isCollapsed && "justify-center px-2",
-                activeView === item.id
-                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-              )}
-            >
-              <item.icon className={cn("w-5 h-5", isCollapsed && "w-6 h-6")} />
-              {!isCollapsed && (
-                <span className="tracking-wide font-medium">{item.label}</span>
-              )}
-            </motion.button>
-          ))}
-        </nav>
-
-        {/* Workspace section */}
-        {!isCollapsed && (
-          <div className="p-4 border-t border-border">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
-              <span className="tracking-widest">WORKSPACE</span>
-              <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}>
-                <Plus className="w-4 h-4 cursor-pointer hover:text-foreground transition-colors" />
+        <ScrollArea className="flex-1">
+          {/* Navigation */}
+          <nav className="p-2 space-y-1">
+            {navItems.map((item, index) => (
+              <motion.button
+                key={item.id}
+                onClick={() => handleViewChange(item.id as ActiveView)}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ scale: 1.02, x: 4 }}
+                whileTap={{ scale: 0.98 }}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200",
+                  isCollapsed && "justify-center px-2",
+                  activeView === item.id
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                )}
+              >
+                <item.icon className={cn("w-5 h-5", isCollapsed && "w-6 h-6")} />
+                {!isCollapsed && (
+                  <span className="tracking-wide font-medium">{item.label}</span>
+                )}
               </motion.button>
-            </div>
+            ))}
+          </nav>
+
+          {/* Workspace & Collections */}
+          <div className="p-4 space-y-6">
+            <WorkspaceManager
+              activeWorkspace={activeWorkspace}
+              onWorkspaceChange={setActiveWorkspace}
+              isCollapsed={isCollapsed}
+            />
+            
+            {!isCollapsed && activeWorkspace && (
+              <CollectionsManager
+                workspace={activeWorkspace}
+                activeCollection={activeCollection}
+                onCollectionChange={setActiveCollection}
+                isCollapsed={isCollapsed}
+              />
+            )}
           </div>
-        )}
+        </ScrollArea>
 
         {/* User section */}
         <div className={cn(

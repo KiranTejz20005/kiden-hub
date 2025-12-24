@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { WorkspaceProvider } from '@/hooks/useWorkspace';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile, FocusSession, Collection, FocusSettings } from '@/lib/types';
+import { Profile, FocusSettings } from '@/lib/types';
 import AppSidebar from '@/components/app/AppSidebar';
 import CommandCenter from '@/components/app/CommandCenter';
 import IdeaBar from '@/components/app/IdeaBar';
@@ -19,13 +20,12 @@ type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' 
 
 const ONBOARDING_KEY = 'kiden_onboarding_completed';
 
-const Dashboard = () => {
+const DashboardContent = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState<ActiveView>('command');
   const [profile, setProfile] = useState<Profile | null>(null);
   const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
-  const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -83,16 +83,6 @@ const Dashboard = () => {
         const total = sessionsData.reduce((acc, s) => acc + s.duration_minutes, 0);
         setTotalFocusMinutes(total);
       }
-
-      // Fetch collections
-      const { data: collectionsData } = await supabase
-        .from('collections')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (collectionsData) {
-        setCollections(collectionsData as Collection[]);
-      }
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
@@ -120,7 +110,6 @@ const Dashboard = () => {
           <CommandCenter
             profile={profile}
             totalFocusMinutes={totalFocusMinutes}
-            collections={collections}
             onEnterFocus={() => setActiveView('focus')}
             onNewThought={() => setActiveView('ideas')}
             onAIAssistant={() => setActiveView('chat')}
@@ -165,6 +154,14 @@ const Dashboard = () => {
         </main>
       </div>
     </>
+  );
+};
+
+const Dashboard = () => {
+  return (
+    <WorkspaceProvider>
+      <DashboardContent />
+    </WorkspaceProvider>
   );
 };
 
