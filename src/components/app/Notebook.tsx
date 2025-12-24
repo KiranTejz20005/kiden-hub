@@ -5,12 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Note } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import BlockEditor, { Block } from './BlockEditor';
 import NotebookAI from './NotebookAI';
 import { v4 as uuidv4 } from 'uuid';
 import { 
   Plus, FileText, Search, Star, Archive, Trash2, 
-  Sparkles, Menu, X, ChevronLeft
+  Sparkles, Menu, X, PanelRightOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,7 @@ const Notebook = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [showAI, setShowAI] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [blocks, setBlocks] = useState<Block[]>([{ id: uuidv4(), type: 'paragraph', content: '' }]);
 
   useEffect(() => {
@@ -73,6 +74,7 @@ const Notebook = () => {
       setNotes(prev => [newNote, ...prev]);
       setSelectedNote(newNote);
       setBlocks(newBlocks);
+      setSidebarOpen(false);
       toast.success('Note created!');
     }
   };
@@ -110,24 +112,47 @@ const Notebook = () => {
 
   const filteredNotes = notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
+  // Mobile AI Panel using Sheet
+  const AIPanel = () => (
+    <NotebookAI
+      noteContent={getPlainText()}
+      noteTitle={selectedNote?.title || ''}
+      onInsert={handleAIInsert}
+      onClose={() => setShowAI(false)}
+    />
+  );
+
   return (
     <div className="h-[calc(100vh-2rem)] flex relative overflow-hidden">
       {/* Mobile sidebar toggle */}
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-4 left-4 z-50 lg:hidden"
+        className="absolute top-4 left-4 z-50 lg:hidden bg-card/80 backdrop-blur-sm"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </Button>
 
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <motion.div
         initial={false}
-        animate={{ x: sidebarOpen ? 0 : -300 }}
+        animate={{ 
+          x: sidebarOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024) ? -300 : 0 
+        }}
         className={cn(
-          "absolute lg:relative z-40 w-72 h-full bg-card border-r border-border flex flex-col",
+          "fixed lg:relative z-40 w-72 h-full bg-card border-r border-border flex flex-col",
           "lg:translate-x-0"
         )}
       >
@@ -137,9 +162,11 @@ const Notebook = () => {
               <FileText className="w-5 h-5 text-primary" />
               Notebook
             </h2>
-            <Button onClick={createNote} size="icon" variant="ghost" className="hover:bg-primary/20">
-              <Plus className="w-4 h-4" />
-            </Button>
+            <motion.div whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}>
+              <Button onClick={createNote} size="icon" variant="ghost" className="hover:bg-primary/20">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </motion.div>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -154,12 +181,14 @@ const Notebook = () => {
 
         <div className="flex-1 overflow-auto p-2 space-y-1">
           <AnimatePresence mode="popLayout">
-            {filteredNotes.map((note) => (
+            {filteredNotes.map((note, i) => (
               <motion.button
                 key={note.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                transition={{ delay: i * 0.02 }}
+                whileHover={{ x: 4 }}
                 onClick={() => { setSelectedNote(note); setSidebarOpen(false); }}
                 className={cn(
                   "w-full text-left p-3 rounded-xl flex items-start gap-3 group transition-all",
@@ -181,10 +210,14 @@ const Notebook = () => {
           </AnimatePresence>
 
           {filteredNotes.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-8 text-muted-foreground"
+            >
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="text-sm">No notes yet</p>
-            </div>
+            </motion.div>
           )}
         </div>
       </motion.div>
@@ -193,57 +226,98 @@ const Notebook = () => {
       <div className="flex-1 flex flex-col min-w-0">
         {selectedNote ? (
           <>
-            <div className="flex items-center justify-between p-4 border-b border-border pl-14 lg:pl-4">
+            <div className="flex items-center justify-between p-3 md:p-4 border-b border-border pl-14 lg:pl-4 gap-2">
               <Input
                 value={selectedNote.title}
                 onChange={(e) => updateNote(selectedNote.id, { title: e.target.value })}
-                className="text-xl font-bold bg-transparent border-none p-0 h-auto focus-visible:ring-0 flex-1"
+                className="text-lg md:text-xl font-bold bg-transparent border-none p-0 h-auto focus-visible:ring-0 flex-1 min-w-0"
               />
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" onClick={() => setShowAI(!showAI)} className={cn(showAI && "bg-primary/20")}>
-                  <Sparkles className="w-4 h-4 text-primary" />
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Mobile: Use Sheet for AI */}
+                <Sheet open={showAI} onOpenChange={setShowAI}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="lg:hidden">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[85vh] p-0">
+                    <AIPanel />
+                  </SheetContent>
+                </Sheet>
+                
+                {/* Desktop: Toggle side panel */}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setShowAI(!showAI)} 
+                  className={cn("hidden lg:flex", showAI && "bg-primary/20")}
+                >
+                  <PanelRightOpen className="w-4 h-4 text-primary" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => updateNote(selectedNote.id, { is_favorite: !selectedNote.is_favorite })}>
+                
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => updateNote(selectedNote.id, { is_favorite: !selectedNote.is_favorite })}
+                >
                   <Star className={cn("w-4 h-4", selectedNote.is_favorite ? 'text-amber fill-amber' : 'text-muted-foreground')} />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => { updateNote(selectedNote.id, { is_archived: true }); setNotes(prev => prev.filter(n => n.id !== selectedNote.id)); setSelectedNote(null); }}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="hidden sm:flex"
+                  onClick={() => { 
+                    updateNote(selectedNote.id, { is_archived: true }); 
+                    setNotes(prev => prev.filter(n => n.id !== selectedNote.id)); 
+                    setSelectedNote(null); 
+                  }}
+                >
                   <Archive className="w-4 h-4 text-muted-foreground" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => deleteNote(selectedNote.id)}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => deleteNote(selectedNote.id)}
+                >
                   <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
                 </Button>
               </div>
             </div>
 
             <div className="flex-1 flex overflow-hidden">
-              <div className="flex-1 p-6 overflow-auto">
+              <div className="flex-1 p-4 md:p-6 overflow-auto">
                 <BlockEditor blocks={blocks} onChange={saveBlocks} />
               </div>
 
+              {/* Desktop AI Panel */}
               <AnimatePresence>
                 {showAI && (
                   <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: 320 }}
-                    exit={{ width: 0 }}
-                    className="overflow-hidden"
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 340, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    className="overflow-hidden hidden lg:block"
                   >
-                    <NotebookAI
-                      noteContent={getPlainText()}
-                      noteTitle={selectedNote.title}
-                      onInsert={handleAIInsert}
-                      onClose={() => setShowAI(false)}
-                    />
+                    <AIPanel />
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
-              <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-              <h3 className="text-lg text-muted-foreground mb-2">No note selected</h3>
+          <div className="flex-1 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              className="text-center"
+            >
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              >
+                <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
+              </motion.div>
+              <h3 className="text-lg text-muted-foreground mb-4">No note selected</h3>
               <Button onClick={createNote} variant="outline" className="gap-2">
                 <Plus className="w-4 h-4" /> Create new note
               </Button>
