@@ -1,13 +1,28 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import Header from "@/components/Header";
+import HeroSection from "@/components/HeroSection";
+import MeetKaidenSection from "@/components/MeetKaidenSection";
+import VisualSearchSection from "@/components/VisualSearchSection";
+import CanvasSection from "@/components/CanvasSection";
+import NeverForgetSection from "@/components/NeverForgetSection";
+import FeaturesGrid from "@/components/FeaturesGrid";
+import PersonasSection from "@/components/PersonasSection";
+import FinalCTA from "@/components/FinalCTA";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <main className="min-h-screen bg-background overflow-x-hidden">
+      <Header />
+      <HeroSection />
+      <MeetKaidenSection />
+      <VisualSearchSection />
+      <CanvasSection />
+      <NeverForgetSection />
+      <FeaturesGrid />
+      <PersonasSection />
+      <FinalCTA />
+      <Footer />
+    </main>
   );
 };
 
