@@ -1,14 +1,15 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-
 const Header = () => {
-  return (
-    <motion.header
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="fixed top-0 left-0 right-0 z-50 glass-strong"
-    >
+  return <motion.header initial={{
+    opacity: 0,
+    y: -20
+  }} animate={{
+    opacity: 1,
+    y: 0
+  }} transition={{
+    duration: 0.5
+  }} className="fixed top-0 left-0 right-0 z-50 glass-strong">
       <div className="container mx-auto px-6">
         <nav className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -16,9 +17,7 @@ const Header = () => {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-lg">K</span>
             </div>
-            <span className="font-serif text-xl font-semibold text-foreground">
-              kaiden
-            </span>
+            <span className="font-serif text-xl font-semibold text-foreground">kiden</span>
           </a>
 
           {/* Navigation Links */}
@@ -45,8 +44,6 @@ const Header = () => {
           </div>
         </nav>
       </div>
-    </motion.header>
-  );
+    </motion.header>;
 };
-
 export default Header;
