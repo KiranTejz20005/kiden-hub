@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { WorkspaceProvider } from '@/hooks/useWorkspace';
+import { SpotifyProvider } from '@/hooks/useSpotify';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, FocusSettings } from '@/lib/types';
 import AppSidebar from '@/components/app/AppSidebar';
@@ -18,16 +19,22 @@ import { Journal } from '@/components/app/Journal';
 import { BookTracker } from '@/components/app/BookTracker';
 import { HabitTracker } from '@/components/app/HabitTracker';
 import { SpotifyPlayer } from '@/components/app/SpotifyPlayer';
+import { SpotifyMiniPlayer } from '@/components/app/SpotifyMiniPlayer';
 import { Loader2 } from 'lucide-react';
 
 type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify';
 
 const ONBOARDING_KEY = 'kiden_onboarding_completed';
 
-const DashboardContent = () => {
+const DashboardContent = ({ 
+  activeView, 
+  setActiveView 
+}: { 
+  activeView: ActiveView;
+  setActiveView: (view: ActiveView) => void;
+}) => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [activeView, setActiveView] = useState<ActiveView>('command');
   const [profile, setProfile] = useState<Profile | null>(null);
   const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -155,7 +162,7 @@ const DashboardContent = () => {
         )}
       </AnimatePresence>
 
-      <div className="min-h-screen bg-background flex">
+      <div className="min-h-screen bg-background flex pb-16">
         <AppSidebar
           activeView={activeView}
           onViewChange={setActiveView}
@@ -165,14 +172,23 @@ const DashboardContent = () => {
           {renderActiveView()}
         </main>
       </div>
+
+      {/* Mini Player - persists across all views */}
+      {activeView !== 'spotify' && (
+        <SpotifyMiniPlayer onExpand={() => setActiveView('spotify')} />
+      )}
     </>
   );
 };
 
 const Dashboard = () => {
+  const [activeView, setActiveView] = useState<ActiveView>('command');
+
   return (
     <WorkspaceProvider>
-      <DashboardContent />
+      <SpotifyProvider>
+        <DashboardContent activeView={activeView} setActiveView={setActiveView} />
+      </SpotifyProvider>
     </WorkspaceProvider>
   );
 };
