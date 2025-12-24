@@ -14,9 +14,10 @@ import Notebook from '@/components/app/Notebook';
 import FocusMode from '@/components/app/FocusMode';
 import Templates from '@/components/app/Templates';
 import OnboardingFlow from '@/components/app/OnboardingFlow';
+import { Journal } from '@/components/app/Journal';
 import { Loader2 } from 'lucide-react';
 
-type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates';
+type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal';
 
 const ONBOARDING_KEY = 'kiden_onboarding_completed';
 
@@ -127,6 +128,8 @@ const DashboardContent = () => {
         return <FocusMode focusSettings={profile?.focus_settings} onComplete={fetchUserData} />;
       case 'templates':
         return <Templates />;
+      case 'journal':
+        return <Journal />;
       default:
         return null;
     }

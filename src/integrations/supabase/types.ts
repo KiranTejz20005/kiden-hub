@@ -164,6 +164,42 @@ export type Database = {
           },
         ]
       }
+      journal_entries: {
+        Row: {
+          content: string | null
+          created_at: string
+          entry_date: string
+          id: string
+          mood: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       media_extractions: {
         Row: {
           content: string | null
