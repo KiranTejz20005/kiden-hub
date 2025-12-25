@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.spotify-api]
 verify_jwt = false
+
+[functions.send-workspace-invite]
+verify_jwt = false
