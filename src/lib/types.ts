@@ -1,9 +1,12 @@
+export type UserStatus = 'online' | 'away' | 'dnd' | 'offline';
+
 export interface Profile {
   id: string;
   user_id: string;
   display_name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  status: UserStatus;
   focus_settings: FocusSettings;
   created_at: string;
   updated_at: string;

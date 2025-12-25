@@ -6,7 +6,7 @@ import { WorkspaceProvider } from '@/hooks/useWorkspace';
 import { SpotifyProvider } from '@/hooks/useSpotify';
 import { useWorkspaceInvitations } from '@/hooks/useWorkspaceInvitations';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile, FocusSettings } from '@/lib/types';
+import { Profile, FocusSettings, UserStatus } from '@/lib/types';
 import AppSidebar from '@/components/app/AppSidebar';
 import CommandCenter from '@/components/app/CommandCenter';
 import IdeaBar from '@/components/app/IdeaBar';
@@ -83,6 +83,7 @@ const DashboardContent = ({
       if (profileData) {
         setProfile({
           ...profileData,
+          status: (profileData.status as UserStatus) || 'online',
           focus_settings: profileData.focus_settings as unknown as FocusSettings
         });
       }
@@ -171,6 +172,7 @@ const DashboardContent = ({
           activeView={activeView}
           onViewChange={setActiveView}
           profile={profile}
+          onProfileUpdate={fetchUserData}
         />
         <main className="flex-1 overflow-auto min-h-0 pt-14 lg:pt-0">
           {renderActiveView()}

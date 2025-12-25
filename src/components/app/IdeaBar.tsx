@@ -46,7 +46,14 @@ const IdeaBar = () => {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (!error && data) setIdeas(data as Idea[]);
+    if (!error && data) {
+      // Map database records to properly typed Idea objects
+      const mappedIdeas: Idea[] = data.map(item => ({
+        ...item,
+        category: item.category as Idea['category']
+      }));
+      setIdeas(mappedIdeas);
+    }
   };
 
   const storeIdea = async () => {
