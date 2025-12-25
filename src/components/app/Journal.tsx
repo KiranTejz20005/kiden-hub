@@ -369,7 +369,7 @@ export function Journal() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="h-full"
+      className="h-full min-h-[calc(100vh-4rem)]"
     >
       <Tabs defaultValue="journal" className="h-full flex flex-col">
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
@@ -389,7 +389,7 @@ export function Journal() {
           <JournalAnalytics />
         </TabsContent>
         
-        <TabsContent value="journal" className="flex-1 m-0 overflow-hidden">
+        <TabsContent value="journal" className="flex-1 m-0 overflow-auto">
           <div className="h-full flex flex-col lg:flex-row gap-4 p-4 pt-0">
             {/* Calendar Sidebar */}
             <Card className="lg:w-80 flex-shrink-0 border-border/50 bg-card/50 backdrop-blur-sm">

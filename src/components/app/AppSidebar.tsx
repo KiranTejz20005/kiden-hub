@@ -3,6 +3,7 @@ import { Profile } from '@/lib/types';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import WorkspaceManager from './WorkspaceManager';
 import CollectionsManager from './CollectionsManager';
+import WorkspaceCollaborators from './WorkspaceCollaborators';
 import kidenLogo from '@/assets/kiden-logo.png';
 import {
   LayoutDashboard,
@@ -26,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify';
 
@@ -176,13 +178,25 @@ const AppSidebar = ({ activeView, onViewChange, profile }: AppSidebarProps) => {
               isCollapsed={isCollapsed}
             />
             
-            {!isCollapsed && activeWorkspace && (
-              <CollectionsManager
-                workspace={activeWorkspace}
-                activeCollection={activeCollection}
-                onCollectionChange={setActiveCollection}
-                isCollapsed={isCollapsed}
-              />
+            {activeWorkspace && (
+              <>
+                {!isCollapsed && (
+                  <CollectionsManager
+                    workspace={activeWorkspace}
+                    activeCollection={activeCollection}
+                    onCollectionChange={setActiveCollection}
+                    isCollapsed={isCollapsed}
+                  />
+                )}
+                
+                <Separator className="my-4" />
+                
+                <WorkspaceCollaborators
+                  workspaceId={activeWorkspace.id}
+                  workspaceOwnerId={activeWorkspace.user_id}
+                  isCollapsed={isCollapsed}
+                />
+              </>
             )}
           </div>
         </ScrollArea>

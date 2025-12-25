@@ -210,7 +210,7 @@ export function BookTracker() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="h-full flex flex-col p-4 gap-4"
+      className="h-full min-h-[calc(100vh-4rem)] flex flex-col p-4 gap-4"
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
