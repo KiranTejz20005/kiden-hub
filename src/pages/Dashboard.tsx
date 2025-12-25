@@ -21,9 +21,10 @@ import { BookTracker } from '@/components/app/BookTracker';
 import { HabitTracker } from '@/components/app/HabitTracker';
 import { SpotifyPlayer } from '@/components/app/SpotifyPlayer';
 import { SpotifyMiniPlayer } from '@/components/app/SpotifyMiniPlayer';
+import LeetCodeTracker from '@/components/app/LeetCodeTracker';
 import { Loader2 } from 'lucide-react';
 
-type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify';
+type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify' | 'leetcode';
 
 const ONBOARDING_KEY = 'kiden_onboarding_completed';
 
@@ -151,6 +152,8 @@ const DashboardContent = ({
         return <HabitTracker />;
       case 'spotify':
         return <SpotifyPlayer />;
+      case 'leetcode':
+        return <LeetCodeTracker />;
       default:
         return null;
     }

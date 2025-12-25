@@ -23,6 +23,7 @@ import {
   Library,
   Target,
   Music,
+  Code2,
   Sparkles,
   Crown,
   Wifi,
@@ -37,7 +38,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify';
+type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify' | 'leetcode';
 
 interface AppSidebarProps {
   activeView: ActiveView;
@@ -56,6 +57,7 @@ const navItems = [
   { id: 'books', label: 'Books', icon: Library, gradient: 'from-orange-500 to-red-500' },
   { id: 'habits', label: 'Habits', icon: Target, gradient: 'from-green-500 to-emerald-500' },
   { id: 'spotify', label: 'Music', icon: Music, gradient: 'from-green-400 to-green-600' },
+  { id: 'leetcode', label: 'LeetCode', icon: Code2, gradient: 'from-orange-500 to-amber-500' },
   { id: 'templates', label: 'Templates', icon: LayoutTemplate, gradient: 'from-slate-500 to-zinc-500' },
 ] as const;
 

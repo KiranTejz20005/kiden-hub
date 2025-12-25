@@ -313,6 +313,54 @@ export type Database = {
         }
         Relationships: []
       }
+      leetcode_problems: {
+        Row: {
+          category: string
+          created_at: string
+          difficulty: string
+          id: string
+          notes: string | null
+          problem_number: number | null
+          solved_at: string | null
+          status: string
+          time_taken_minutes: number | null
+          title: string
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          difficulty?: string
+          id?: string
+          notes?: string | null
+          problem_number?: number | null
+          solved_at?: string | null
+          status?: string
+          time_taken_minutes?: number | null
+          title: string
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          difficulty?: string
+          id?: string
+          notes?: string | null
+          problem_number?: number | null
+          solved_at?: string | null
+          status?: string
+          time_taken_minutes?: number | null
+          title?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       media_extractions: {
         Row: {
           content: string | null
