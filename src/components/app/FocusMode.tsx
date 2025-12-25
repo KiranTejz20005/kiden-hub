@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { FocusSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, RotateCcw, Settings, Volume2, VolumeX, Coffee, Zap, Moon } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Play, Pause, RotateCcw, Settings, Volume2, VolumeX, Coffee, Zap, Moon, X, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -17,9 +19,9 @@ type SessionType = 'work' | 'short_break' | 'long_break' | 'flow';
 
 const sessionConfig = {
   work: { label: 'Focus', icon: Zap, color: 'from-primary to-accent' },
-  short_break: { label: 'Short Break', icon: Coffee, color: 'from-amber to-orange-500' },
-  long_break: { label: 'Long Break', icon: Moon, color: 'from-violet to-purple-600' },
-  flow: { label: 'Flow Mode', icon: Zap, color: 'from-cyan to-blue-500' }
+  short_break: { label: 'Short Break', icon: Coffee, color: 'from-amber-500 to-orange-500' },
+  long_break: { label: 'Long Break', icon: Moon, color: 'from-violet-500 to-purple-600' },
+  flow: { label: 'Flow Mode', icon: Zap, color: 'from-cyan-500 to-blue-500' }
 };
 
 const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
@@ -30,13 +32,17 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const settings = focusSettings || {
-    workDuration: 25,
-    shortBreakDuration: 5,
-    longBreakDuration: 15,
-    sessionsBeforeLongBreak: 4,
-  };
+  // Editable settings state
+  const [editableSettings, setEditableSettings] = useState<FocusSettings>({
+    workDuration: focusSettings?.workDuration || 25,
+    shortBreakDuration: focusSettings?.shortBreakDuration || 5,
+    longBreakDuration: focusSettings?.longBreakDuration || 15,
+    sessionsBeforeLongBreak: focusSettings?.sessionsBeforeLongBreak || 4,
+  });
+
+  const settings = editableSettings;
 
   const getDuration = useCallback((type: SessionType) => {
     switch (type) {
@@ -49,8 +55,10 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
   }, [settings]);
 
   useEffect(() => {
-    setTimeLeft(getDuration(sessionType));
-  }, [sessionType, getDuration]);
+    if (!isRunning) {
+      setTimeLeft(getDuration(sessionType));
+    }
+  }, [sessionType, getDuration, isRunning]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -93,6 +101,37 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
       setSessionType('work');
     }
     onComplete();
+  };
+
+  const handleSaveSettings = async () => {
+    if (!user) {
+      toast.error('Please log in to save settings');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          focus_settings: JSON.parse(JSON.stringify(editableSettings))
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Timer settings saved!');
+      setShowSettings(false);
+      // Update time if not running
+      if (!isRunning) {
+        setTimeLeft(getDuration(sessionType));
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -300,32 +339,114 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
         </Button>
       </motion.div>
 
-      {showSettings && (
-        <motion.div
-          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="mt-4 p-4 bg-card border border-border rounded-xl max-w-sm"
-        >
-          <p className="text-sm text-foreground mb-2 font-medium">Current Settings</p>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="p-2 rounded-lg bg-secondary">
-              <p className="text-lg font-bold text-foreground">{settings.workDuration}</p>
-              <p className="text-xs text-muted-foreground">Focus</p>
+      {/* Editable Settings Panel */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            className="mt-4 p-6 bg-card border border-border rounded-xl w-full max-w-md shadow-xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-lg font-semibold text-foreground">Edit Timer Settings</p>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSettings(false)}
+                className="h-8 w-8"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </div>
-            <div className="p-2 rounded-lg bg-secondary">
-              <p className="text-lg font-bold text-foreground">{settings.shortBreakDuration}</p>
-              <p className="text-xs text-muted-foreground">Short</p>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="workDuration" className="text-sm text-muted-foreground">
+                    Focus Duration (min)
+                  </Label>
+                  <Input
+                    id="workDuration"
+                    type="number"
+                    min={1}
+                    max={120}
+                    value={editableSettings.workDuration}
+                    onChange={(e) => setEditableSettings(prev => ({
+                      ...prev,
+                      workDuration: Math.max(1, Math.min(120, parseInt(e.target.value) || 1))
+                    }))}
+                    className="bg-secondary"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="shortBreak" className="text-sm text-muted-foreground">
+                    Short Break (min)
+                  </Label>
+                  <Input
+                    id="shortBreak"
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={editableSettings.shortBreakDuration}
+                    onChange={(e) => setEditableSettings(prev => ({
+                      ...prev,
+                      shortBreakDuration: Math.max(1, Math.min(30, parseInt(e.target.value) || 1))
+                    }))}
+                    className="bg-secondary"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="longBreak" className="text-sm text-muted-foreground">
+                    Long Break (min)
+                  </Label>
+                  <Input
+                    id="longBreak"
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={editableSettings.longBreakDuration}
+                    onChange={(e) => setEditableSettings(prev => ({
+                      ...prev,
+                      longBreakDuration: Math.max(1, Math.min(60, parseInt(e.target.value) || 1))
+                    }))}
+                    className="bg-secondary"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="sessions" className="text-sm text-muted-foreground">
+                    Sessions before Long Break
+                  </Label>
+                  <Input
+                    id="sessions"
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={editableSettings.sessionsBeforeLongBreak}
+                    onChange={(e) => setEditableSettings(prev => ({
+                      ...prev,
+                      sessionsBeforeLongBreak: Math.max(1, Math.min(10, parseInt(e.target.value) || 1))
+                    }))}
+                    className="bg-secondary"
+                  />
+                </div>
+              </div>
+
+              <Button
+                onClick={handleSaveSettings}
+                disabled={isSaving}
+                className="w-full mt-4 bg-gradient-to-r from-primary to-accent"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? 'Saving...' : 'Save Settings'}
+              </Button>
             </div>
-            <div className="p-2 rounded-lg bg-secondary">
-              <p className="text-lg font-bold text-foreground">{settings.longBreakDuration}</p>
-              <p className="text-xs text-muted-foreground">Long</p>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3 text-center">
-            Edit your timer settings in your profile.
-          </p>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
