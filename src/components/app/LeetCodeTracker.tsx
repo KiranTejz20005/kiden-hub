@@ -165,6 +165,196 @@ const StatCard = memo(({
 
 StatCard.displayName = 'StatCard';
 
+// Calendar Heatmap Component
+const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => {
+  const { heatmapData, maxCount, weeks, months } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Generate last 52 weeks (364 days)
+    const days: { date: Date; count: number; problems: LeetCodeProblem[] }[] = [];
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 363);
+    
+    // Adjust to start from Sunday
+    const dayOfWeek = startDate.getDay();
+    startDate.setDate(startDate.getDate() - dayOfWeek);
+    
+    for (let i = 0; i < 371; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      if (date > today) break;
+      
+      const dayProblems = problems.filter(p => {
+        if (!p.solved_at) return false;
+        const solvedDate = new Date(p.solved_at);
+        solvedDate.setHours(0, 0, 0, 0);
+        return solvedDate.getTime() === date.getTime();
+      });
+      
+      days.push({
+        date,
+        count: dayProblems.length,
+        problems: dayProblems
+      });
+    }
+    
+    // Group into weeks
+    const weeksData: typeof days[] = [];
+    for (let i = 0; i < days.length; i += 7) {
+      weeksData.push(days.slice(i, i + 7));
+    }
+    
+    // Get months for labels
+    const monthsData: { name: string; weekIndex: number }[] = [];
+    let lastMonth = -1;
+    weeksData.forEach((week, weekIndex) => {
+      const firstDay = week[0];
+      if (firstDay) {
+        const month = firstDay.date.getMonth();
+        if (month !== lastMonth) {
+          monthsData.push({
+            name: firstDay.date.toLocaleDateString('en-US', { month: 'short' }),
+            weekIndex
+          });
+          lastMonth = month;
+        }
+      }
+    });
+    
+    const max = Math.max(...days.map(d => d.count), 1);
+    
+    return { heatmapData: days, maxCount: max, weeks: weeksData, months: monthsData };
+  }, [problems]);
+
+  const getColorClass = (count: number) => {
+    if (count === 0) return 'bg-muted/30';
+    const intensity = count / maxCount;
+    if (intensity <= 0.25) return 'bg-emerald-500/30';
+    if (intensity <= 0.5) return 'bg-emerald-500/50';
+    if (intensity <= 0.75) return 'bg-emerald-500/70';
+    return 'bg-emerald-500';
+  };
+
+  const [hoveredDay, setHoveredDay] = useState<{ date: Date; count: number; x: number; y: number } | null>(null);
+
+  return (
+    <div className="mt-4 p-4 rounded-xl bg-card/50 border border-border/50">
+      <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+        <Calendar className="w-4 h-4" />
+        Activity Heatmap
+      </h3>
+      
+      {/* Month labels */}
+      <div className="flex mb-1 ml-8 text-xs text-muted-foreground">
+        {months.map((month, i) => (
+          <div
+            key={i}
+            className="flex-shrink-0"
+            style={{ 
+              marginLeft: i === 0 ? 0 : `${(month.weekIndex - (months[i - 1]?.weekIndex || 0) - 1) * 14}px`,
+              width: '28px'
+            }}
+          >
+            {month.name}
+          </div>
+        ))}
+      </div>
+      
+      <div className="flex gap-0.5 relative">
+        {/* Day labels */}
+        <div className="flex flex-col gap-0.5 mr-1 text-xs text-muted-foreground">
+          <span className="h-3"></span>
+          <span className="h-3 flex items-center">M</span>
+          <span className="h-3"></span>
+          <span className="h-3 flex items-center">W</span>
+          <span className="h-3"></span>
+          <span className="h-3 flex items-center">F</span>
+          <span className="h-3"></span>
+        </div>
+        
+        {/* Heatmap grid */}
+        <div className="flex gap-0.5 overflow-x-auto pb-2">
+          {weeks.map((week, weekIndex) => (
+            <div key={weekIndex} className="flex flex-col gap-0.5">
+              {week.map((day, dayIndex) => (
+                <motion.div
+                  key={dayIndex}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: weekIndex * 0.01 + dayIndex * 0.002 }}
+                  className={`w-3 h-3 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 ${getColorClass(day.count)}`}
+                  onMouseEnter={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setHoveredDay({ 
+                      date: day.date, 
+                      count: day.count, 
+                      x: rect.left + rect.width / 2,
+                      y: rect.top - 10
+                    });
+                  }}
+                  onMouseLeave={() => setHoveredDay(null)}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+        
+        {/* Tooltip */}
+        <AnimatePresence>
+          {hoveredDay && (
+            <motion.div
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 5 }}
+              className="fixed z-50 px-2 py-1 rounded bg-popover border border-border shadow-lg text-xs pointer-events-none"
+              style={{
+                left: hoveredDay.x,
+                top: hoveredDay.y,
+                transform: 'translate(-50%, -100%)'
+              }}
+            >
+              <p className="font-medium text-foreground">
+                {hoveredDay.count} problem{hoveredDay.count !== 1 ? 's' : ''}
+              </p>
+              <p className="text-muted-foreground">
+                {hoveredDay.date.toLocaleDateString('en-US', { 
+                  weekday: 'short',
+                  month: 'short', 
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      
+      {/* Legend */}
+      <div className="flex items-center justify-end gap-2 mt-3 text-xs text-muted-foreground">
+        <span>Less</span>
+        <div className="flex gap-0.5">
+          {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
+            <div
+              key={i}
+              className={`w-3 h-3 rounded-sm ${
+                intensity === 0 ? 'bg-muted/30' :
+                intensity <= 0.25 ? 'bg-emerald-500/30' :
+                intensity <= 0.5 ? 'bg-emerald-500/50' :
+                intensity <= 0.75 ? 'bg-emerald-500/70' :
+                'bg-emerald-500'
+              }`}
+            />
+          ))}
+        </div>
+        <span>More</span>
+      </div>
+    </div>
+  );
+});
+
+CalendarHeatmap.displayName = 'CalendarHeatmap';
+
 const LeetCodeTracker = () => {
   const { user } = useAuth();
   const [problems, setProblems] = useState<LeetCodeProblem[]>([]);
@@ -523,6 +713,9 @@ const LeetCodeTracker = () => {
             </div>
           </div>
         )}
+
+        {/* Calendar Heatmap */}
+        <CalendarHeatmap problems={problems} />
       </motion.div>
 
       {/* Filters */}
