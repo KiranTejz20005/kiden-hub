@@ -158,7 +158,7 @@ const Index = () => {
   ];
 
   const stats = [
-    { value: "50K+", label: "Active users", icon: Users },
+    { value: "1", label: "Active users", icon: Users },
     { value: "1", label: "Notes created", icon: FileText },
     { value: "99.9%", label: "Uptime SLA", icon: Shield },
     { value: "4.9", label: "User rating", suffix: "/5", icon: Star },
