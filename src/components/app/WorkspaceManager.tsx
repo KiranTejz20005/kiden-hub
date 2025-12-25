@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Folder, ChevronDown, Check, MoreHorizontal, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Folder, ChevronDown, Check, MoreHorizontal, Pencil, Trash2, X, Sparkles, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Workspace } from '@/lib/types';
@@ -12,6 +12,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -67,27 +74,37 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
     if (!user || !newName.trim()) return;
     
     setLoading(true);
-    const { data, error } = await supabase
-      .from('workspaces')
-      .insert({
-        user_id: user.id,
-        name: newName.trim(),
-        icon: newIcon
-      })
-      .select()
-      .single();
+    try {
+      console.log('Creating workspace for user:', user.id);
+      
+      const { data, error } = await supabase
+        .from('workspaces')
+        .insert({
+          user_id: user.id,
+          name: newName.trim(),
+          icon: newIcon
+        })
+        .select()
+        .single();
 
-    if (error) {
-      toast.error('Failed to create workspace');
-    } else {
-      toast.success('Workspace created!');
-      setWorkspaces([...workspaces, data]);
-      onWorkspaceChange(data);
-      setNewName('');
-      setNewIcon('📁');
-      setIsCreating(false);
+      if (error) {
+        console.error('Workspace creation error:', error);
+        toast.error(`Failed to create workspace: ${error.message}`);
+      } else {
+        console.log('Workspace created successfully:', data);
+        toast.success('Workspace created!');
+        setWorkspaces([...workspaces, data]);
+        onWorkspaceChange(data);
+        setNewName('');
+        setNewIcon('📁');
+        setIsCreating(false);
+      }
+    } catch (err: any) {
+      console.error('Unexpected error:', err);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const updateWorkspace = async (id: string) => {
@@ -297,63 +314,118 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Create New Workspace */}
-      <AnimatePresence>
-        {isCreating && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="p-3 rounded-lg bg-secondary/30 border border-border space-y-3">
-              <div className="flex gap-1 flex-wrap">
-                {EMOJI_OPTIONS.map(emoji => (
+      {/* Create New Workspace Dialog */}
+      <Dialog open={isCreating} onOpenChange={setIsCreating}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+              >
+                <Sparkles className="w-5 h-5 text-primary" />
+              </motion.div>
+              Create New Workspace
+            </DialogTitle>
+            <DialogDescription>
+              Organize your notes and ideas in a dedicated workspace
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 pt-4">
+            {/* Icon Selector */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground">Choose an icon</label>
+              <div className="flex gap-2 flex-wrap justify-center p-4 rounded-xl bg-secondary/30 border border-border">
+                {EMOJI_OPTIONS.map((emoji, index) => (
                   <motion.button
                     key={emoji}
-                    whileHover={{ scale: 1.2 }}
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.03 }}
+                    whileHover={{ scale: 1.3, y: -4 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setNewIcon(emoji)}
                     className={cn(
-                      "w-7 h-7 rounded text-sm hover:bg-secondary transition-colors",
-                      newIcon === emoji && "bg-primary/20 ring-2 ring-primary"
+                      "w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all duration-200",
+                      newIcon === emoji 
+                        ? "bg-primary/20 ring-2 ring-primary shadow-lg shadow-primary/20" 
+                        : "hover:bg-secondary"
                     )}
                   >
                     {emoji}
                   </motion.button>
                 ))}
               </div>
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Workspace name..."
-                className="h-9"
-                onKeyDown={(e) => e.key === 'Enter' && createWorkspace()}
-              />
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={createWorkspace}
-                  disabled={loading || !newName.trim()}
-                >
-                  Create
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="ghost"
-                  onClick={() => {
-                    setIsCreating(false);
-                    setNewName('');
-                  }}
-                >
-                  Cancel
-                </Button>
+            </div>
+
+            {/* Name Input */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground">Workspace name</label>
+              <div className="relative">
+                <Input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="My awesome workspace..."
+                  className="h-12 text-base pl-12 pr-4 rounded-xl border-2 focus:border-primary transition-colors"
+                  onKeyDown={(e) => e.key === 'Enter' && !loading && newName.trim() && createWorkspace()}
+                  autoFocus
+                />
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">
+                  {newIcon}
+                </span>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            {/* Preview */}
+            {newName.trim() && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+              >
+                <p className="text-xs text-muted-foreground mb-2">Preview</p>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{newIcon}</span>
+                  <span className="font-semibold text-lg">{newName.trim()}</span>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <Button 
+                variant="outline"
+                className="flex-1 h-11 rounded-xl"
+                onClick={() => {
+                  setIsCreating(false);
+                  setNewName('');
+                  setNewIcon('📁');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="flex-1 h-11 rounded-xl gap-2"
+                onClick={createWorkspace}
+                disabled={loading || !newName.trim()}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    Create Workspace
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
