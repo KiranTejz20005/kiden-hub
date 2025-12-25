@@ -28,16 +28,42 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   const refreshWorkspaces = async () => {
     if (!user) return;
     
-    const { data, error } = await supabase
+    // Fetch workspaces the user owns
+    const { data: ownedWorkspaces, error: ownedError } = await supabase
       .from('workspaces')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true });
 
-    if (!error && data) {
-      setWorkspaces(data);
-      if (!activeWorkspace && data.length > 0) {
-        setActiveWorkspace(data[0]);
+    // Fetch workspace IDs where user is a member
+    const { data: memberWorkspaces, error: memberError } = await supabase
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('user_id', user.id)
+      .not('accepted_at', 'is', null);
+
+    let allWorkspaces: Workspace[] = ownedWorkspaces || [];
+    
+    // Fetch full workspace data for member workspaces
+    if (memberWorkspaces && memberWorkspaces.length > 0) {
+      const memberWorkspaceIds = memberWorkspaces.map(m => m.workspace_id);
+      const { data: sharedWorkspaces } = await supabase
+        .from('workspaces')
+        .select('*')
+        .in('id', memberWorkspaceIds);
+      
+      if (sharedWorkspaces) {
+        // Filter out duplicates (in case user owns and is member of same workspace)
+        const existingIds = new Set(allWorkspaces.map(w => w.id));
+        const uniqueShared = sharedWorkspaces.filter(w => !existingIds.has(w.id));
+        allWorkspaces = [...allWorkspaces, ...uniqueShared];
+      }
+    }
+
+    if (!ownedError) {
+      setWorkspaces(allWorkspaces);
+      if (!activeWorkspace && allWorkspaces.length > 0) {
+        setActiveWorkspace(allWorkspaces[0]);
       }
     }
   };
@@ -45,10 +71,10 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   const refreshCollections = async () => {
     if (!user || !activeWorkspace) return;
     
+    // Fetch collections for the active workspace (RLS handles access control)
     const { data, error } = await supabase
       .from('collections')
       .select('*')
-      .eq('user_id', user.id)
       .eq('workspace_id', activeWorkspace.id)
       .order('created_at', { ascending: true });
 
