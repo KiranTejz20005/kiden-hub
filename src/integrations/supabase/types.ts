@@ -673,7 +673,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      user_has_workspace_access: {
+        Args: { workspace_uuid: string }
+        Returns: boolean
+      }
+      user_owns_workspace: {
+        Args: { workspace_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
