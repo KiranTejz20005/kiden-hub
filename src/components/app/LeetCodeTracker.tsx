@@ -167,7 +167,9 @@ StatCard.displayName = 'StatCard';
 
 // Calendar Heatmap Component
 const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => {
-  const { heatmapData, maxCount, weeks, months } = useMemo(() => {
+  const [hoveredDay, setHoveredDay] = useState<{ date: Date; count: number; x: number; y: number } | null>(null);
+
+  const { maxCount, weeks, months } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -235,8 +237,6 @@ const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => 
     if (intensity <= 0.75) return 'bg-emerald-500/70';
     return 'bg-emerald-500';
   };
-
-  const [hoveredDay, setHoveredDay] = useState<{ date: Date; count: number; x: number; y: number } | null>(null);
 
   return (
     <div className="mt-4 p-4 rounded-xl bg-card/50 border border-border/50">
@@ -733,7 +733,7 @@ const LeetCodeTracker = () => {
           <select
             value={filterDifficulty}
             onChange={(e) => setFilterDifficulty(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-background/50 border border-border/50 text-sm text-foreground"
+            className="select-styled"
           >
             <option value="all">All Difficulties</option>
             <option value="easy">Easy</option>
@@ -743,7 +743,7 @@ const LeetCodeTracker = () => {
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-background/50 border border-border/50 text-sm text-foreground"
+            className="select-styled"
           >
             <option value="all">All Categories</option>
             {CATEGORIES.map(cat => (
@@ -753,7 +753,7 @@ const LeetCodeTracker = () => {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-background/50 border border-border/50 text-sm text-foreground"
+            className="select-styled"
           >
             <option value="all">All Status</option>
             <option value="solved">Solved</option>
@@ -863,7 +863,7 @@ const LeetCodeTracker = () => {
                     <select
                       value={formData.difficulty}
                       onChange={(e) => setFormData({ ...formData, difficulty: e.target.value as 'easy' | 'medium' | 'hard' })}
-                      className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm"
+                      className="select-styled"
                     >
                       <option value="easy">Easy</option>
                       <option value="medium">Medium</option>
@@ -875,7 +875,7 @@ const LeetCodeTracker = () => {
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value as 'solved' | 'attempted' | 'todo' | 'revisit' })}
-                      className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm"
+                      className="select-styled"
                     >
                       <option value="solved">Solved</option>
                       <option value="attempted">Attempted</option>
@@ -888,7 +888,7 @@ const LeetCodeTracker = () => {
                     <select
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm"
+                      className="select-styled"
                     >
                       {CATEGORIES.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
