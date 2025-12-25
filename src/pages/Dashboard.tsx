@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { WorkspaceProvider } from '@/hooks/useWorkspace';
 import { SpotifyProvider } from '@/hooks/useSpotify';
+import { useWorkspaceInvitations } from '@/hooks/useWorkspaceInvitations';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, FocusSettings } from '@/lib/types';
 import AppSidebar from '@/components/app/AppSidebar';
@@ -39,6 +40,9 @@ const DashboardContent = ({
   const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  // Handle pending workspace invitations
+  useWorkspaceInvitations();
 
   useEffect(() => {
     if (!authLoading && !user) {
