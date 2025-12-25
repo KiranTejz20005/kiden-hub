@@ -162,13 +162,13 @@ const DashboardContent = ({
         )}
       </AnimatePresence>
 
-      <div className="min-h-screen bg-background flex pb-16">
+      <div className="min-h-screen bg-background flex flex-col lg:flex-row pb-16 lg:pb-0">
         <AppSidebar
           activeView={activeView}
           onViewChange={setActiveView}
           profile={profile}
         />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto min-h-0 pt-14 lg:pt-0">
           {renderActiveView()}
         </main>
       </div>

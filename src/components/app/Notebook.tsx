@@ -1,23 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { supabase } from '@/integrations/supabase/client';
 import { Note } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
 import BlockEditor, { Block } from './BlockEditor';
 import NotebookAI from './NotebookAI';
 import { v4 as uuidv4 } from 'uuid';
 import { 
   Plus, FileText, Search, Star, Archive, Trash2, 
-  Sparkles, Menu, X, PanelRightOpen
+  Sparkles, Menu, X, PanelRightOpen, Users, Wifi
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const Notebook = () => {
   const { user } = useAuth();
+  const { activeWorkspace } = useWorkspace();
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,10 +28,66 @@ const Notebook = () => {
   const [showAI, setShowAI] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [blocks, setBlocks] = useState<Block[]>([{ id: uuidv4(), type: 'paragraph', content: '' }]);
+  const [isRealtime, setIsRealtime] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (user) fetchNotes();
-  }, [user]);
+  }, [user, activeWorkspace?.id]);
+
+  // Set up real-time subscription for notes
+  useEffect(() => {
+    if (!user || !activeWorkspace) return;
+
+    const channel = supabase
+      .channel(`notes-realtime-${activeWorkspace.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notes',
+          filter: `workspace_id=eq.${activeWorkspace.id}`
+        },
+        (payload) => {
+          setIsRealtime(true);
+          
+          if (payload.eventType === 'INSERT') {
+            const newNote = payload.new as Note;
+            // Only add if not created by current user (they already have it)
+            if (newNote.user_id !== user.id) {
+              setNotes(prev => [newNote, ...prev]);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedNote = payload.new as Note;
+            setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
+            
+            // Update selected note if it's the one being edited by collaborator
+            if (selectedNote?.id === updatedNote.id && updatedNote.user_id !== user.id) {
+              setSelectedNote(updatedNote);
+              const content = updatedNote.content;
+              if (Array.isArray(content) && content.length > 0 && content[0]?.id) {
+                setBlocks(content as Block[]);
+              }
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id;
+            setNotes(prev => prev.filter(n => n.id !== deletedId));
+            if (selectedNote?.id === deletedId) {
+              setSelectedNote(null);
+            }
+          }
+          
+          // Reset realtime indicator after a moment
+          setTimeout(() => setIsRealtime(false), 2000);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, activeWorkspace?.id, selectedNote?.id]);
 
   useEffect(() => {
     if (selectedNote) {
@@ -45,13 +104,22 @@ const Notebook = () => {
 
   const fetchNotes = async () => {
     if (!user) return;
-    const { data, error } = await supabase
+    
+    let query = supabase
       .from('notes')
       .select('*')
-      .eq('user_id', user.id)
       .eq('is_archived', false)
       .eq('is_template', false)
       .order('updated_at', { ascending: false });
+
+    // If workspace is selected, filter by workspace
+    if (activeWorkspace) {
+      query = query.eq('workspace_id', activeWorkspace.id);
+    } else {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data, error } = await query;
 
     if (!error && data) {
       setNotes(data as Note[]);
@@ -65,7 +133,12 @@ const Notebook = () => {
     const newBlocks = [{ id: uuidv4(), type: 'paragraph' as const, content: '' }];
     const { data, error } = await supabase
       .from('notes')
-      .insert({ user_id: user.id, title: 'Untitled', content: newBlocks })
+      .insert({ 
+        user_id: user.id, 
+        title: 'Untitled', 
+        content: newBlocks,
+        workspace_id: activeWorkspace?.id || null
+      })
       .select()
       .single();
 
@@ -87,12 +160,21 @@ const Notebook = () => {
     }
   };
 
-  const saveBlocks = async (newBlocks: Block[]) => {
+  // Debounced save for collaborative editing
+  const saveBlocks = useCallback(async (newBlocks: Block[]) => {
     setBlocks(newBlocks);
-    if (selectedNote) {
-      await updateNote(selectedNote.id, { content: newBlocks as any });
+    
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
-  };
+    
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (selectedNote) {
+        await updateNote(selectedNote.id, { content: newBlocks as any });
+      }
+    }, 500); // 500ms debounce for smoother real-time collaboration
+  }, [selectedNote]);
+
 
   const deleteNote = async (id: string) => {
     await supabase.from('notes').delete().eq('id', id);
@@ -123,7 +205,7 @@ const Notebook = () => {
   );
 
   return (
-    <div className="h-[calc(100vh-2rem)] flex relative overflow-hidden">
+    <div className="h-full min-h-[calc(100vh-4rem)] flex relative overflow-hidden">
       {/* Mobile sidebar toggle */}
       <Button
         variant="ghost"
@@ -227,11 +309,19 @@ const Notebook = () => {
         {selectedNote ? (
           <>
             <div className="flex items-center justify-between p-3 md:p-4 border-b border-border pl-14 lg:pl-4 gap-2">
-              <Input
-                value={selectedNote.title}
-                onChange={(e) => updateNote(selectedNote.id, { title: e.target.value })}
-                className="text-lg md:text-xl font-bold bg-transparent border-none p-0 h-auto focus-visible:ring-0 flex-1 min-w-0"
-              />
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <Input
+                  value={selectedNote.title}
+                  onChange={(e) => updateNote(selectedNote.id, { title: e.target.value })}
+                  className="text-lg md:text-xl font-bold bg-transparent border-none p-0 h-auto focus-visible:ring-0 flex-1 min-w-0"
+                />
+                {isRealtime && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1 shrink-0 animate-pulse">
+                    <Wifi className="w-3 h-3 text-green-500" />
+                    <span className="hidden sm:inline">Live</span>
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 {/* Mobile: Use Sheet for AI */}
                 <Sheet open={showAI} onOpenChange={setShowAI}>
