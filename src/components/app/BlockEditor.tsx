@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, KeyboardEvent, useCallback } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -60,6 +60,64 @@ const blockTypes: { type: BlockType; label: string; icon: React.ComponentType<an
   { type: 'callout', label: 'Callout', icon: AlertCircle, shortcut: 'a' },
   { type: 'divider', label: 'Divider', icon: Minus, shortcut: 'd' },
 ];
+
+// Individual editable block component to prevent re-renders from resetting cursor
+const EditableBlock = ({ 
+  block, 
+  placeholder, 
+  className, 
+  onContentChange, 
+  onKeyDown, 
+  onFocus, 
+  onBlur,
+  blockRef 
+}: {
+  block: Block;
+  placeholder: string;
+  className: string;
+  onContentChange: (content: string) => void;
+  onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  blockRef: (el: HTMLDivElement | null) => void;
+}) => {
+  const internalRef = useRef<HTMLDivElement>(null);
+  const lastContentRef = useRef(block.content);
+
+  // Only update DOM if content changed externally (not from user typing)
+  useEffect(() => {
+    if (internalRef.current && internalRef.current.textContent !== block.content) {
+      // Only update if the change came from outside (e.g., block type change)
+      if (lastContentRef.current !== block.content) {
+        internalRef.current.textContent = block.content;
+        lastContentRef.current = block.content;
+      }
+    }
+  }, [block.content]);
+
+  const handleInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
+    const content = e.currentTarget.textContent || '';
+    lastContentRef.current = content;
+    onContentChange(content);
+  }, [onContentChange]);
+
+  return (
+    <div
+      ref={(el) => {
+        internalRef.current = el;
+        blockRef(el);
+      }}
+      contentEditable
+      suppressContentEditableWarning
+      data-placeholder={placeholder}
+      className={className}
+      onInput={handleInput}
+      onKeyDown={onKeyDown}
+      onFocus={onFocus}
+      onBlur={onBlur}
+    />
+  );
+};
 
 const BlockEditor = ({ blocks, onChange, placeholder = "Type '/' for commands..." }: BlockEditorProps) => {
   const [showSlashMenu, setShowSlashMenu] = useState(false);
@@ -309,13 +367,9 @@ const BlockEditor = ({ blocks, onChange, placeholder = "Type '/' for commands...
                       </button>
                     )}
                     
-                    <div
-                      ref={(el) => {
-                        if (el) blockRefs.current.set(block.id, el);
-                      }}
-                      contentEditable
-                      suppressContentEditableWarning
-                      data-placeholder={index === 0 && blocks.length === 1 ? placeholder : "Type '/' for commands..."}
+                    <EditableBlock
+                      block={block}
+                      placeholder={index === 0 && blocks.length === 1 ? placeholder : "Type '/' for commands..."}
                       className={cn(
                         "flex-1 outline-none py-1 px-2 rounded-lg transition-all duration-150",
                         "hover:bg-secondary/30 focus:bg-secondary/30",
@@ -323,8 +377,7 @@ const BlockEditor = ({ blocks, onChange, placeholder = "Type '/' for commands...
                         getBlockClassName(block.type),
                         block.type === 'todo' && block.checked && "line-through text-muted-foreground"
                       )}
-                      onInput={(e) => {
-                        const content = e.currentTarget.textContent || '';
+                      onContentChange={(content) => {
                         updateBlock(block.id, { content });
                         
                         if (showSlashMenu && content.startsWith('/')) {
@@ -338,7 +391,9 @@ const BlockEditor = ({ blocks, onChange, placeholder = "Type '/' for commands...
                       onBlur={() => {
                         setTimeout(() => setShowSlashMenu(false), 150);
                       }}
-                      dangerouslySetInnerHTML={{ __html: block.content }}
+                      blockRef={(el) => {
+                        if (el) blockRefs.current.set(block.id, el);
+                      }}
                     />
                   </div>
                 )}
