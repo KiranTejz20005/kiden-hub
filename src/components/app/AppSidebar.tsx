@@ -194,6 +194,7 @@ const AppSidebar = ({ activeView, onViewChange, profile }: AppSidebarProps) => {
                 <WorkspaceCollaborators
                   workspaceId={activeWorkspace.id}
                   workspaceOwnerId={activeWorkspace.user_id}
+                  workspaceName={activeWorkspace.name}
                   isCollapsed={isCollapsed}
                 />
               </>

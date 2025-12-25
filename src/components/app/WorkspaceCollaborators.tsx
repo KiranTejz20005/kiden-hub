@@ -29,6 +29,7 @@ interface WorkspaceMember {
 interface WorkspaceCollaboratorsProps {
   workspaceId: string;
   workspaceOwnerId: string;
+  workspaceName: string;
   isCollapsed?: boolean;
 }
 
@@ -38,7 +39,7 @@ const roleConfig = {
   viewer: { label: 'Viewer', icon: Eye, color: 'text-muted-foreground' },
 };
 
-const WorkspaceCollaborators = ({ workspaceId, workspaceOwnerId, isCollapsed }: WorkspaceCollaboratorsProps) => {
+const WorkspaceCollaborators = ({ workspaceId, workspaceOwnerId, workspaceName, isCollapsed }: WorkspaceCollaboratorsProps) => {
   const { user } = useAuth();
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,14 +99,6 @@ const WorkspaceCollaborators = ({ workspaceId, workspaceOwnerId, isCollapsed }: 
 
     setInviting(true);
     try {
-      // Check if user exists by email - we'll store email and user_id can be updated when they accept
-      // For now, we need to look up the user by email
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
       // Check if already a member
       const existingMember = members.find(m => m.email.toLowerCase() === inviteEmail.toLowerCase());
       if (existingMember) {
@@ -113,9 +106,7 @@ const WorkspaceCollaborators = ({ workspaceId, workspaceOwnerId, isCollapsed }: 
         return;
       }
 
-      // We need to find the user by their auth email
-      // Since we can't directly query auth.users, we'll store the email and 
-      // the invite will be "accepted" when that user logs in
+      // Insert the member record
       const { error } = await supabase
         .from('workspace_members')
         .insert({
@@ -128,7 +119,28 @@ const WorkspaceCollaborators = ({ workspaceId, workspaceOwnerId, isCollapsed }: 
 
       if (error) throw error;
 
-      toast.success(`Invitation sent to ${inviteEmail}`);
+      // Send invitation email
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-workspace-invite', {
+          body: {
+            inviteeEmail: inviteEmail.toLowerCase().trim(),
+            inviterEmail: user.email,
+            workspaceName: workspaceName,
+            role: inviteRole === 'editor' ? 'Editor' : 'Viewer',
+          },
+        });
+
+        if (emailError) {
+          console.error('Failed to send invitation email:', emailError);
+          toast.success(`Member added! (Email notification could not be sent)`);
+        } else {
+          toast.success(`Invitation sent to ${inviteEmail}`);
+        }
+      } catch (emailErr) {
+        console.error('Email sending error:', emailErr);
+        toast.success(`Member added! (Email notification failed)`);
+      }
+
       setInviteEmail('');
       setDialogOpen(false);
       fetchMembers();
