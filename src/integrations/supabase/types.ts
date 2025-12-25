@@ -512,6 +512,7 @@ export type Database = {
           display_name: string | null
           focus_settings: Json | null
           id: string
+          status: string | null
           updated_at: string
           user_id: string
         }
@@ -522,6 +523,7 @@ export type Database = {
           display_name?: string | null
           focus_settings?: Json | null
           id?: string
+          status?: string | null
           updated_at?: string
           user_id: string
         }
@@ -532,6 +534,7 @@ export type Database = {
           display_name?: string | null
           focus_settings?: Json | null
           id?: string
+          status?: string | null
           updated_at?: string
           user_id?: string
         }

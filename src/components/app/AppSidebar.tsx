@@ -4,6 +4,7 @@ import { useWorkspace } from '@/hooks/useWorkspace';
 import WorkspaceManager from './WorkspaceManager';
 import CollectionsManager from './CollectionsManager';
 import WorkspaceCollaborators from './WorkspaceCollaborators';
+import SettingsPanel from './SettingsPanel';
 import kidenLogo from '@/assets/kiden-logo.png';
 import {
   LayoutDashboard,
@@ -23,7 +24,10 @@ import {
   Target,
   Music,
   Sparkles,
-  Crown
+  Crown,
+  Wifi,
+  WifiOff,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -39,6 +43,7 @@ interface AppSidebarProps {
   activeView: ActiveView;
   onViewChange: (view: ActiveView) => void;
   profile: Profile | null;
+  onProfileUpdate?: () => void;
 }
 
 const navItems = [
@@ -54,9 +59,8 @@ const navItems = [
   { id: 'templates', label: 'Templates', icon: LayoutTemplate, gradient: 'from-slate-500 to-zinc-500' },
 ] as const;
 
-const AppSidebar = ({ activeView, onViewChange, profile }: AppSidebarProps) => {
-  const { user } = useAuth();
-  const { signOut } = useAuth();
+const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppSidebarProps) => {
+  const { user, signOut } = useAuth();
   const { workspaces, activeWorkspace, activeCollection, setActiveWorkspace, setActiveCollection } = useWorkspace();
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -290,17 +294,25 @@ const AppSidebar = ({ activeView, onViewChange, profile }: AppSidebarProps) => {
               <div className="relative">
                 <motion.div 
                   whileHover={{ scale: 1.1 }}
-                  className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/40 to-accent/40 flex items-center justify-center ring-2 ring-primary/20 shadow-lg"
+                  className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/40 to-accent/40 flex items-center justify-center ring-2 ring-primary/20 shadow-lg overflow-hidden"
                 >
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="Avatar" className="w-full h-full rounded-xl object-cover" />
+                    <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-sm font-bold text-primary">
                       {profile?.display_name?.[0]?.toUpperCase() || '?'}
                     </span>
                   )}
                 </motion.div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-card" />
+                {/* Status indicator */}
+                <div className={cn(
+                  "absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-card",
+                  profile?.status === 'online' && 'bg-green-500',
+                  profile?.status === 'away' && 'bg-amber-500',
+                  profile?.status === 'dnd' && 'bg-red-500',
+                  profile?.status === 'offline' && 'bg-muted-foreground',
+                  !profile?.status && 'bg-green-500'
+                )} />
               </div>
               
               <AnimatePresence>
@@ -314,13 +326,29 @@ const AppSidebar = ({ activeView, onViewChange, profile }: AppSidebarProps) => {
                     <p className="text-sm font-semibold text-foreground truncate">
                       {profile?.display_name || 'User'}
                     </p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                      Online
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 capitalize">
+                      <span className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        profile?.status === 'online' && 'bg-green-500 animate-pulse',
+                        profile?.status === 'away' && 'bg-amber-500',
+                        profile?.status === 'dnd' && 'bg-red-500',
+                        profile?.status === 'offline' && 'bg-muted-foreground',
+                        !profile?.status && 'bg-green-500 animate-pulse'
+                      )} />
+                      {profile?.status === 'dnd' ? 'Do Not Disturb' : (profile?.status || 'Online')}
                     </p>
                   </motion.div>
                 )}
               </AnimatePresence>
+              
+              {/* Settings Button */}
+              {onProfileUpdate && (
+                <SettingsPanel 
+                  profile={profile} 
+                  onProfileUpdate={onProfileUpdate}
+                  isCollapsed={isCollapsed}
+                />
+              )}
               
               <Tooltip>
                 <TooltipTrigger asChild>
