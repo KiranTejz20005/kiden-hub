@@ -22,16 +22,17 @@ import { HabitTracker } from '@/components/app/HabitTracker';
 import { SpotifyPlayer } from '@/components/app/SpotifyPlayer';
 import { SpotifyMiniPlayer } from '@/components/app/SpotifyMiniPlayer';
 import LeetCodeTracker from '@/components/app/LeetCodeTracker';
+import { NewYearResolutions } from '@/components/app/NewYearResolutions';
 import { Loader2 } from 'lucide-react';
 
-type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify' | 'leetcode';
+type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify' | 'leetcode' | 'resolutions';
 
 const ONBOARDING_KEY = 'kiden_onboarding_completed';
 
-const DashboardContent = ({ 
-  activeView, 
-  setActiveView 
-}: { 
+const DashboardContent = ({
+  activeView,
+  setActiveView
+}: {
   activeView: ActiveView;
   setActiveView: (view: ActiveView) => void;
 }) => {
@@ -41,7 +42,7 @@ const DashboardContent = ({
   const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  
+
   // Handle pending workspace invitations
   useWorkspaceInvitations();
 
@@ -154,6 +155,8 @@ const DashboardContent = ({
         return <SpotifyPlayer />;
       case 'leetcode':
         return <LeetCodeTracker />;
+      case 'resolutions':
+        return <NewYearResolutions />;
       default:
         return null;
     }

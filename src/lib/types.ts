@@ -98,3 +98,27 @@ export interface Template {
   is_system: boolean;
   created_at: string;
 }
+
+export interface Resolution {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  category: 'health' | 'career' | 'finance' | 'personal' | 'learning' | 'relationships';
+  target_date: string;
+  status: 'active' | 'completed' | 'abandoned';
+  progress: number;
+  year: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ResolutionHistory {
+  id: string;
+  resolution_id: string;
+  user_id: string;
+  progress: number;
+  previous_progress: number;
+  note: string | null;
+  created_at: string;
+}

@@ -28,7 +28,8 @@ import {
   Crown,
   Wifi,
   WifiOff,
-  Moon
+  Moon,
+  Rocket
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify' | 'leetcode';
+type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify' | 'leetcode' | 'resolutions';
 
 interface AppSidebarProps {
   activeView: ActiveView;
@@ -56,6 +57,7 @@ const navItems = [
   { id: 'journal', label: 'Journal', icon: BookOpen, gradient: 'from-sky-500 to-indigo-500' },
   { id: 'books', label: 'Books', icon: Library, gradient: 'from-orange-500 to-red-500' },
   { id: 'habits', label: 'Habits', icon: Target, gradient: 'from-green-500 to-emerald-500' },
+  { id: 'resolutions', label: 'Resolutions', icon: Rocket, gradient: 'from-rose-500 to-pink-500' },
   { id: 'spotify', label: 'Music', icon: Music, gradient: 'from-green-400 to-green-600' },
   { id: 'leetcode', label: 'LeetCode', icon: Code2, gradient: 'from-orange-500 to-amber-500' },
   { id: 'templates', label: 'Templates', icon: LayoutTemplate, gradient: 'from-slate-500 to-zinc-500' },
@@ -103,7 +105,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
         {/* Sidebar */}
         <motion.aside
           initial={false}
-          animate={{ 
+          animate={{
             x: isOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024) ? -300 : 0,
             width: isCollapsed ? 80 : 280
           }}
@@ -120,7 +122,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
             "p-4 flex items-center border-b border-border/50",
             isCollapsed ? "justify-center" : "justify-between"
           )}>
-            <motion.div 
+            <motion.div
               className="flex items-center gap-3"
               whileHover={{ scale: 1.02 }}
             >
@@ -145,7 +147,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                 )}
               </AnimatePresence>
             </motion.div>
-            
+
             {!isCollapsed && (
               <Button
                 variant="ghost"
@@ -175,7 +177,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
             <nav className="p-3 space-y-1">
               {navItems.map((item, index) => {
                 const isActive = activeView === item.id;
-                
+
                 return (
                   <Tooltip key={item.id}>
                     <TooltipTrigger asChild>
@@ -201,19 +203,19 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                             className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-primary to-accent rounded-r-full"
                           />
                         )}
-                        
+
                         <div className={cn(
                           "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
-                          isActive 
-                            ? `bg-gradient-to-br ${item.gradient} text-white shadow-lg` 
+                          isActive
+                            ? `bg-gradient-to-br ${item.gradient} text-white shadow-lg`
                             : 'bg-secondary/50 group-hover:bg-secondary'
                         )}>
                           <item.icon className="w-4 h-4" />
                         </div>
-                        
+
                         <AnimatePresence>
                           {!isCollapsed && (
-                            <motion.span 
+                            <motion.span
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
@@ -244,7 +246,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                 onWorkspaceChange={setActiveWorkspace}
                 isCollapsed={isCollapsed}
               />
-              
+
               {activeWorkspace && (
                 <>
                   {/* Workspace badge for shared workspaces */}
@@ -258,7 +260,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                       <span className="text-xs text-violet font-medium">Shared Workspace</span>
                     </motion.div>
                   )}
-                  
+
                   {!isCollapsed && (
                     <CollectionsManager
                       workspace={activeWorkspace}
@@ -267,9 +269,9 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                       isCollapsed={isCollapsed}
                     />
                   )}
-                  
+
                   <Separator className="bg-border/50" />
-                  
+
                   <WorkspaceCollaborators
                     workspaceId={activeWorkspace.id}
                     workspaceOwnerId={activeWorkspace.user_id}
@@ -286,7 +288,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
             "p-4 border-t border-border/50 bg-secondary/30",
             isCollapsed && "p-2"
           )}>
-            <motion.div 
+            <motion.div
               className={cn(
                 "flex items-center gap-3",
                 isCollapsed && "flex-col"
@@ -294,7 +296,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
               whileHover={{ scale: 1.01 }}
             >
               <div className="relative">
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.1 }}
                   className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/40 to-accent/40 flex items-center justify-center ring-2 ring-primary/20 shadow-lg overflow-hidden"
                 >
@@ -316,10 +318,10 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                   !profile?.status && 'bg-green-500'
                 )} />
               </div>
-              
+
               <AnimatePresence>
                 {!isCollapsed && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -342,16 +344,16 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                   </motion.div>
                 )}
               </AnimatePresence>
-              
+
               {/* Settings Button */}
               {onProfileUpdate && (
-                <SettingsPanel 
-                  profile={profile} 
+                <SettingsPanel
+                  profile={profile}
                   onProfileUpdate={onProfileUpdate}
                   isCollapsed={isCollapsed}
                 />
               )}
-              
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Target, Plus, Trash2, Edit2, Check, X, 
+import {
+  Target, Plus, Trash2, Edit2, Check, X,
   ChevronLeft, ChevronRight, Loader2, Flame
 } from 'lucide-react';
 import { format, startOfWeek, addDays, isSameDay, subWeeks, addWeeks, parseISO } from 'date-fns';
@@ -60,7 +60,7 @@ export function HabitTracker() {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
-  
+
   // Form state
   const [habitName, setHabitName] = useState('');
   const [habitIcon, setHabitIcon] = useState('✓');
@@ -90,7 +90,7 @@ export function HabitTracker() {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      
+
       // If no habits, create defaults
       if (!data || data.length === 0) {
         await createDefaultHabits();
@@ -131,7 +131,7 @@ export function HabitTracker() {
     try {
       const startDate = format(weekStart, 'yyyy-MM-dd');
       const endDate = format(addDays(weekStart, 6), 'yyyy-MM-dd');
-      
+
       const { data, error } = await supabase
         .from('habit_logs')
         .select('*')
@@ -163,7 +163,7 @@ export function HabitTracker() {
 
   const saveHabit = async () => {
     if (!user || !habitName.trim()) return;
-    
+
     setSaving(true);
     try {
       const habitData = {
@@ -214,10 +214,10 @@ export function HabitTracker() {
 
   const toggleHabitDay = async (habitId: string, date: Date) => {
     if (!user) return;
-    
+
     const dateStr = format(date, 'yyyy-MM-dd');
     const existingLog = logs.find(l => l.habit_id === habitId && l.completed_date === dateStr);
-    
+
     try {
       if (existingLog) {
         const { error } = await supabase
@@ -268,19 +268,19 @@ export function HabitTracker() {
     const today = new Date();
     let completed = 0;
     let total = 0;
-    
+
     weekDays.forEach(day => {
       if (day <= today) {
         total++;
         if (isCompleted(habitId, day)) completed++;
       }
     });
-    
+
     return total > 0 ? Math.round((completed / total) * 100) : 0;
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -298,7 +298,7 @@ export function HabitTracker() {
               Track your daily habits and build consistency
             </p>
           </div>
-          
+
           <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
@@ -318,7 +318,7 @@ export function HabitTracker() {
                   value={habitName}
                   onChange={(e) => setHabitName(e.target.value)}
                 />
-                
+
                 <div>
                   <label className="text-xs text-muted-foreground mb-2 block">Icon</label>
                   <div className="flex flex-wrap gap-2">
@@ -328,8 +328,8 @@ export function HabitTracker() {
                         onClick={() => setHabitIcon(icon)}
                         className={cn(
                           "w-10 h-10 rounded-lg text-lg flex items-center justify-center transition-all duration-200",
-                          habitIcon === icon 
-                            ? "bg-primary text-primary-foreground scale-110" 
+                          habitIcon === icon
+                            ? "bg-primary text-primary-foreground scale-110"
                             : "bg-secondary hover:bg-secondary/80"
                         )}
                       >
@@ -338,7 +338,7 @@ export function HabitTracker() {
                     ))}
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="text-xs text-muted-foreground mb-2 block">Color</label>
                   <div className="flex flex-wrap gap-2">
@@ -355,7 +355,7 @@ export function HabitTracker() {
                     ))}
                   </div>
                 </div>
-                
+
                 <Button onClick={saveHabit} disabled={saving || !habitName.trim()} className="w-full">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   {editingHabit ? 'Update Habit' : 'Add Habit'}
@@ -364,7 +364,7 @@ export function HabitTracker() {
             </DialogContent>
           </Dialog>
         </div>
-        
+
         <div className="flex items-center justify-center gap-2 bg-card/50 rounded-lg p-2">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
             <ChevronLeft className="h-4 w-4" />
@@ -379,115 +379,117 @@ export function HabitTracker() {
       </div>
 
       {/* Habits Table */}
-      <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm">
+      <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="min-w-[600px]">
-            {/* Header Row */}
-            <div className="grid grid-cols-[1fr_repeat(7,60px)_80px] gap-2 p-4 border-b border-border/50 sticky top-0 bg-card/90 backdrop-blur-sm">
-              <div className="font-medium text-sm">Habit</div>
-              {weekDays.map(day => (
-                <div 
-                  key={day.toISOString()} 
-                  className={cn(
-                    "text-center text-xs",
-                    isSameDay(day, new Date()) && "font-bold text-primary"
-                  )}
-                >
-                  <div>{format(day, 'EEE')}</div>
-                  <div className={cn(
-                    "text-lg",
-                    isSameDay(day, new Date()) && "text-primary"
-                  )}>
-                    {format(day, 'd')}
-                  </div>
-                </div>
-              ))}
-              <div className="text-center text-xs font-medium">Progress</div>
-            </div>
-
-            {/* Habit Rows */}
-            {loading ? (
-              <div className="flex items-center justify-center h-40">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : habits.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-                <Target className="h-12 w-12 mb-2 opacity-50" />
-                <p>No habits yet. Add your first habit!</p>
-              </div>
-            ) : (
-              habits.map(habit => {
-                const streak = getStreakForHabit(habit.id);
-                const progress = getWeekProgress(habit.id);
-                
-                return (
-                  <div 
-                    key={habit.id} 
-                    className="grid grid-cols-[1fr_repeat(7,60px)_80px] gap-2 p-4 border-b border-border/30 hover:bg-muted/30 transition-colors items-center"
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px] md:min-w-0">
+              {/* Header Row */}
+              <div className="grid grid-cols-[minmax(150px,1fr)_repeat(7,48px)_60px] md:grid-cols-[1fr_repeat(7,60px)_80px] gap-1 md:gap-2 p-3 md:p-4 border-b border-border/50 sticky top-0 bg-card/90 backdrop-blur-sm">
+                <div className="font-medium text-sm">Habit</div>
+                {weekDays.map(day => (
+                  <div
+                    key={day.toISOString()}
+                    className={cn(
+                      "text-center text-xs",
+                      isSameDay(day, new Date()) && "font-bold text-primary"
+                    )}
                   >
-                    <div className="flex items-center gap-3">
-                      <span 
-                        className="text-xl w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${habit.color}20` }}
-                      >
-                        {habit.icon}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <span className="font-medium truncate block">{habit.name}</span>
-                        {streak > 0 && (
-                          <span className="text-xs text-orange-500 flex items-center gap-1">
-                            <Flame className="h-3 w-3" />
-                            {streak} day streak
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(habit)}>
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteHabit(habit.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {weekDays.map(day => {
-                      const completed = isCompleted(habit.id, day);
-                      const isFuture = day > new Date();
-                      
-                      return (
-                        <button
-                          key={day.toISOString()}
-                          onClick={() => !isFuture && toggleHabitDay(habit.id, day)}
-                          disabled={isFuture}
-                          className={cn(
-                            "w-10 h-10 mx-auto rounded-lg transition-all flex items-center justify-center",
-                            completed 
-                              ? "text-white shadow-md scale-105" 
-                              : "bg-muted/50 hover:bg-muted",
-                            isFuture && "opacity-30 cursor-not-allowed"
-                          )}
-                          style={{ 
-                            backgroundColor: completed ? habit.color : undefined,
-                          }}
-                        >
-                          {completed && <Check className="h-5 w-5" />}
-                        </button>
-                      );
-                    })}
-                    
-                    <div className="text-center">
-                      <div 
-                        className="text-lg font-bold"
-                        style={{ color: habit.color }}
-                      >
-                        {progress}%
-                      </div>
+                    <div>{format(day, 'EEE')}</div>
+                    <div className={cn(
+                      "text-base md:text-lg",
+                      isSameDay(day, new Date()) && "text-primary"
+                    )}>
+                      {format(day, 'd')}
                     </div>
                   </div>
-                );
-              })
-            )}
+                ))}
+                <div className="text-center text-xs font-medium">%</div>
+              </div>
+
+              {/* Habit Rows */}
+              {loading ? (
+                <div className="flex items-center justify-center h-40">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : habits.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                  <Target className="h-12 w-12 mb-2 opacity-50" />
+                  <p>No habits yet. Add your first habit!</p>
+                </div>
+              ) : (
+                habits.map(habit => {
+                  const streak = getStreakForHabit(habit.id);
+                  const progress = getWeekProgress(habit.id);
+
+                  return (
+                    <div
+                      key={habit.id}
+                      className="grid grid-cols-[minmax(150px,1fr)_repeat(7,48px)_60px] md:grid-cols-[1fr_repeat(7,60px)_80px] gap-1 md:gap-2 p-3 md:p-4 border-b border-border/30 hover:bg-muted/30 transition-colors items-center"
+                    >
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <span
+                          className="text-lg md:text-xl w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: `${habit.color}20` }}
+                        >
+                          {habit.icon}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium truncate block text-sm md:text-base">{habit.name}</span>
+                          {streak > 0 && (
+                            <span className="text-xs text-orange-500 flex items-center gap-1">
+                              <Flame className="h-3 w-3" />
+                              {streak}d
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-0.5 md:gap-1">
+                          <Button variant="ghost" size="icon" className="h-6 w-6 md:h-7 md:w-7" onClick={() => openEditDialog(habit)}>
+                            <Edit2 className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 md:h-7 md:w-7" onClick={() => deleteHabit(habit.id)}>
+                            <Trash2 className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {weekDays.map(day => {
+                        const completed = isCompleted(habit.id, day);
+                        const isFuture = day > new Date();
+
+                        return (
+                          <button
+                            key={day.toISOString()}
+                            onClick={() => !isFuture && toggleHabitDay(habit.id, day)}
+                            disabled={isFuture}
+                            className={cn(
+                              "w-8 h-8 md:w-10 md:h-10 mx-auto rounded-lg transition-all flex items-center justify-center",
+                              completed
+                                ? "text-white shadow-md scale-105"
+                                : "bg-muted/50 hover:bg-muted",
+                              isFuture && "opacity-30 cursor-not-allowed"
+                            )}
+                            style={{
+                              backgroundColor: completed ? habit.color : undefined,
+                            }}
+                          >
+                            {completed && <Check className="h-4 w-4 md:h-5 md:w-5" />}
+                          </button>
+                        );
+                      })}
+
+                      <div className="text-center">
+                        <div
+                          className="text-sm md:text-lg font-bold"
+                          style={{ color: habit.color }}
+                        >
+                          {progress}%
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </ScrollArea>
       </Card>

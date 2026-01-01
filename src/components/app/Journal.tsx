@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isToday } from 'date-fns';
-import { 
-  BookOpen, Video, VideoOff, Download, Trash2, Plus, Calendar, 
+import {
+  BookOpen, Video, VideoOff, Download, Trash2, Plus, Calendar,
   Smile, Frown, Meh, Heart, Zap, Cloud, Sun, Moon, Loader2,
   Camera, Square, Play, X, ChevronLeft, ChevronRight, BarChart3
 } from 'lucide-react';
@@ -59,12 +59,12 @@ export function Journal() {
   const [transcript, setTranscript] = useState('');
   const [showCamera, setShowCamera] = useState(false);
   const [existingEntry, setExistingEntry] = useState<JournalEntry | null>(null);
-  
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  
+
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -77,7 +77,7 @@ export function Journal() {
 
   // Load entry for selected date
   useEffect(() => {
-    const entry = entries.find(e => 
+    const entry = entries.find(e =>
       isSameDay(parseISO(e.entry_date), selectedDate)
     );
     if (entry) {
@@ -105,7 +105,7 @@ export function Journal() {
     try {
       const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
       const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
-      
+
       const { data, error } = await supabase
         .from('journal_entries')
         .select('*')
@@ -125,9 +125,9 @@ export function Journal() {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user' }, 
-        audio: true 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: true
       });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -154,29 +154,29 @@ export function Journal() {
 
   const startRecording = () => {
     if (!streamRef.current) return;
-    
+
     chunksRef.current = [];
     const mediaRecorder = new MediaRecorder(streamRef.current, {
       mimeType: 'video/webm;codecs=vp9'
     });
-    
+
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) {
         chunksRef.current.push(e.data);
       }
     };
-    
+
     mediaRecorder.onstop = async () => {
       const blob = new Blob(chunksRef.current, { type: 'video/webm' });
       setRecordedBlob(blob);
       const url = URL.createObjectURL(blob);
       setRecordedUrl(url);
       stopCamera();
-      
+
       // Transcribe the video audio
       await transcribeVideo(blob);
     };
-    
+
     mediaRecorderRef.current = mediaRecorder;
     mediaRecorder.start();
     setIsRecording(true);
@@ -207,7 +207,7 @@ export function Journal() {
       });
 
       if (error) throw error;
-      
+
       if (data?.text) {
         setTranscript(data.text);
         toast({
@@ -231,7 +231,7 @@ export function Journal() {
 
   const uploadVideo = async (): Promise<string | null> => {
     if (!recordedBlob || !user) return null;
-    
+
     setUploading(true);
     try {
       const fileName = `${user.id}/${Date.now()}.webm`;
@@ -268,11 +268,11 @@ export function Journal() {
 
   const saveEntry = async () => {
     if (!user) return;
-    
+
     setSaving(true);
     try {
       let videoUrl = existingEntry?.video_url || null;
-      
+
       // Upload new video if recorded
       if (recordedBlob) {
         videoUrl = await uploadVideo();
@@ -305,7 +305,7 @@ export function Journal() {
         title: 'Entry Saved',
         description: `Journal entry for ${format(selectedDate, 'MMMM d, yyyy')} saved.`,
       });
-      
+
       fetchEntries();
     } catch (error: any) {
       console.error('Save error:', error);
@@ -321,15 +321,15 @@ export function Journal() {
 
   const deleteEntry = async () => {
     if (!existingEntry) return;
-    
+
     try {
       const { error } = await supabase
         .from('journal_entries')
         .delete()
         .eq('id', existingEntry.id);
-      
+
       if (error) throw error;
-      
+
       toast({ title: 'Entry Deleted' });
       fetchEntries();
     } catch (error: any) {
@@ -356,7 +356,7 @@ export function Journal() {
     end: endOfMonth(currentMonth),
   });
 
-  const hasEntry = (date: Date) => 
+  const hasEntry = (date: Date) =>
     entries.some(e => isSameDay(parseISO(e.entry_date), date));
 
   const getMoodForDate = (date: Date) => {
@@ -384,264 +384,264 @@ export function Journal() {
             </TabsTrigger>
           </TabsList>
         </div>
-        
+
         <TabsContent value="analytics" className="flex-1 m-0 overflow-auto">
           <JournalAnalytics />
         </TabsContent>
-        
+
         <TabsContent value="journal" className="flex-1 m-0 overflow-auto">
           <div className="h-full flex flex-col lg:flex-row gap-4 p-4 pt-0">
             {/* Calendar Sidebar */}
             <Card className="lg:w-80 flex-shrink-0 border-border/50 bg-card/50 backdrop-blur-sm">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Calendar className="h-4 w-4" />
-              {format(currentMonth, 'MMMM yyyy')}
-            </CardTitle>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1))}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1))}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground mb-2">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-              <div key={i} className="p-1">{d}</div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {/* Empty cells for days before month starts */}
-            {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, i) => (
-              <div key={`empty-${i}`} className="p-1" />
-            ))}
-            {daysInMonth.map(day => {
-              const mood = getMoodForDate(day);
-              const MoodIcon = moods.find(m => m.value === mood)?.icon;
-              
-              return (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => setSelectedDate(day)}
-                  className={cn(
-                    "p-1 h-9 w-full rounded-md text-xs transition-colors relative",
-                    isSameDay(day, selectedDate) && "bg-primary text-primary-foreground",
-                    isToday(day) && !isSameDay(day, selectedDate) && "ring-1 ring-primary",
-                    hasEntry(day) && !isSameDay(day, selectedDate) && "bg-primary/20",
-                    "hover:bg-accent"
-                  )}
-                >
-                  {format(day, 'd')}
-                  {MoodIcon && (
-                    <MoodIcon className={cn(
-                      "h-2 w-2 absolute bottom-0.5 right-0.5",
-                      moods.find(m => m.value === mood)?.color
-                    )} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          
-          {/* Recent entries */}
-          <div className="mt-4 pt-4 border-t border-border/50">
-            <h4 className="text-xs font-medium text-muted-foreground mb-2">Recent Entries</h4>
-            <ScrollArea className="h-32">
-              {entries.slice(0, 5).map(entry => (
-                <button
-                  key={entry.id}
-                  onClick={() => setSelectedDate(parseISO(entry.entry_date))}
-                  className="w-full text-left p-2 rounded-md hover:bg-accent text-xs mb-1"
-                >
-                  <div className="flex items-center gap-2">
-                    {entry.video_url && <Video className="h-3 w-3 text-primary" />}
-                    <span className="font-medium">{format(parseISO(entry.entry_date), 'MMM d')}</span>
-                    <span className="text-muted-foreground truncate flex-1">
-                      {entry.title || 'Untitled'}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </ScrollArea>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Main Editor */}
-      <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm flex flex-col min-h-0">
-        <CardHeader className="pb-3 flex-shrink-0">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <BookOpen className="h-5 w-5 text-primary" />
-                {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-              </CardTitle>
-              {isToday(selectedDate) && (
-                <Badge variant="secondary" className="mt-1 text-xs">Today</Badge>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {existingEntry && (
-                <Button variant="ghost" size="sm" onClick={deleteEntry}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-              <Button onClick={saveEntry} disabled={saving} size="sm">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {existingEntry ? 'Update' : 'Save'} Entry
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="flex-1 flex flex-col min-h-0 gap-4">
-          {/* Mood Selector */}
-          <div>
-            <label className="text-xs text-muted-foreground mb-2 block">How are you feeling?</label>
-            <div className="flex flex-wrap gap-2">
-              {moods.map(mood => (
-                <button
-                  key={mood.value}
-                  onClick={() => setSelectedMood(selectedMood === mood.value ? null : mood.value)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-colors",
-                    selectedMood === mood.value 
-                      ? "bg-primary text-primary-foreground" 
-                      : "bg-secondary hover:bg-secondary/80"
-                  )}
-                >
-                  <mood.icon className={cn("h-3.5 w-3.5", selectedMood !== mood.value && mood.color)} />
-                  {mood.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Title */}
-          <Input
-            placeholder="Entry title (optional)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="text-base font-medium"
-          />
-
-          {/* Content */}
-          <Textarea
-            placeholder="Write about your day..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="flex-1 min-h-32 resize-none"
-          />
-
-          {/* Video Section */}
-          <div className="border-t border-border/50 pt-4">
-            <label className="text-xs text-muted-foreground mb-2 block">Video Journal</label>
-            
-            {showCamera ? (
-              <div className="relative rounded-lg overflow-hidden bg-black aspect-video max-w-md">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                  {isRecording ? (
-                    <Button variant="destructive" onClick={stopRecording}>
-                      <Square className="h-4 w-4 mr-2" />
-                      Stop Recording
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Calendar className="h-4 w-4" />
+                    {format(currentMonth, 'MMMM yyyy')}
+                  </CardTitle>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1))}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1))}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground mb-2">
+                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                    <div key={i} className="p-1">{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {/* Empty cells for days before month starts */}
+                  {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, i) => (
+                    <div key={`empty-${i}`} className="p-1" />
+                  ))}
+                  {daysInMonth.map(day => {
+                    const mood = getMoodForDate(day);
+                    const MoodIcon = moods.find(m => m.value === mood)?.icon;
+
+                    return (
+                      <button
+                        key={day.toISOString()}
+                        onClick={() => setSelectedDate(day)}
+                        className={cn(
+                          "p-1 h-9 w-full rounded-md text-xs transition-colors relative",
+                          isSameDay(day, selectedDate) && "bg-primary text-primary-foreground",
+                          isToday(day) && !isSameDay(day, selectedDate) && "ring-1 ring-primary",
+                          hasEntry(day) && !isSameDay(day, selectedDate) && "bg-primary/20",
+                          "hover:bg-accent"
+                        )}
+                      >
+                        {format(day, 'd')}
+                        {MoodIcon && (
+                          <MoodIcon className={cn(
+                            "h-2 w-2 absolute bottom-0.5 right-0.5",
+                            moods.find(m => m.value === mood)?.color
+                          )} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Recent entries */}
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <h4 className="text-xs font-medium text-muted-foreground mb-2">Recent Entries</h4>
+                  <ScrollArea className="h-32">
+                    {entries.slice(0, 5).map(entry => (
+                      <button
+                        key={entry.id}
+                        onClick={() => setSelectedDate(parseISO(entry.entry_date))}
+                        className="w-full text-left p-2 rounded-md hover:bg-accent text-xs mb-1"
+                      >
+                        <div className="flex items-center gap-2">
+                          {entry.video_url && <Video className="h-3 w-3 text-primary" />}
+                          <span className="font-medium">{format(parseISO(entry.entry_date), 'MMM d')}</span>
+                          <span className="text-muted-foreground truncate flex-1">
+                            {entry.title || 'Untitled'}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </ScrollArea>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Main Editor */}
+            <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm flex flex-col min-h-0">
+              <CardHeader className="pb-3 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                      {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+                    </CardTitle>
+                    {isToday(selectedDate) && (
+                      <Badge variant="secondary" className="mt-1 text-xs">Today</Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {existingEntry && (
+                      <Button variant="ghost" size="sm" onClick={deleteEntry}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button onClick={saveEntry} disabled={saving} size="sm">
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      {existingEntry ? 'Update' : 'Save'} Entry
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="flex-1 flex flex-col min-h-0 gap-4">
+                {/* Mood Selector */}
+                <div>
+                  <label className="text-xs text-muted-foreground mb-2 block">How are you feeling?</label>
+                  <div className="flex flex-wrap gap-2">
+                    {moods.map(mood => (
+                      <button
+                        key={mood.value}
+                        onClick={() => setSelectedMood(selectedMood === mood.value ? null : mood.value)}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-colors",
+                          selectedMood === mood.value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary hover:bg-secondary/80"
+                        )}
+                      >
+                        <mood.icon className={cn("h-3.5 w-3.5", selectedMood !== mood.value && mood.color)} />
+                        {mood.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Title */}
+                <Input
+                  placeholder="Entry title (optional)"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="text-base font-medium"
+                />
+
+                {/* Content */}
+                <Textarea
+                  placeholder="Write about your day..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="flex-1 min-h-32 resize-none"
+                />
+
+                {/* Video Section */}
+                <div className="border-t border-border/50 pt-4">
+                  <label className="text-xs text-muted-foreground mb-2 block">Video Journal</label>
+
+                  {showCamera ? (
+                    <div className="relative rounded-lg overflow-hidden bg-black aspect-video w-full md:max-w-md">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                        {isRecording ? (
+                          <Button variant="destructive" onClick={stopRecording}>
+                            <Square className="h-4 w-4 mr-2" />
+                            Stop Recording
+                          </Button>
+                        ) : (
+                          <Button onClick={startRecording}>
+                            <Video className="h-4 w-4 mr-2" />
+                            Start Recording
+                          </Button>
+                        )}
+                        <Button variant="secondary" onClick={stopCamera}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {isRecording && (
+                        <div className="absolute top-4 left-4 flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
+                          <span className="text-white text-sm font-medium">Recording</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : recordedUrl ? (
+                    <div className="space-y-2">
+                      <video
+                        src={recordedUrl}
+                        controls
+                        className="rounded-lg w-full md:max-w-md aspect-video bg-black"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" size="sm" onClick={downloadVideo}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={startCamera}>
+                          <Camera className="h-4 w-4 mr-2" />
+                          Record New
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setRecordedBlob(null);
+                            setRecordedUrl(null);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
-                    <Button onClick={startRecording}>
-                      <Video className="h-4 w-4 mr-2" />
-                      Start Recording
+                    <Button variant="outline" onClick={startCamera} className="gap-2">
+                      <Camera className="h-4 w-4" />
+                      Record Video Journal
                     </Button>
                   )}
-                  <Button variant="secondary" onClick={stopCamera}>
-                    <X className="h-4 w-4" />
-                  </Button>
+
+                  {uploading && (
+                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading video...
+                    </div>
+                  )}
+
+                  {transcribing && (
+                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Transcribing video...
+                    </div>
+                  )}
+
+                  {transcript && (
+                    <div className="mt-4 p-3 bg-secondary/50 rounded-lg">
+                      <label className="text-xs text-muted-foreground mb-1 block font-medium">Transcript</label>
+                      <p className="text-sm whitespace-pre-wrap">{transcript}</p>
+                    </div>
+                  )}
                 </div>
-                {isRecording && (
-                  <div className="absolute top-4 left-4 flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-white text-sm font-medium">Recording</span>
-                  </div>
-                )}
-              </div>
-            ) : recordedUrl ? (
-              <div className="space-y-2">
-                <video
-                  src={recordedUrl}
-                  controls
-                  className="rounded-lg max-w-md w-full aspect-video bg-black"
-                />
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={downloadVideo}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={startCamera}>
-                    <Camera className="h-4 w-4 mr-2" />
-                    Record New
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      setRecordedBlob(null);
-                      setRecordedUrl(null);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Button variant="outline" onClick={startCamera} className="gap-2">
-                <Camera className="h-4 w-4" />
-                Record Video Journal
-              </Button>
-            )}
-            
-            {uploading && (
-              <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Uploading video...
-              </div>
-            )}
-            
-            {transcribing && (
-              <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Transcribing video...
-              </div>
-            )}
-            
-            {transcript && (
-              <div className="mt-4 p-3 bg-secondary/50 rounded-lg">
-                <label className="text-xs text-muted-foreground mb-1 block font-medium">Transcript</label>
-                <p className="text-sm whitespace-pre-wrap">{transcript}</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
       </Tabs>
