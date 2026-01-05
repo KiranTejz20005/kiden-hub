@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   BookOpen, Plus, Trash2, Edit2, Check, X, Search,
   BookMarked, BookCheck, Pause, Library, Loader2
 } from 'lucide-react';
@@ -61,7 +61,7 @@ export function BookTracker() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [activeTab, setActiveTab] = useState('all');
-  
+
   // Form state
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
@@ -74,11 +74,7 @@ export function BookTracker() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) fetchBooks();
-  }, [user]);
-
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -96,7 +92,33 @@ export function BookTracker() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    fetchBooks();
+
+    const channel = supabase
+      .channel('book-tracker-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'books',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchBooks();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchBooks]);
 
   const resetForm = () => {
     setTitle('');
@@ -121,7 +143,7 @@ export function BookTracker() {
 
   const saveBook = async () => {
     if (!user || !title.trim()) return;
-    
+
     setSaving(true);
     try {
       const bookData = {
@@ -179,7 +201,7 @@ export function BookTracker() {
         updates.status = 'completed';
         updates.completed_at = new Date().toISOString();
       }
-      
+
       const { error } = await supabase
         .from('books')
         .update(updates)
@@ -206,7 +228,7 @@ export function BookTracker() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -223,7 +245,7 @@ export function BookTracker() {
             {stats.reading} reading · {stats.completed} completed · {stats.totalPages.toLocaleString()} pages read
           </p>
         </div>
-        
+
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -302,10 +324,12 @@ export function BookTracker() {
           />
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="reading">Reading</TabsTrigger>
-            <TabsTrigger value="completed">Done</TabsTrigger>
+          <TabsList className="grid grid-cols-5 w-full sm:w-auto">
+            <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
+            <TabsTrigger value="reading" className="text-xs sm:text-sm">Reading</TabsTrigger>
+            <TabsTrigger value="completed" className="text-xs sm:text-sm">Done</TabsTrigger>
+            <TabsTrigger value="want_to_read" className="text-xs sm:text-sm">Want</TabsTrigger>
+            <TabsTrigger value="on_hold" className="text-xs sm:text-sm">Hold</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -326,7 +350,7 @@ export function BookTracker() {
             {filteredBooks.map(book => {
               const progress = book.total_pages > 0 ? (book.current_page / book.total_pages) * 100 : 0;
               const StatusIcon = statusConfig[book.status].icon;
-              
+
               return (
                 <Card key={book.id} className="border-border/50 bg-card/50 backdrop-blur-sm">
                   <CardContent className="p-4">

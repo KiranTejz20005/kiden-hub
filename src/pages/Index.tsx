@@ -1,12 +1,12 @@
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { 
-  ArrowRight, Brain, Sparkles, Zap, BookOpen, Target, Mic, 
+import {
+  ArrowRight, Brain, Sparkles, Zap, BookOpen, Target, Mic,
   FileText, Search, Tag, Users, Cloud, Shield, Layers,
   MessageSquare, Calendar, BarChart3, Lightbulb, Hash,
   Play, Check, ChevronDown, Star, Globe, Lock, Workflow,
-  Palette, Code, Image as ImageIcon, ListTodo, Quote
+  Palette, Code, Image as ImageIcon, ListTodo, Quote, type LucideIcon
 } from "lucide-react";
 import kidenLogo from "@/assets/kiden-logo.png";
 import { useState, useEffect, useRef } from "react";
@@ -14,20 +14,20 @@ import { useState, useEffect, useRef } from "react";
 // Animated Logo Component
 const AnimatedLogo = ({ className = "" }: { className?: string }) => {
   return (
-    <motion.div 
+    <motion.div
       className={`relative ${className}`}
       whileHover={{ scale: 1.05 }}
       transition={{ type: "spring", stiffness: 400, damping: 10 }}
     >
-      <motion.img 
-        src={kidenLogo} 
-        alt="Kiden" 
+      <motion.img
+        src={kidenLogo}
+        alt="Kiden"
         className="w-10 h-10 rounded-xl relative z-10"
         initial={{ rotate: 0 }}
         whileHover={{ rotate: [0, -5, 5, 0] }}
         transition={{ duration: 0.5 }}
       />
-      <motion.div 
+      <motion.div
         className="absolute inset-0 bg-primary/30 rounded-xl blur-xl"
         animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
         transition={{ duration: 3, repeat: Infinity }}
@@ -44,16 +44,16 @@ const ParticlesBackground = () => {
         <motion.div
           key={i}
           className="absolute w-1 h-1 bg-primary/20 rounded-full"
-          initial={{ 
+          initial={{
             x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
             y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
             scale: Math.random() * 0.5 + 0.5,
           }}
-          animate={{ 
+          animate={{
             y: [null, Math.random() * -200 - 100],
             opacity: [0, 1, 0],
           }}
-          transition={{ 
+          transition={{
             duration: Math.random() * 10 + 10,
             repeat: Infinity,
             delay: Math.random() * 5,
@@ -65,7 +65,7 @@ const ParticlesBackground = () => {
 };
 
 // Animated feature icons
-const FeatureIcon = ({ icon: Icon, color = "primary", delay = 0 }: { icon: any; color?: string; delay?: number }) => {
+const FeatureIcon = ({ icon: Icon, color = "primary", delay = 0 }: { icon: LucideIcon; color?: string; delay?: number }) => {
   const colorClasses: Record<string, string> = {
     primary: "bg-primary/20 text-primary border-primary/30",
     accent: "bg-accent/20 text-accent border-accent/30",
@@ -76,7 +76,7 @@ const FeatureIcon = ({ icon: Icon, color = "primary", delay = 0 }: { icon: any; 
   };
 
   return (
-    <motion.div 
+    <motion.div
       className={`w-14 h-14 rounded-2xl flex items-center justify-center border ${colorClasses[color] || colorClasses.primary}`}
       initial={{ scale: 0, rotate: -180 }}
       whileInView={{ scale: 1, rotate: 0 }}
@@ -165,21 +165,21 @@ const Index = () => {
   ];
 
   const testimonials = [
-    { 
-      quote: "Kiden transformed how I organize my thoughts. The AI features are incredible.", 
-      author: "Sarah Chen", 
+    {
+      quote: "Kiden transformed how I organize my thoughts. The AI features are incredible.",
+      author: "Sarah Chen",
       role: "Product Designer",
       avatar: "SC"
     },
-    { 
-      quote: "Finally, a note-taking app that understands my workflow. It's like having a second brain.", 
-      author: "Marcus Johnson", 
+    {
+      quote: "Finally, a note-taking app that understands my workflow. It's like having a second brain.",
+      author: "Marcus Johnson",
       role: "Software Engineer",
       avatar: "MJ"
     },
-    { 
-      quote: "The real-time collaboration feature has made our team 10x more productive.", 
-      author: "Emily Watson", 
+    {
+      quote: "The real-time collaboration feature has made our team 10x more productive.",
+      author: "Emily Watson",
       role: "Team Lead",
       avatar: "EW"
     },
@@ -196,7 +196,7 @@ const Index = () => {
   return (
     <main className="min-h-screen bg-background overflow-x-hidden">
       <ParticlesBackground />
-      
+
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
@@ -207,7 +207,7 @@ const Index = () => {
         <nav className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
             <AnimatedLogo />
-            <motion.span 
+            <motion.span
               className="font-serif text-2xl font-medium text-foreground italic tracking-tight"
               whileHover={{ scale: 1.02 }}
             >
@@ -218,8 +218,8 @@ const Index = () => {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1 nav-pill">
             {["Features", "Templates", "Pricing", "Docs"].map((item) => (
-              <a 
-                key={item} 
+              <a
+                key={item}
                 href={`#${item.toLowerCase()}`}
                 className="nav-link px-4 py-2 rounded-full hover:bg-secondary/50 transition-colors"
               >
@@ -230,8 +230,8 @@ const Index = () => {
 
           <div className="flex items-center gap-3">
             <Link to="/auth">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="hidden sm:flex text-muted-foreground hover:text-foreground"
               >
                 Sign in
@@ -252,20 +252,20 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden hero-gradient">
         {/* Animated background blobs */}
-        <motion.div 
+        <motion.div
           className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full blur-3xl opacity-20"
           style={{ background: "radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)" }}
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             x: [0, 50, 0],
             y: [0, -30, 0],
           }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         />
-        <motion.div 
+        <motion.div
           className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full blur-3xl opacity-15"
           style={{ background: "radial-gradient(circle, hsl(var(--accent)) 0%, transparent 70%)" }}
-          animate={{ 
+          animate={{
             scale: [1, 1.3, 1],
             x: [0, -40, 0],
             y: [0, 40, 0],
@@ -273,7 +273,7 @@ const Index = () => {
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
         />
 
-        <motion.div 
+        <motion.div
           style={{ opacity: heroOpacity, scale: heroScale }}
           className="relative z-10 text-center px-4 sm:px-6 max-w-5xl mx-auto"
         >
@@ -302,7 +302,7 @@ const Index = () => {
           >
             <span className="text-foreground">Your ideas</span>
             <br />
-            <motion.span 
+            <motion.span
               className="text-gradient-primary italic"
               animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
               transition={{ duration: 5, repeat: Infinity }}
@@ -311,7 +311,7 @@ const Index = () => {
               organized
             </motion.span>
             <span className="text-foreground">, </span>
-            <motion.span 
+            <motion.span
               className="text-gradient-primary italic"
               animate={{ backgroundPosition: ["100% 50%", "0% 50%", "100% 50%"] }}
               transition={{ duration: 5, repeat: Infinity }}
@@ -328,7 +328,7 @@ const Index = () => {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            The intelligent workspace that captures your thoughts, connects ideas, 
+            The intelligent workspace that captures your thoughts, connects ideas,
             and helps you achieve more with AI-powered note-taking.
           </motion.p>
 
@@ -340,8 +340,8 @@ const Index = () => {
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8"
           >
             <Link to="/auth">
-              <motion.div 
-                whileHover={{ scale: 1.03, y: -2 }} 
+              <motion.div
+                whileHover={{ scale: 1.03, y: -2 }}
                 whileTap={{ scale: 0.98 }}
               >
                 <Button
@@ -358,7 +358,7 @@ const Index = () => {
                 </Button>
               </motion.div>
             </Link>
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.02 }}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group"
             >
@@ -381,7 +381,7 @@ const Index = () => {
               { icon: Shield, text: "End-to-end encrypted" },
               { icon: Zap, text: "Set up in 30 seconds" },
             ].map((item, i) => (
-              <motion.div 
+              <motion.div
                 key={item.text}
                 className="flex items-center gap-2"
                 initial={{ opacity: 0, x: -10 }}
@@ -426,15 +426,15 @@ const Index = () => {
             {/* Window Chrome */}
             <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30">
               <div className="flex gap-2">
-                <motion.div 
+                <motion.div
                   className="w-3 h-3 rounded-full bg-rose/80"
                   whileHover={{ scale: 1.2 }}
                 />
-                <motion.div 
+                <motion.div
                   className="w-3 h-3 rounded-full bg-amber/80"
                   whileHover={{ scale: 1.2 }}
                 />
-                <motion.div 
+                <motion.div
                   className="w-3 h-3 rounded-full bg-primary/80"
                   whileHover={{ scale: 1.2 }}
                 />
@@ -450,7 +450,7 @@ const Index = () => {
             {/* Preview Content */}
             <div className="bg-background/50 rounded-2xl m-2 p-4 sm:p-6 min-h-[400px] sm:min-h-[500px] flex">
               {/* Sidebar */}
-              <motion.div 
+              <motion.div
                 className="hidden sm:flex w-48 flex-col gap-4 pr-6 border-r border-border/20"
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -464,7 +464,7 @@ const Index = () => {
                   <span className="text-sm font-medium">Workspace</span>
                 </div>
                 {["Notes", "Tasks", "Journal", "Templates"].map((item, i) => (
-                  <motion.div 
+                  <motion.div
                     key={item}
                     className={`h-8 rounded-lg flex items-center px-3 text-sm ${i === 0 ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-secondary/50'} cursor-pointer transition-colors`}
                     initial={{ opacity: 0, x: -10 }}
@@ -476,7 +476,7 @@ const Index = () => {
                   </motion.div>
                 ))}
                 <div className="mt-auto">
-                  <motion.div 
+                  <motion.div
                     className="flex items-center gap-2 p-2 rounded-lg bg-card/50 border border-border/30"
                     animate={{ boxShadow: ["0 0 0 0 hsl(var(--primary) / 0)", "0 0 20px 2px hsl(var(--primary) / 0.2)", "0 0 0 0 hsl(var(--primary) / 0)"] }}
                     transition={{ duration: 2, repeat: Infinity }}
@@ -488,7 +488,7 @@ const Index = () => {
               </motion.div>
 
               {/* Main Editor */}
-              <motion.div 
+              <motion.div
                 className="flex-1 pl-0 sm:pl-6 flex flex-col"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -499,7 +499,7 @@ const Index = () => {
                 <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border/20">
                   <div className="toolbar">
                     {capabilities.map((cap, i) => (
-                      <motion.button 
+                      <motion.button
                         key={cap.label}
                         className="toolbar-btn"
                         whileHover={{ scale: 1.1 }}
@@ -515,7 +515,7 @@ const Index = () => {
 
                 {/* Content */}
                 <div className="flex-1 space-y-4">
-                  <motion.div 
+                  <motion.div
                     className="text-2xl sm:text-3xl font-serif font-bold"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -523,7 +523,7 @@ const Index = () => {
                   >
                     Product Launch Strategy
                   </motion.div>
-                  <motion.div 
+                  <motion.div
                     className="flex gap-2"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -539,7 +539,7 @@ const Index = () => {
                       "Create content calendar for social media",
                       "Set up analytics and tracking systems",
                     ].map((line, i) => (
-                      <motion.div 
+                      <motion.div
                         key={i}
                         className="flex items-start gap-3"
                         initial={{ opacity: 0, x: -20 }}
@@ -598,9 +598,9 @@ const Index = () => {
                   {feature.title}
                 </h3>
                 <p className="text-sm text-muted-foreground">{feature.desc}</p>
-                
+
                 {/* Active indicator */}
-                <motion.div 
+                <motion.div
                   className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-b-2xl"
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: activeFeature === index ? 1 : 0 }}
@@ -624,7 +624,7 @@ const Index = () => {
             className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
           >
             {stats.map((stat, index) => (
-              <motion.div 
+              <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -632,7 +632,7 @@ const Index = () => {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="p-6 rounded-2xl glass-glow"
               >
-                <motion.div 
+                <motion.div
                   className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4"
                   whileHover={{ rotate: 360 }}
                   transition={{ duration: 0.5 }}
@@ -699,11 +699,11 @@ const Index = () => {
 
       {/* Final CTA */}
       <section className="py-32 px-4 sm:px-6 relative overflow-hidden">
-        <motion.div 
+        <motion.div
           className="absolute inset-0"
           style={{ background: "radial-gradient(ellipse at center, hsl(var(--primary) / 0.15) 0%, transparent 70%)" }}
         />
-        
+
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -711,7 +711,7 @@ const Index = () => {
           transition={{ duration: 0.8 }}
           className="max-w-3xl mx-auto text-center relative"
         >
-          <motion.div 
+          <motion.div
             className="inline-flex items-center gap-2 mb-6"
             animate={{ y: [0, -5, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
@@ -719,19 +719,19 @@ const Index = () => {
             <Zap className="w-5 h-5 text-primary" />
             <span className="text-sm text-muted-foreground uppercase tracking-wider">Ready to start?</span>
           </motion.div>
-          
+
           <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl font-medium mb-6 text-foreground leading-tight">
             Transform your <br />
             <span className="text-gradient-primary italic">thinking today</span>
           </h2>
-          
+
           <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
             Join thousands of people who've already discovered a better way to capture, organize, and grow their ideas.
           </p>
 
           <Link to="/auth">
-            <motion.div 
-              whileHover={{ scale: 1.03 }} 
+            <motion.div
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               className="inline-block"
             >
@@ -749,7 +749,7 @@ const Index = () => {
               </Button>
             </motion.div>
           </Link>
-          
+
           <p className="text-sm text-muted-foreground mt-6">
             No credit card required • Free forever plan available
           </p>
@@ -769,7 +769,7 @@ const Index = () => {
                 The intelligent workspace for capturing and organizing your ideas.
               </p>
             </div>
-            
+
             {[
               { title: "Product", links: ["Features", "Templates", "Pricing", "Changelog"] },
               { title: "Company", links: ["About", "Blog", "Careers", "Contact"] },
@@ -789,14 +789,14 @@ const Index = () => {
               </div>
             ))}
           </div>
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-border/30">
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} Kiden. All rights reserved.
             </p>
             <div className="flex items-center gap-4">
               {[Globe, MessageSquare].map((Icon, i) => (
-                <motion.a 
+                <motion.a
                   key={i}
                   href="#"
                   className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"

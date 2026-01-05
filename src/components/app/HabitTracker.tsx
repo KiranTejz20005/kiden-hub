@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Target, Plus, Trash2, Edit2, Check, X,
@@ -20,6 +21,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { PageLayout } from '@/components/ui/PageLayout';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 interface Habit {
   id: string;
@@ -72,14 +75,29 @@ export function HabitTracker() {
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  useEffect(() => {
-    if (user) {
-      fetchHabits();
-      fetchLogs();
-    }
-  }, [user, weekStart]);
+  const createDefaultHabits = useCallback(async () => {
+    if (!user) return;
+    try {
+      const habitsToInsert = defaultHabits.map(h => ({
+        user_id: user.id,
+        name: h.name,
+        icon: h.icon,
+        color: h.color,
+      }));
 
-  const fetchHabits = async () => {
+      const { data, error } = await supabase
+        .from('habits')
+        .insert(habitsToInsert)
+        .select();
+
+      if (error) throw error;
+      setHabits((data as Habit[]) || []);
+    } catch (error: any) {
+      console.error('Error creating default habits:', error);
+    }
+  }, [user]);
+
+  const fetchHabits = useCallback(async () => {
     if (!user) return;
     try {
       const { data, error } = await supabase
@@ -102,31 +120,9 @@ export function HabitTracker() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, createDefaultHabits]);
 
-  const createDefaultHabits = async () => {
-    if (!user) return;
-    try {
-      const habitsToInsert = defaultHabits.map(h => ({
-        user_id: user.id,
-        name: h.name,
-        icon: h.icon,
-        color: h.color,
-      }));
-
-      const { data, error } = await supabase
-        .from('habits')
-        .insert(habitsToInsert)
-        .select();
-
-      if (error) throw error;
-      setHabits((data as Habit[]) || []);
-    } catch (error: any) {
-      console.error('Error creating default habits:', error);
-    }
-  };
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     if (!user) return;
     try {
       const startDate = format(weekStart, 'yyyy-MM-dd');
@@ -144,7 +140,24 @@ export function HabitTracker() {
     } catch (error: any) {
       console.error('Error fetching logs:', error);
     }
-  };
+  }, [user, weekStart]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    fetchHabits();
+    fetchLogs();
+
+    const channel = supabase
+      .channel('habit-tracker-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'habits', filter: `user_id=eq.${user.id}` }, () => fetchHabits())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_logs', filter: `user_id=eq.${user.id}` }, () => fetchLogs())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, weekStart, fetchHabits, fetchLogs]);
 
   const resetForm = () => {
     setHabitName('');
@@ -238,6 +251,14 @@ export function HabitTracker() {
           .single();
         if (error) throw error;
         setLogs([...logs, data as HabitLog]);
+
+        // Confetti celebration
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#3b82f6', '#8b5cf6', '#ef4444', '#10b981']
+        });
       }
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -280,33 +301,17 @@ export function HabitTracker() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="h-full flex flex-col p-4 gap-4"
-    >
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Target className="h-6 w-6 text-primary" />
-              Habit Tracker
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Track your daily habits and build consistency
-            </p>
-          </div>
-
+    <PageLayout>
+      <PageHeader
+        title="Habit Tracker"
+        description="Track your daily habits and build consistency"
+        actions={
           <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Habit
-                </Button>
-              </motion.div>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Habit
+              </Button>
             </DialogTrigger>
             <DialogContent className="max-w-sm">
               <DialogHeader>
@@ -363,19 +368,19 @@ export function HabitTracker() {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
+        }
+      />
 
-        <div className="flex items-center justify-center gap-2 bg-card/50 rounded-lg p-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium min-w-40 text-center">
-            {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d, yyyy')}
-          </span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekStart(addWeeks(weekStart, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+      <div className="flex items-center justify-center gap-1 xs:gap-2 bg-card/50 rounded-lg p-2 mb-4 w-fit mx-auto border border-border/50">
+        <Button variant="ghost" size="icon" className="h-7 w-7 xs:h-8 xs:w-8" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
+          <ChevronLeft className="h-3 w-3 xs:h-4 xs:w-4" />
+        </Button>
+        <span className="text-xs xs:text-sm font-medium min-w-32 xs:min-w-40 text-center">
+          {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d, yyyy')}
+        </span>
+        <Button variant="ghost" size="icon" className="h-7 w-7 xs:h-8 xs:w-8" onClick={() => setWeekStart(addWeeks(weekStart, 1))}>
+          <ChevronRight className="h-3 w-3 xs:h-4 xs:w-4" />
+        </Button>
       </div>
 
       {/* Habits Table */}
@@ -493,6 +498,6 @@ export function HabitTracker() {
           </div>
         </ScrollArea>
       </Card>
-    </motion.div>
+    </PageLayout>
   );
 }

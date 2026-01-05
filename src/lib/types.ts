@@ -12,6 +12,36 @@ export interface Profile {
   updated_at: string;
 }
 
+export interface Project {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  icon: string;
+  status: 'active' | 'archived' | 'completed';
+  target_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Task {
+  id: string;
+  user_id: string;
+  project_id: string | null;
+  title: string;
+  description: string | null;
+  status: 'todo' | 'in_progress' | 'done';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  due_date: string | null;
+  estimated_minutes: number | null;
+  actual_minutes: number;
+  tags: string[] | null;
+  parent_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface FocusSettings {
   workDuration: number;
   shortBreakDuration: number;
@@ -46,6 +76,7 @@ export interface Note {
   workspace_id: string | null;
   collection_id: string | null;
   title: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any[];
   icon: string;
   cover_image: string | null;
@@ -71,9 +102,13 @@ export interface FocusSession {
   id: string;
   user_id: string;
   note_id: string | null;
+  task_id: string | null;
+  project_id: string | null;
   duration_minutes: number;
   session_type: 'work' | 'short_break' | 'long_break' | 'flow';
   completed: boolean;
+  interruptions_count: number;
+  notes: string | null;
   started_at: string;
   ended_at: string | null;
 }
@@ -93,6 +128,7 @@ export interface Template {
   name: string;
   description: string | null;
   category: 'project' | 'task' | 'kanban' | 'goal' | 'sprint' | 'custom';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any[];
   icon: string;
   is_system: boolean;
@@ -122,3 +158,5 @@ export interface ResolutionHistory {
   note: string | null;
   created_at: string;
 }
+
+export type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify' | 'leetcode' | 'resolutions' | 'tasks' | 'projects' | 'analytics';

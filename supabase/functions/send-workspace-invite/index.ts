@@ -23,7 +23,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { inviteeEmail, inviterEmail, workspaceName, role }: InviteEmailRequest = await req.json();
-    
+
     console.log(`Sending workspace invite email to ${inviteeEmail}`);
     console.log(`Inviter: ${inviterEmail}, Workspace: ${workspaceName}, Role: ${role}`);
 
@@ -100,10 +100,11 @@ const handler = async (req: Request): Promise<Response> => {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error("Error sending invitation email:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

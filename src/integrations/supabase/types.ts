@@ -143,6 +143,10 @@ export type Database = {
           session_type: string
           started_at: string
           user_id: string
+          task_id: string | null
+          project_id: string | null
+          interruptions_count: number
+          notes: string | null
         }
         Insert: {
           completed?: boolean | null
@@ -153,6 +157,10 @@ export type Database = {
           session_type?: string
           started_at?: string
           user_id: string
+          task_id?: string | null
+          project_id?: string | null
+          interruptions_count?: number
+          notes?: string | null
         }
         Update: {
           completed?: boolean | null
@@ -163,6 +171,10 @@ export type Database = {
           session_type?: string
           started_at?: string
           user_id?: string
+          task_id?: string | null
+          project_id?: string | null
+          interruptions_count?: number
+          notes?: string | null
         }
         Relationships: [
           {
@@ -170,6 +182,20 @@ export type Database = {
             columns: ["note_id"]
             isOneToOne: false
             referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "focus_sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "focus_sessions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -286,6 +312,9 @@ export type Database = {
           updated_at: string
           user_id: string
           video_url: string | null
+          energy_level: number | null
+          wins: string[] | null
+          blockers: string | null
         }
         Insert: {
           content?: string | null
@@ -298,6 +327,9 @@ export type Database = {
           updated_at?: string
           user_id: string
           video_url?: string | null
+          energy_level?: number | null
+          wins?: string[] | null
+          blockers?: string | null
         }
         Update: {
           content?: string | null
@@ -310,6 +342,9 @@ export type Database = {
           updated_at?: string
           user_id?: string
           video_url?: string | null
+          energy_level?: number | null
+          wins?: string[] | null
+          blockers?: string | null
         }
         Relationships: []
       }
@@ -588,6 +623,45 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string | null
+          color: string
+          icon: string
+          status: string
+          target_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string | null
+          color?: string
+          icon?: string
+          status?: string
+          target_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string | null
+          color?: string
+          icon?: string
+          status?: string
+          target_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           color: string | null
@@ -611,6 +685,72 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      tasks: {
+        Row: {
+          id: string
+          user_id: string
+          project_id: string | null
+          title: string
+          description: string | null
+          status: string
+          priority: string
+          due_date: string | null
+          estimated_minutes: number | null
+          actual_minutes: number
+          tags: string[] | null
+          parent_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          project_id?: string | null
+          title: string
+          description?: string | null
+          status?: string
+          priority?: string
+          due_date?: string | null
+          estimated_minutes?: number | null
+          actual_minutes?: number
+          tags?: string[] | null
+          parent_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          project_id?: string | null
+          title?: string
+          description?: string | null
+          status?: string
+          priority?: string
+          due_date?: string | null
+          estimated_minutes?: number | null
+          actual_minutes?: number
+          tags?: string[] | null
+          parent_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       templates: {
         Row: {

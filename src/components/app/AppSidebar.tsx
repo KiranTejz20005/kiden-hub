@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Profile, Workspace } from '@/lib/types';
+import { Profile, Workspace, ActiveView } from '@/lib/types';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import WorkspaceManager from './WorkspaceManager';
 import CollectionsManager from './CollectionsManager';
@@ -29,7 +29,10 @@ import {
   Wifi,
   WifiOff,
   Moon,
-  Rocket
+  Rocket,
+  CheckSquare,
+  Folder,
+  BarChart
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -39,8 +42,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify' | 'leetcode' | 'resolutions';
-
 interface AppSidebarProps {
   activeView: ActiveView;
   onViewChange: (view: ActiveView) => void;
@@ -49,18 +50,21 @@ interface AppSidebarProps {
 }
 
 const navItems = [
-  { id: 'command', label: 'Dashboard', icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-  { id: 'ideas', label: 'Ideas', icon: Lightbulb, gradient: 'from-amber-500 to-orange-500' },
-  { id: 'voice', label: 'Voice Notes', icon: Mic, gradient: 'from-pink-500 to-rose-500' },
-  { id: 'chat', label: 'AI Chat', icon: MessageSquare, gradient: 'from-violet-500 to-purple-500' },
-  { id: 'notebook', label: 'Notebook', icon: FileText, gradient: 'from-emerald-500 to-teal-500' },
-  { id: 'journal', label: 'Journal', icon: BookOpen, gradient: 'from-sky-500 to-indigo-500' },
-  { id: 'books', label: 'Books', icon: Library, gradient: 'from-orange-500 to-red-500' },
-  { id: 'habits', label: 'Habits', icon: Target, gradient: 'from-green-500 to-emerald-500' },
-  { id: 'resolutions', label: 'Resolutions', icon: Rocket, gradient: 'from-rose-500 to-pink-500' },
-  { id: 'spotify', label: 'Music', icon: Music, gradient: 'from-green-400 to-green-600' },
-  { id: 'leetcode', label: 'LeetCode', icon: Code2, gradient: 'from-orange-500 to-amber-500' },
-  { id: 'templates', label: 'Templates', icon: LayoutTemplate, gradient: 'from-slate-500 to-zinc-500' },
+  { id: 'command', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'analytics', label: 'Analytics', icon: BarChart },
+  { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+  { id: 'projects', label: 'Projects', icon: Folder },
+  { id: 'ideas', label: 'Ideas', icon: Lightbulb },
+  { id: 'voice', label: 'Voice Notes', icon: Mic },
+  { id: 'chat', label: 'AI Chat', icon: MessageSquare },
+  { id: 'notebook', label: 'Notebook', icon: FileText },
+  { id: 'journal', label: 'Journal', icon: BookOpen },
+  { id: 'books', label: 'Books', icon: Library },
+  { id: 'habits', label: 'Habits', icon: Target },
+  { id: 'resolutions', label: 'Resolutions', icon: Rocket },
+  { id: 'spotify', label: 'Music', icon: Music },
+  { id: 'leetcode', label: 'LeetCode', icon: Code2 },
+  { id: 'templates', label: 'Templates', icon: LayoutTemplate },
 ] as const;
 
 const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppSidebarProps) => {
@@ -112,8 +116,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
           transition={{ type: "spring", stiffness: 400, damping: 40 }}
           className={cn(
             "fixed lg:relative z-40 h-screen flex flex-col",
-            "bg-gradient-to-b from-card via-card to-card/95",
-            "border-r border-border/50",
+            "bg-card border-r border-border", // Simplified background
             "lg:translate-x-0"
           )}
         >
@@ -128,8 +131,8 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
             >
               <div className="relative">
                 <img src={kidenLogo} alt="Kiden" className="w-10 h-10 rounded-xl shadow-lg" />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
-                  <Sparkles className="w-2.5 h-2.5 text-white" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center ring-2 ring-card">
+                  <Sparkles className="w-2.5 h-2.5 text-primary-foreground" />
                 </div>
               </div>
               <AnimatePresence>
@@ -139,7 +142,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
                   >
-                    <span className="font-serif text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                    <span className="font-serif text-xl font-bold text-foreground">
                       kiden
                     </span>
                     <p className="text-[10px] text-muted-foreground -mt-0.5">Your second brain</p>
@@ -152,7 +155,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
               <Button
                 variant="ghost"
                 size="icon"
-                className="hidden lg:flex w-8 h-8 hover:bg-secondary/80"
+                className="hidden lg:flex w-8 h-8 hover:bg-secondary"
                 onClick={() => setIsCollapsed(true)}
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -165,7 +168,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
             <Button
               variant="ghost"
               size="icon"
-              className="hidden lg:flex w-full h-10 rounded-none border-b border-border/50 hover:bg-secondary/80"
+              className="hidden lg:flex w-full h-10 rounded-none border-b border-border/50 hover:bg-secondary"
               onClick={() => setIsCollapsed(false)}
             >
               <ChevronRight className="w-4 h-4" />
@@ -192,22 +195,14 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 relative overflow-hidden group",
                           isCollapsed && "justify-center px-2",
                           isActive
-                            ? 'bg-gradient-to-r from-primary/20 to-accent/10 text-foreground shadow-sm'
-                            : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                            ? 'bg-primary text-primary-foreground shadow-sm font-medium'
+                            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                         )}
                       >
-                        {/* Active indicator */}
-                        {isActive && (
-                          <motion.div
-                            layoutId="activeNav"
-                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-primary to-accent rounded-r-full"
-                          />
-                        )}
-
                         <div className={cn(
                           "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
                           isActive
-                            ? `bg-gradient-to-br ${item.gradient} text-white shadow-lg`
+                            ? 'bg-primary-foreground/20 text-primary-foreground'
                             : 'bg-secondary/50 group-hover:bg-secondary'
                         )}>
                           <item.icon className="w-4 h-4" />
@@ -254,10 +249,10 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet/10 border border-violet/20"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20"
                     >
-                      <Crown className="w-4 h-4 text-violet" />
-                      <span className="text-xs text-violet font-medium">Shared Workspace</span>
+                      <Crown className="w-4 h-4 text-primary" />
+                      <span className="text-xs text-primary font-medium">Shared Workspace</span>
                     </motion.div>
                   )}
 

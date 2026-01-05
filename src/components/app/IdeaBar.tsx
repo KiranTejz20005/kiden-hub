@@ -36,11 +36,11 @@ const categoryIcons: Record<Category, string> = {
 };
 
 // Memoized idea item for performance
-const IdeaItem = memo(({ 
-  idea, 
-  onDelete 
-}: { 
-  idea: Idea; 
+const IdeaItem = memo(({
+  idea,
+  onDelete
+}: {
+  idea: Idea;
   onDelete: (id: string) => void;
 }) => (
   <motion.div
@@ -55,7 +55,7 @@ const IdeaItem = memo(({
       "absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b",
       categoryColors[idea.category]
     )} />
-    
+
     <div className="flex-1 pl-2">
       <p className="text-foreground leading-relaxed">{idea.content}</p>
       <div className="flex items-center gap-3 mt-3">
@@ -100,7 +100,7 @@ const IdeaBar = () => {
   // Fetch ideas
   const fetchIdeas = useCallback(async () => {
     if (!user) return;
-    
+
     const { data, error } = await supabase
       .from('ideas')
       .select('*')
@@ -149,8 +149,8 @@ const IdeaBar = () => {
           } else if (payload.eventType === 'DELETE') {
             setIdeas(prev => prev.filter(i => i.id !== payload.old.id));
           } else if (payload.eventType === 'UPDATE') {
-            setIdeas(prev => prev.map(i => 
-              i.id === payload.new.id 
+            setIdeas(prev => prev.map(i =>
+              i.id === payload.new.id
                 ? { ...payload.new, category: payload.new.category as Category } as Idea
                 : i
             ));
@@ -167,7 +167,7 @@ const IdeaBar = () => {
   // Store idea with optimistic update
   const storeIdea = async () => {
     if (!newIdea.trim() || !user || loading) return;
-    
+
     setLoading(true);
     const tempId = crypto.randomUUID();
     const optimisticIdea: Idea = {
@@ -197,9 +197,9 @@ const IdeaBar = () => {
       toast.error('Failed to store idea');
     } else if (data) {
       // Replace temp with real
-      setIdeas(prev => prev.map(i => 
-        i.id === tempId 
-          ? { ...data, category: data.category as Category } 
+      setIdeas(prev => prev.map(i =>
+        i.id === tempId
+          ? { ...data, category: data.category as Category }
           : i
       ));
       toast.success('Idea captured!', {
@@ -212,12 +212,12 @@ const IdeaBar = () => {
   // Delete idea
   const deleteIdea = useCallback(async (id: string) => {
     const ideaToDelete = ideas.find(i => i.id === id);
-    
+
     // Optimistic delete
     setIdeas(prev => prev.filter(i => i.id !== id));
-    
+
     const { error } = await supabase.from('ideas').delete().eq('id', id);
-    
+
     if (error) {
       // Rollback on error
       if (ideaToDelete) {
@@ -227,8 +227,8 @@ const IdeaBar = () => {
     }
   }, [ideas]);
 
-  const filteredIdeas = filterCategory === 'all' 
-    ? ideas 
+  const filteredIdeas = filterCategory === 'all'
+    ? ideas
     : ideas.filter(i => i.category === filterCategory);
 
   const getCategoryCount = (cat: Category) => ideas.filter(i => i.category === cat).length;
@@ -236,37 +236,37 @@ const IdeaBar = () => {
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto pt-16 lg:pt-8">
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-6 xs:mb-8"
       >
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-2 xs:gap-3 mb-2">
           <motion.div
             animate={{ rotate: [0, 10, -10, 0] }}
             transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
           >
-            <Brain className="w-8 h-8 text-primary" />
+            <Brain className="w-6 h-6 xs:w-8 xs:h-8 text-primary" />
           </motion.div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Neural Backlog</h1>
+          <h1 className="text-xl xs:text-2xl md:text-3xl font-bold text-foreground">Neural Backlog</h1>
         </div>
-        <p className="text-sm text-primary tracking-wider flex items-center gap-2">
-          <Sparkles className="w-4 h-4" />
-          IDEA BAR ACTIVE • {ideas.length} ideas stored
+        <p className="text-xs xs:text-sm text-primary tracking-wider flex items-center gap-2">
+          <Sparkles className="w-3 h-3 xs:w-4 xs:h-4" />
+          Capture fleeting thoughts before they vanish
         </p>
       </motion.div>
 
       {/* Input Section */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className="bg-card border border-border rounded-2xl p-4 md:p-6 mb-8 relative overflow-hidden shadow-lg"
       >
         <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl pointer-events-none" />
-        
+
         {/* Category selector */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-1.5 xs:gap-2 mb-4">
           {categories.map((cat) => (
             <motion.button
               key={cat}
@@ -274,14 +274,15 @@ const IdeaBar = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2",
+                "px-2 xs:px-3 py-1.5 xs:py-2 rounded-full text-xs xs:text-sm font-medium transition-all flex items-center gap-1.5",
                 selectedCategory === cat
                   ? `bg-gradient-to-r ${categoryColors[cat]} text-white shadow-lg`
                   : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'
               )}
             >
               <span>{categoryIcons[cat]}</span>
-              {cat.toUpperCase()}
+              <span className="hidden xs:inline">{cat.toUpperCase()}</span>
+              <span className="xs:hidden">{cat.slice(0, 3).toUpperCase()}</span>
             </motion.button>
           ))}
         </div>
@@ -320,17 +321,17 @@ const IdeaBar = () => {
       </motion.div>
 
       {/* Filter Tabs */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="flex flex-wrap items-center gap-2 mb-6"
+        className="flex flex-wrap items-center gap-1.5 xs:gap-2 mb-6"
       >
-        <Filter className="w-4 h-4 text-muted-foreground" />
+        <Filter className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground" />
         <button
           onClick={() => setFilterCategory('all')}
           className={cn(
-            "px-4 py-2 rounded-full text-sm transition-all font-medium",
+            "px-2 xs:px-4 py-1.5 xs:py-2 rounded-full text-xs xs:text-sm transition-all font-medium",
             filterCategory === 'all'
               ? 'bg-primary text-primary-foreground shadow-md'
               : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'
@@ -343,13 +344,13 @@ const IdeaBar = () => {
             key={cat}
             onClick={() => setFilterCategory(cat)}
             className={cn(
-              "px-4 py-2 rounded-full text-sm transition-all flex items-center gap-1 font-medium",
+              "px-2 xs:px-4 py-1.5 xs:py-2 rounded-full text-xs xs:text-sm transition-all flex items-center gap-1 font-medium",
               filterCategory === cat
                 ? `bg-gradient-to-r ${categoryColors[cat]} text-white shadow-md`
                 : 'bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary'
             )}
           >
-            {categoryIcons[cat]} {getCategoryCount(cat)}
+            {categoryIcons[cat]} <span className="hidden xs:inline">{getCategoryCount(cat)}</span>
           </button>
         ))}
       </motion.div>
@@ -368,7 +369,7 @@ const IdeaBar = () => {
               ))}
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="text-center py-20"
@@ -383,8 +384,8 @@ const IdeaBar = () => {
                 {filterCategory === 'all' ? 'The Backlog is Dormant' : `No ${filterCategory} ideas yet`}
               </h3>
               <p className="text-sm text-muted-foreground/60">
-                {filterCategory === 'all' 
-                  ? 'Awaiting high-value neural sequences.' 
+                {filterCategory === 'all'
+                  ? 'Awaiting high-value neural sequences.'
                   : 'Start capturing ideas in this category.'}
               </p>
             </motion.div>

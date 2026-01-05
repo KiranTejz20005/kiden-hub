@@ -602,29 +602,30 @@ const LeetCodeTracker = () => {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="p-6 border-b border-border/50"
+        className="p-4 xs:p-6 border-b border-border/50"
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 xs:gap-4 mb-4 xs:mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500">
-              <Code2 className="w-5 h-5 text-white" />
+            <div className="p-2 xs:p-2.5 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500">
+              <Code2 className="w-4 h-4 xs:w-5 xs:h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-foreground">LeetCode Tracker</h2>
-              <p className="text-sm text-muted-foreground">Track your coding journey</p>
+              <h2 className="text-lg xs:text-xl font-bold text-foreground">LeetCode Tracker</h2>
+              <p className="text-xs xs:text-sm text-muted-foreground hidden xs:block">Track your coding journey</p>
             </div>
           </div>
           <Button
             onClick={() => setShowAddForm(true)}
-            className="gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+            className="gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-xs xs:text-sm px-3 xs:px-4"
           >
             <Plus className="w-4 h-4" />
-            Add Problem
+            <span className="hidden xs:inline">Add Problem</span>
+            <span className="xs:hidden">Add</span>
           </Button>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 xs:gap-3">
           <StatCard 
             icon={Trophy} 
             label="Total Solved" 

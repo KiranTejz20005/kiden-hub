@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,7 +6,7 @@ import { WorkspaceProvider } from '@/hooks/useWorkspace';
 import { SpotifyProvider } from '@/hooks/useSpotify';
 import { useWorkspaceInvitations } from '@/hooks/useWorkspaceInvitations';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile, FocusSettings, UserStatus } from '@/lib/types';
+import { Profile, FocusSettings, UserStatus, ActiveView } from '@/lib/types';
 import AppSidebar from '@/components/app/AppSidebar';
 import CommandCenter from '@/components/app/CommandCenter';
 import IdeaBar from '@/components/app/IdeaBar';
@@ -16,6 +16,8 @@ import Notebook from '@/components/app/Notebook';
 import FocusMode from '@/components/app/FocusMode';
 import Templates from '@/components/app/Templates';
 import OnboardingFlow from '@/components/app/OnboardingFlow';
+import { ProjectList } from '@/components/app/projects/ProjectList';
+import { TaskBoard } from '@/components/app/tasks/TaskBoard';
 import { Journal } from '@/components/app/Journal';
 import { BookTracker } from '@/components/app/BookTracker';
 import { HabitTracker } from '@/components/app/HabitTracker';
@@ -23,9 +25,8 @@ import { SpotifyPlayer } from '@/components/app/SpotifyPlayer';
 import { SpotifyMiniPlayer } from '@/components/app/SpotifyMiniPlayer';
 import LeetCodeTracker from '@/components/app/LeetCodeTracker';
 import { NewYearResolutions } from '@/components/app/NewYearResolutions';
+import { AnalyticsDashboard } from '@/components/app/analytics/AnalyticsDashboard';
 import { Loader2 } from 'lucide-react';
-
-type ActiveView = 'command' | 'ideas' | 'voice' | 'chat' | 'notebook' | 'focus' | 'templates' | 'journal' | 'books' | 'habits' | 'spotify' | 'leetcode' | 'resolutions';
 
 const ONBOARDING_KEY = 'kiden_onboarding_completed';
 
@@ -52,26 +53,19 @@ const DashboardContent = ({
     }
   }, [user, authLoading, navigate]);
 
-  useEffect(() => {
-    if (user) {
-      fetchUserData();
-      checkOnboarding();
-    }
-  }, [user]);
-
-  const checkOnboarding = () => {
+  const checkOnboarding = useCallback(() => {
     const completed = localStorage.getItem(ONBOARDING_KEY);
     if (!completed) {
       setShowOnboarding(true);
     }
-  };
+  }, []);
 
-  const completeOnboarding = () => {
+  const completeOnboarding = useCallback(() => {
     localStorage.setItem(ONBOARDING_KEY, 'true');
     setShowOnboarding(false);
-  };
+  }, []);
 
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -106,7 +100,14 @@ const DashboardContent = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserData();
+      checkOnboarding();
+    }
+  }, [user, fetchUserData, checkOnboarding]);
 
   if (authLoading || loading) {
     return (
@@ -133,6 +134,12 @@ const DashboardContent = ({
             onAIAssistant={() => setActiveView('chat')}
           />
         );
+      case 'analytics':
+        return <AnalyticsDashboard />;
+      case 'tasks':
+        return <TaskBoard />;
+      case 'projects':
+        return <ProjectList />;
       case 'ideas':
         return <IdeaBar />;
       case 'voice':

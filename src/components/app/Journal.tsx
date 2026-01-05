@@ -19,6 +19,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { JournalAnalytics } from './JournalAnalytics';
+import { PageLayout } from '@/components/ui/PageLayout';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 interface JournalEntry {
   id: string;
@@ -365,25 +367,26 @@ export function Journal() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="h-full min-h-[calc(100vh-4rem)]"
-    >
-      <Tabs defaultValue="journal" className="h-full flex flex-col">
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
-          <TabsList className="bg-secondary/50">
-            <TabsTrigger value="journal" className="gap-2">
+    <PageLayout className="p-4 lg:p-6">
+      <PageHeader
+        title="Journal"
+        description="Reflect on your journey"
+        actions={
+          <TabsList className="bg-secondary/50 w-full sm:w-auto">
+            <TabsTrigger value="journal" className="gap-2 flex-1 sm:flex-none">
               <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Journal</span>
+              <span className="hidden xs:inline">Journal</span>
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-2">
+            <TabsTrigger value="analytics" className="gap-2 flex-1 sm:flex-none">
               <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Analytics</span>
+              <span className="hidden xs:inline">Analytics</span>
             </TabsTrigger>
           </TabsList>
-        </div>
+        }
+      />
+
+      <Tabs defaultValue="journal" className="flex-1 flex flex-col min-h-0">
+        {/* Navigation moved to PageHeader actions */}
 
         <TabsContent value="analytics" className="flex-1 m-0 overflow-auto">
           <JournalAnalytics />
@@ -645,6 +648,6 @@ export function Journal() {
           </div>
         </TabsContent>
       </Tabs>
-    </motion.div>
+    </PageLayout>
   );
 }

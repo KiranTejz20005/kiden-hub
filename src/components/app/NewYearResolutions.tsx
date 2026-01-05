@@ -109,7 +109,11 @@ export function NewYearResolutions() {
         .eq('year', selectedYear)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Resolutions fetch warning:', error.message);
+        setResolutions([]);
+        return;
+      }
       setResolutions((data as Resolution[]) || []);
 
       // Fetch history for all resolutions
@@ -126,8 +130,8 @@ export function NewYearResolutions() {
         }
       }
     } catch (error: any) {
-      console.error('Error fetching resolutions:', error);
-      toast({ title: 'Error', description: 'Failed to load resolutions', variant: 'destructive' });
+      console.warn('Error fetching resolutions:', error);
+      setResolutions([]);
     } finally {
       setLoading(false);
     }
@@ -313,20 +317,20 @@ export function NewYearResolutions() {
     >
       <Tabs defaultValue="resolutions" className="h-full flex flex-col">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 pt-4 pb-2">
-          <div className="flex items-center gap-4">
-            <TabsList className="bg-secondary/50">
-              <TabsTrigger value="resolutions" className="gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+            <TabsList className="bg-secondary/50 w-full sm:w-auto">
+              <TabsTrigger value="resolutions" className="gap-2 flex-1 sm:flex-none">
                 <Rocket className="h-4 w-4" />
-                <span className="hidden sm:inline">Resolutions</span>
+                <span className="hidden xs:inline">Resolutions</span>
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="gap-2">
+              <TabsTrigger value="analytics" className="gap-2 flex-1 sm:flex-none">
                 <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Analytics</span>
+                <span className="hidden xs:inline">Analytics</span>
               </TabsTrigger>
             </TabsList>
 
             <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-              <SelectTrigger className="w-28">
+              <SelectTrigger className="w-full sm:w-28">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -411,230 +415,230 @@ export function NewYearResolutions() {
         {/* Resolutions Tab */}
         <TabsContent value="resolutions" className="flex-1 m-0 overflow-auto">
           <div className="p-4 pt-0 space-y-4">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card className="border-border/50 bg-gradient-to-br from-blue-500/10 to-cyan-500/10">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Active</p>
-                      <p className="text-2xl font-bold text-blue-500">{activeResolutions.length}</p>
-                    </div>
-                    <Target className="h-8 w-8 text-blue-500/50" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50 bg-gradient-to-br from-green-500/10 to-emerald-500/10">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Completed</p>
-                      <p className="text-2xl font-bold text-green-500">{completedResolutions.length}</p>
-                    </div>
-                    <Check className="h-8 w-8 text-green-500/50" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50 bg-gradient-to-br from-purple-500/10 to-pink-500/10">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Avg Progress</p>
-                      <p className="text-2xl font-bold text-purple-500">{avgProgress}%</p>
-                    </div>
-                    <TrendingUp className="h-8 w-8 text-purple-500/50" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50 bg-gradient-to-br from-amber-500/10 to-orange-500/10">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Success Rate</p>
-                      <p className="text-2xl font-bold text-amber-500">{completionRate}%</p>
-                    </div>
-                    <Award className="h-8 w-8 text-amber-500/50" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Resolutions List */}
             {loading ? (
-              <div className="flex items-center justify-center h-40">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : resolutions.length === 0 ? (
-              <Card className="border-border/50 bg-card/50">
-                <CardContent className="flex flex-col items-center justify-center py-16">
-                  <Rocket className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No resolutions yet</h3>
-                  <p className="text-sm text-muted-foreground text-center mb-4">
-                    It's {selectedYear}! Set your goals and track your progress.
-                  </p>
-                  <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create Your First Resolution
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                <Rocket className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Resolutions for {selectedYear}</h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-md">
+                  Set your goals and track your progress throughout the year
+                </p>
+                <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create First Resolution
+                </Button>
+              </div>
             ) : (
-              <div className="space-y-3">
-                {resolutions.map((resolution) => {
-                  const catData = getCategoryData(resolution.category);
-                  const daysInfo = getDaysRemaining(resolution.target_date);
-                  const resHistory = getResolutionHistory(resolution.id);
-                  const isExpanded = expandedId === resolution.id;
+              <>
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Card className="border-border/50 bg-gradient-to-br from-blue-500/10 to-cyan-500/10">
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Active</p>
+                          <p className="text-2xl font-bold text-blue-500">{activeResolutions.length}</p>
+                        </div>
+                        <Target className="h-8 w-8 text-blue-500/50" />
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                  return (
-                    <motion.div
-                      key={resolution.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="group"
-                    >
-                      <Card className={cn(
-                        "border-border/50 bg-card/50 backdrop-blur-sm transition-all",
-                        resolution.status === 'completed' && "bg-green-500/5 border-green-500/30",
-                        resolution.status === 'abandoned' && "opacity-60"
-                      )}>
-                        <CardContent className="p-4">
-                          <div className="flex flex-col gap-3">
-                            {/* Header */}
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-start gap-3 flex-1 min-w-0">
-                                <div className={cn(
-                                  "w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0",
-                                  `bg-gradient-to-br ${catData.color}`
-                                )}>
-                                  {catData.emoji}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h3 className={cn(
-                                    "font-semibold truncate",
-                                    resolution.status === 'completed' && "line-through text-muted-foreground"
+                  <Card className="border-border/50 bg-gradient-to-br from-green-500/10 to-emerald-500/10">
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Completed</p>
+                          <p className="text-2xl font-bold text-green-500">{completedResolutions.length}</p>
+                        </div>
+                        <Check className="h-8 w-8 text-green-500/50" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-border/50 bg-gradient-to-br from-purple-500/10 to-pink-500/10">
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Avg Progress</p>
+                          <p className="text-2xl font-bold text-purple-500">{avgProgress}%</p>
+                        </div>
+                        <TrendingUp className="h-8 w-8 text-purple-500/50" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-border/50 bg-gradient-to-br from-amber-500/10 to-orange-500/10">
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Success Rate</p>
+                          <p className="text-2xl font-bold text-amber-500">{completionRate}%</p>
+                        </div>
+                        <Award className="h-8 w-8 text-amber-500/50" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Resolutions List */}
+                <div className="space-y-3">
+                  {resolutions.map((resolution) => {
+                    const catData = getCategoryData(resolution.category);
+                    const daysInfo = getDaysRemaining(resolution.target_date);
+                    const resHistory = getResolutionHistory(resolution.id);
+                    const isExpanded = expandedId === resolution.id;
+
+                    return (
+                      <motion.div
+                        key={resolution.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="group"
+                      >
+                        <Card className={cn(
+                          "border-border/50 bg-card/50 backdrop-blur-sm transition-all",
+                          resolution.status === 'completed' && "bg-green-500/5 border-green-500/30",
+                          resolution.status === 'abandoned' && "opacity-60"
+                        )}>
+                          <CardContent className="p-4">
+                            <div className="flex flex-col gap-3">
+                              {/* Header */}
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-start gap-3 flex-1 min-w-0">
+                                  <div className={cn(
+                                    "w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0",
+                                    `bg-gradient-to-br ${catData.color}`
                                   )}>
-                                    {resolution.title}
-                                  </h3>
-                                  <div className="flex flex-wrap items-center gap-2 mt-1">
-                                    <Badge variant="secondary" className="text-xs">
-                                      {catData.label}
-                                    </Badge>
-                                    <span className={cn(
-                                      "text-xs",
-                                      daysInfo.overdue ? "text-red-500" : "text-muted-foreground"
+                                    {catData.emoji}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className={cn(
+                                      "font-semibold truncate",
+                                      resolution.status === 'completed' && "line-through text-muted-foreground"
                                     )}>
-                                      <Calendar className="h-3 w-3 inline mr-1" />
-                                      {daysInfo.text}
-                                    </span>
-                                    {resolution.status !== 'active' && (
-                                      <Badge variant={resolution.status === 'completed' ? 'default' : 'destructive'}>
-                                        {resolution.status}
+                                      {resolution.title}
+                                    </h3>
+                                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                                      <Badge variant="secondary" className="text-xs">
+                                        {catData.label}
                                       </Badge>
-                                    )}
+                                      <span className={cn(
+                                        "text-xs",
+                                        daysInfo.overdue ? "text-red-500" : "text-muted-foreground"
+                                      )}>
+                                        <Calendar className="h-3 w-3 inline mr-1" />
+                                        {daysInfo.text}
+                                      </span>
+                                      {resolution.status !== 'active' && (
+                                        <Badge variant={resolution.status === 'completed' ? 'default' : 'destructive'}>
+                                          {resolution.status}
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
+
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  {resolution.status === 'active' && (
+                                    <>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openProgressDialog(resolution)}>
+                                        <TrendingUp className="h-4 w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateStatus(resolution.id, 'completed')}>
+                                        <Check className="h-4 w-4 text-green-500" />
+                                      </Button>
+                                    </>
+                                  )}
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(resolution)}>
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteResolution(resolution.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
 
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                {resolution.status === 'active' && (
-                                  <>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openProgressDialog(resolution)}>
-                                      <TrendingUp className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateStatus(resolution.id, 'completed')}>
-                                      <Check className="h-4 w-4 text-green-500" />
-                                    </Button>
-                                  </>
-                                )}
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(resolution)}>
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteResolution(resolution.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                              {/* Progress Bar */}
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-muted-foreground">Progress</span>
+                                  <span className="font-medium">{resolution.progress}%</span>
+                                </div>
+                                <Progress value={resolution.progress} className="h-2" />
                               </div>
-                            </div>
 
-                            {/* Progress Bar */}
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-xs">
-                                <span className="text-muted-foreground">Progress</span>
-                                <span className="font-medium">{resolution.progress}%</span>
-                              </div>
-                              <Progress value={resolution.progress} className="h-2" />
-                            </div>
-
-                            {/* Description & History Toggle */}
-                            {(resolution.description || resHistory.length > 0) && (
-                              <button
-                                onClick={() => setExpandedId(isExpanded ? null : resolution.id)}
-                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                {isExpanded ? 'Hide details' : 'Show details'}
-                                {resHistory.length > 0 && ` (${resHistory.length} updates)`}
-                              </button>
-                            )}
-
-                            {/* Expanded Content */}
-                            <AnimatePresence>
-                              {isExpanded && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="overflow-hidden"
+                              {/* Description & History Toggle */}
+                              {(resolution.description || resHistory.length > 0) && (
+                                <button
+                                  onClick={() => setExpandedId(isExpanded ? null : resolution.id)}
+                                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                  {resolution.description && (
-                                    <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
-                                      {resolution.description}
-                                    </p>
-                                  )}
-
-                                  {resHistory.length > 0 && (
-                                    <div className="border-t border-border/50 pt-3">
-                                      <h4 className="text-xs font-medium flex items-center gap-1 mb-2">
-                                        <History className="h-3 w-3" />
-                                        Progress History
-                                      </h4>
-                                      <ScrollArea className="max-h-32">
-                                        <div className="space-y-2">
-                                          {resHistory.map(h => (
-                                            <div key={h.id} className="flex items-start gap-2 text-xs">
-                                              <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                                              <div className="flex-1">
-                                                <div className="flex items-center gap-2">
-                                                  <span className="font-medium">
-                                                    {h.previous_progress}% → {h.progress}%
-                                                  </span>
-                                                  <span className="text-muted-foreground">
-                                                    {format(parseISO(h.created_at), 'MMM d, yyyy')}
-                                                  </span>
-                                                </div>
-                                                {h.note && (
-                                                  <p className="text-muted-foreground mt-0.5">{h.note}</p>
-                                                )}
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </ScrollArea>
-                                    </div>
-                                  )}
-                                </motion.div>
+                                  {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                  {isExpanded ? 'Hide details' : 'Show details'}
+                                  {resHistory.length > 0 && ` (${resHistory.length} updates)`}
+                                </button>
                               )}
-                            </AnimatePresence>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
-              </div>
+
+                              {/* Expanded Content */}
+                              <AnimatePresence>
+                                {isExpanded && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden"
+                                  >
+                                    {resolution.description && (
+                                      <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
+                                        {resolution.description}
+                                      </p>
+                                    )}
+
+                                    {resHistory.length > 0 && (
+                                      <div className="border-t border-border/50 pt-3">
+                                        <h4 className="text-xs font-medium flex items-center gap-1 mb-2">
+                                          <History className="h-3 w-3" />
+                                          Progress History
+                                        </h4>
+                                        <ScrollArea className="max-h-32">
+                                          <div className="space-y-2">
+                                            {resHistory.map(h => (
+                                              <div key={h.id} className="flex items-start gap-2 text-xs">
+                                                <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+                                                <div className="flex-1">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="font-medium">
+                                                      {h.previous_progress}% → {h.progress}%
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                      {format(parseISO(h.created_at), 'MMM d, yyyy')}
+                                                    </span>
+                                                  </div>
+                                                  {h.note && (
+                                                    <p className="text-muted-foreground mt-0.5">{h.note}</p>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </ScrollArea>
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
         </TabsContent>
@@ -643,7 +647,7 @@ export function NewYearResolutions() {
         <TabsContent value="analytics" className="flex-1 m-0 overflow-auto">
           <div className="p-4 pt-0 space-y-4">
             {/* Overview Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <Card className="border-border/50 bg-gradient-to-br from-blue-500/10 to-cyan-500/10">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">

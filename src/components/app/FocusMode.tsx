@@ -6,9 +6,22 @@ import { FocusSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Play, Pause, RotateCcw, Settings, Volume2, VolumeX, Coffee, Zap, Moon, X, Save } from 'lucide-react';
+import {
+  Play, Pause, RotateCcw, Settings, Volume2, VolumeX,
+  Coffee, Zap, Moon, X, Save
+} from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useFocusSessions } from '@/hooks/useFocusSessions';
+import { useProjects } from '@/hooks/useProjects';
+import { useTasks } from '@/hooks/useTasks';
 
 interface FocusModeProps {
   focusSettings?: FocusSettings;
@@ -26,15 +39,26 @@ const sessionConfig = {
 
 const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
   const { user } = useAuth();
+  const { createSession } = useFocusSessions();
+  const { projects } = useProjects();
+  const { tasks } = useTasks();
+
   const [sessionType, setSessionType] = useState<SessionType>('work');
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [timeLeft, setTimeLeft] = useState((focusSettings?.workDuration || 25) * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Editable settings state
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('unassigned');
+  const [selectedTaskId, setSelectedTaskId] = useState<string>('unassigned');
+
+  // Filter tasks based on selected project
+  const availableTasks = selectedProjectId && selectedProjectId !== 'unassigned'
+    ? tasks.filter((t) => t.project_id === selectedProjectId && t.status !== 'done')
+    : tasks.filter((t) => t.status !== 'done');
+
   const [editableSettings, setEditableSettings] = useState<FocusSettings>({
     workDuration: focusSettings?.workDuration || 25,
     shortBreakDuration: focusSettings?.shortBreakDuration || 5,
@@ -62,8 +86,14 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+    if (isRunning && (timeLeft > 0 || sessionType === 'flow')) {
+      interval = setInterval(() => {
+        if (sessionType === 'flow') {
+          setTimeLeft(prev => prev + 1);
+        } else {
+          setTimeLeft(prev => prev - 1);
+        }
+      }, 1000);
     } else if (isRunning && timeLeft === 0 && sessionType !== 'flow') {
       handleSessionComplete();
     }
@@ -74,30 +104,32 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
     setIsRunning(false);
     if (soundEnabled) {
       const audio = new Audio('/notification.mp3');
-      audio.play().catch(() => {});
+      audio.play().catch(() => { });
     }
 
-    if (user) {
-      const duration = sessionType === 'work' ? settings.workDuration : 
-                       sessionType === 'short_break' ? settings.shortBreakDuration :
-                       settings.longBreakDuration;
+    const duration = sessionType === 'flow' ? Math.floor(timeLeft / 60) :
+      sessionType === 'work' ? settings.workDuration :
+        sessionType === 'short_break' ? settings.shortBreakDuration :
+          settings.longBreakDuration;
 
-      await supabase.from('focus_sessions').insert({
-        user_id: user.id,
-        duration_minutes: duration,
-        session_type: sessionType,
-        completed: true,
-        ended_at: new Date().toISOString(),
-      });
-    }
+    await createSession({
+      duration_minutes: duration,
+      session_type: sessionType,
+      completed: true,
+      project_id: selectedProjectId === 'unassigned' ? null : selectedProjectId,
+      task_id: selectedTaskId === 'unassigned' ? null : selectedTaskId,
+      ended_at: new Date().toISOString(),
+      started_at: new Date(Date.now() - duration * 60000).toISOString(),
+      interruptions_count: 0
+    });
 
-    if (sessionType === 'work') {
+    if (sessionType === 'work' || sessionType === 'flow') {
       const newSessionsCompleted = sessionsCompleted + 1;
       setSessionsCompleted(newSessionsCompleted);
-      toast.success('Focus session complete! Time for a break.');
+      toast.success('Focus session complete!');
       setSessionType(newSessionsCompleted % settings.sessionsBeforeLongBreak === 0 ? 'long_break' : 'short_break');
     } else {
-      toast.success('Break complete! Ready for another session?');
+      toast.success('Break complete!');
       setSessionType('work');
     }
     onComplete();
@@ -113,8 +145,8 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ 
-          focus_settings: JSON.parse(JSON.stringify(editableSettings))
+        .update({
+          focus_settings: editableSettings
         })
         .eq('user_id', user.id);
 
@@ -122,7 +154,6 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
 
       toast.success('Timer settings saved!');
       setShowSettings(false);
-      // Update time if not running
       if (!isRunning) {
         setTimeLeft(getDuration(sessionType));
       }
@@ -141,30 +172,29 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
   };
 
   const getProgress = () => {
-    if (sessionType === 'flow') return 0;
+    if (sessionType === 'flow') return 100;
     const total = getDuration(sessionType);
     return ((total - timeLeft) / total) * 100;
   };
 
   const resetTimer = () => {
     setIsRunning(false);
-    setTimeLeft(getDuration(sessionType));
+    setTimeLeft(sessionType === 'flow' ? 0 : getDuration(sessionType));
   };
 
   const config = sessionConfig[sessionType];
   const Icon = config.icon;
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-4 md:p-8 pt-16 lg:pt-8"
     >
-      {/* Session Type Selector */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-wrap justify-center gap-2 mb-8 md:mb-12"
+        className="flex flex-wrap justify-center gap-2 mb-8"
       >
         {(Object.keys(sessionConfig) as SessionType[]).map((type) => {
           const cfg = sessionConfig[type];
@@ -189,19 +219,62 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
         })}
       </motion.div>
 
-      {/* Timer Circle */}
-      <motion.div 
+      {(sessionType === 'work' || sessionType === 'flow') && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="flex flex-col sm:flex-row gap-4 mb-8 w-full max-w-md"
+        >
+          <div className="flex-1">
+            <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isRunning}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Project" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">No Project</SelectItem>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
+                      {p.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1">
+            <Select value={selectedTaskId} onValueChange={setSelectedTaskId} disabled={isRunning}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Task" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">No Task</SelectItem>
+                {availableTasks.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    <div className="flex items-center gap-2 truncate">
+                      {t.priority === 'urgent' && <span className="text-red-500">!</span>}
+                      <span className="truncate">{t.title}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </motion.div>
+      )}
+
+      <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", duration: 0.8 }}
         className="relative mb-8 md:mb-12"
       >
-        {/* Glow effect */}
         <div className={cn(
           "absolute inset-0 rounded-full blur-3xl opacity-30 bg-gradient-to-r",
           config.color
         )} />
-        
+
         <svg className="w-56 h-56 md:w-72 md:h-72 transform -rotate-90 relative">
           <circle
             cx="50%"
@@ -221,7 +294,7 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
             fill="none"
             strokeDasharray={854}
             initial={{ strokeDashoffset: 854 }}
-            animate={{ strokeDashoffset: 854 - (854 * getProgress()) / 100 }}
+            animate={{ strokeDashoffset: sessionType === 'flow' ? 0 : 854 - (854 * getProgress()) / 100 }}
             strokeLinecap="round"
             transition={{ duration: 0.5 }}
           />
@@ -232,16 +305,14 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
             </linearGradient>
           </defs>
         </svg>
-        
+
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <motion.span 
+          <motion.div
             key={timeLeft}
-            initial={{ scale: 1.1 }}
-            animate={{ scale: 1 }}
-            className="font-mono text-5xl md:text-6xl font-bold text-foreground"
+            className="font-mono text-5xl md:text-6xl font-bold text-foreground tabular-nums"
           >
-            {sessionType === 'flow' ? '∞' : formatTime(timeLeft)}
-          </motion.span>
+            {formatTime(timeLeft)}
+          </motion.div>
           <span className="text-sm text-muted-foreground mt-2 uppercase tracking-wider flex items-center gap-2">
             <Icon className="w-4 h-4" />
             {config.label}
@@ -249,8 +320,7 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
         </div>
       </motion.div>
 
-      {/* Controls */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -272,8 +342,9 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
             onClick={() => setIsRunning(!isRunning)}
             size="lg"
             className={cn(
-              "w-20 h-20 rounded-full shadow-2xl bg-gradient-to-r",
-              config.color
+              "w-20 h-20 rounded-full shadow-2xl bg-gradient-to-r transition-all duration-300",
+              config.color,
+              isRunning && "animate-pulse ring-4 ring-primary/20"
             )}
           >
             {isRunning ? (
@@ -296,7 +367,6 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
         </motion.div>
       </motion.div>
 
-      {/* Session Counter */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -323,7 +393,6 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
         Sessions completed: <span className="text-foreground font-bold">{sessionsCompleted}</span>
       </p>
 
-      {/* Settings Button */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -339,14 +408,13 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
         </Button>
       </motion.div>
 
-      {/* Editable Settings Panel */}
       <AnimatePresence>
         {showSettings && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="mt-4 p-6 bg-card border border-border rounded-xl w-full max-w-md shadow-xl"
+            className="mt-4 p-6 bg-card border border-border rounded-xl w-full max-w-md shadow-xl z-10"
           >
             <div className="flex items-center justify-between mb-4">
               <p className="text-lg font-semibold text-foreground">Edit Timer Settings</p>
@@ -363,73 +431,46 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="workDuration" className="text-sm text-muted-foreground">
-                    Focus Duration (min)
-                  </Label>
+                  <Label htmlFor="workDuration" className="text-sm text-muted-foreground">Focus (min)</Label>
                   <Input
                     id="workDuration"
                     type="number"
-                    min={1}
-                    max={120}
+                    min={1} max={120}
                     value={editableSettings.workDuration}
-                    onChange={(e) => setEditableSettings(prev => ({
-                      ...prev,
-                      workDuration: Math.max(1, Math.min(120, parseInt(e.target.value) || 1))
-                    }))}
+                    onChange={(e) => setEditableSettings(p => ({ ...p, workDuration: parseInt(e.target.value) || 1 }))}
                     className="bg-secondary"
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="shortBreak" className="text-sm text-muted-foreground">
-                    Short Break (min)
-                  </Label>
+                  <Label htmlFor="shortBreak" className="text-sm text-muted-foreground">Short Break</Label>
                   <Input
                     id="shortBreak"
                     type="number"
-                    min={1}
-                    max={30}
+                    min={1} max={30}
                     value={editableSettings.shortBreakDuration}
-                    onChange={(e) => setEditableSettings(prev => ({
-                      ...prev,
-                      shortBreakDuration: Math.max(1, Math.min(30, parseInt(e.target.value) || 1))
-                    }))}
+                    onChange={(e) => setEditableSettings(p => ({ ...p, shortBreakDuration: parseInt(e.target.value) || 1 }))}
                     className="bg-secondary"
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="longBreak" className="text-sm text-muted-foreground">
-                    Long Break (min)
-                  </Label>
+                  <Label htmlFor="longBreak" className="text-sm text-muted-foreground">Long Break</Label>
                   <Input
                     id="longBreak"
                     type="number"
-                    min={1}
-                    max={60}
+                    min={1} max={60}
                     value={editableSettings.longBreakDuration}
-                    onChange={(e) => setEditableSettings(prev => ({
-                      ...prev,
-                      longBreakDuration: Math.max(1, Math.min(60, parseInt(e.target.value) || 1))
-                    }))}
+                    onChange={(e) => setEditableSettings(p => ({ ...p, longBreakDuration: parseInt(e.target.value) || 1 }))}
                     className="bg-secondary"
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="sessions" className="text-sm text-muted-foreground">
-                    Sessions before Long Break
-                  </Label>
+                  <Label htmlFor="sessions" className="text-sm text-muted-foreground">Sessions/Cycle</Label>
                   <Input
                     id="sessions"
                     type="number"
-                    min={1}
-                    max={10}
+                    min={1} max={10}
                     value={editableSettings.sessionsBeforeLongBreak}
-                    onChange={(e) => setEditableSettings(prev => ({
-                      ...prev,
-                      sessionsBeforeLongBreak: Math.max(1, Math.min(10, parseInt(e.target.value) || 1))
-                    }))}
+                    onChange={(e) => setEditableSettings(p => ({ ...p, sessionsBeforeLongBreak: parseInt(e.target.value) || 1 }))}
                     className="bg-secondary"
                   />
                 </div>
