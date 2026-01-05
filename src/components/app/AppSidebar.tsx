@@ -113,7 +113,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
             x: isOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024) ? -300 : 0,
             width: isCollapsed ? 80 : 280
           }}
-          transition={{ type: "spring", stiffness: 400, damping: 40 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
           className={cn(
             "fixed lg:relative z-40 h-screen flex flex-col",
             "bg-card border-r border-border", // Simplified background
@@ -188,14 +188,14 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                         onClick={() => handleViewChange(item.id as ActiveView)}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.03 }}
-                        whileHover={{ x: isCollapsed ? 0 : 4 }}
-                        whileTap={{ scale: 0.98 }}
+                        transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 20 }}
+                        whileHover={{ x: isCollapsed ? 0 : 6 }}
+                        whileTap={{ scale: 0.95 }}
                         className={cn(
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 relative overflow-hidden group",
                           isCollapsed && "justify-center px-2",
                           isActive
-                            ? 'bg-primary text-primary-foreground shadow-sm font-medium'
+                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-medium'
                             : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                         )}
                       >
