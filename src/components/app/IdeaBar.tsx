@@ -328,7 +328,9 @@ const IdeaBar = () => {
         className="flex flex-wrap items-center gap-1.5 xs:gap-2 mb-6"
       >
         <Filter className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground" />
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => setFilterCategory('all')}
           className={cn(
             "px-2 xs:px-4 py-1.5 xs:py-2 rounded-full text-xs xs:text-sm transition-all font-medium",
@@ -338,10 +340,12 @@ const IdeaBar = () => {
           )}
         >
           ALL ({ideas.length})
-        </button>
+        </motion.button>
         {categories.map((cat) => (
-          <button
+          <motion.button
             key={cat}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setFilterCategory(cat)}
             className={cn(
               "px-2 xs:px-4 py-1.5 xs:py-2 rounded-full text-xs xs:text-sm transition-all flex items-center gap-1 font-medium",
@@ -351,7 +355,7 @@ const IdeaBar = () => {
             )}
           >
             {categoryIcons[cat]} <span className="hidden xs:inline">{getCategoryCount(cat)}</span>
-          </button>
+          </motion.button>
         ))}
       </motion.div>
 
