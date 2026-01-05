@@ -98,6 +98,13 @@
     box-shadow:
       0 0 80px -30px hsl(var(--glow-primary) / 0.3),
       inset 0 1px 0 0 hsl(var(--foreground) / 0.05);
+    transition: all 0.3s ease;
+  }
+
+  .glass-glow:hover {
+    box-shadow:
+      0 0 100px -20px hsl(var(--glow-primary) / 0.4),
+      inset 0 1px 0 0 hsl(var(--foreground) / 0.1);
   }
 
   /* Gradient text effects */
@@ -714,5 +721,10 @@
 
   .backface-hidden {
     backface-visibility: hidden;
+  }
+
+  /* Tactile click effect for increasing engagement */
+  .click-effect {
+    @apply active:scale-95 transition-transform duration-100;
   }
 }
