@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
-import kidenLogo from '@/assets/kiden-logo.png';
+import kidenLogo from '@/assets/kiden-logo-green.jpg';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -19,7 +19,7 @@ const Auth = () => {
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, signInAsGuest, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,7 +37,7 @@ const Auth = () => {
           redirectTo: `${window.location.origin}/dashboard`,
         },
       });
-      
+
       if (error) {
         toast.error(error.message);
       }
@@ -108,13 +108,14 @@ const Auth = () => {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <motion.img 
-            src={kidenLogo} 
-            alt="Kiden" 
+          <motion.img
+            src={kidenLogo}
+            alt="Kiden"
             className="h-16 mx-auto mb-4 rounded-xl"
             whileHover={{ scale: 1.05, rotate: 5 }}
             transition={{ type: "spring", stiffness: 300 }}
           />
+          <span className="font-serif text-2xl font-bold tracking-tight mb-6 block text-foreground">Kiden</span>
           <h1 className="font-serif text-3xl text-foreground mb-2">
             {isLogin ? 'Welcome back' : 'Create your account'}
           </h1>
@@ -128,14 +129,16 @@ const Auth = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          className="space-y-3"
         >
           <Button
             type="button"
             variant="outline"
             onClick={handleGoogleSignIn}
             disabled={googleLoading}
-            className="w-full mb-4 h-12 text-base border-border hover:bg-secondary/50 transition-all duration-300"
+            className="w-full h-12 text-base border-border bg-background hover:bg-secondary/50 transition-all duration-300 relative group overflow-hidden"
           >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
               <path
                 fill="currentColor"
@@ -155,6 +158,15 @@ const Auth = () => {
               />
             </svg>
             {googleLoading ? 'Connecting...' : 'Continue with Google'}
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => signInAsGuest()}
+            className="w-full h-12 text-base text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+          >
+            Continue as Guest
           </Button>
         </motion.div>
 
@@ -220,7 +232,7 @@ const Auth = () => {
               className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground text-base font-medium"
             >
               {loading ? (
-                <motion.div 
+                <motion.div
                   className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -243,7 +255,7 @@ const Auth = () => {
         </div>
 
         {/* Features preview */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}

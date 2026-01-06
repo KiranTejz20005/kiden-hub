@@ -5,7 +5,7 @@ import WorkspaceManager from './WorkspaceManager';
 import CollectionsManager from './CollectionsManager';
 import WorkspaceCollaborators from './WorkspaceCollaborators';
 import SettingsPanel from './SettingsPanel';
-import kidenLogo from '@/assets/kiden-logo.png';
+import kidenLogo from "@/assets/kiden-logo-green.jpg";
 import {
   LayoutDashboard,
   Lightbulb,
@@ -237,8 +237,6 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
             {/* Workspace & Collections */}
             <div className="p-3 space-y-4">
               <WorkspaceManager
-                activeWorkspace={activeWorkspace}
-                onWorkspaceChange={setActiveWorkspace}
                 isCollapsed={isCollapsed}
               />
 
@@ -308,7 +306,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                   "absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-card",
                   profile?.status === 'online' && 'bg-green-500',
                   profile?.status === 'away' && 'bg-amber-500',
-                  profile?.status === 'dnd' && 'bg-red-500',
+                  profile?.status === 'dnd' && 'bg-amber-600',
                   profile?.status === 'offline' && 'bg-muted-foreground',
                   !profile?.status && 'bg-green-500'
                 )} />
@@ -330,7 +328,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                         "w-1.5 h-1.5 rounded-full",
                         profile?.status === 'online' && 'bg-green-500 animate-pulse',
                         profile?.status === 'away' && 'bg-amber-500',
-                        profile?.status === 'dnd' && 'bg-red-500',
+                        profile?.status === 'dnd' && 'bg-amber-600',
                         profile?.status === 'offline' && 'bg-muted-foreground',
                         !profile?.status && 'bg-green-500 animate-pulse'
                       )} />

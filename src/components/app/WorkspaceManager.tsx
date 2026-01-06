@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Folder, ChevronDown, Check, MoreHorizontal, Pencil, Trash2, X, Sparkles, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { Workspace } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,16 +24,14 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface WorkspaceManagerProps {
-  activeWorkspace: Workspace | null;
-  onWorkspaceChange: (workspace: Workspace) => void;
   isCollapsed?: boolean;
 }
 
 const EMOJI_OPTIONS = ['📁', '🏠', '💼', '🎨', '📚', '🚀', '💡', '🔬', '🎯', '🌟'];
 
-const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: WorkspaceManagerProps) => {
+const WorkspaceManager = ({ isCollapsed }: WorkspaceManagerProps) => {
   const { user } = useAuth();
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const { workspaces, activeWorkspace, setActiveWorkspace, refreshWorkspaces } = useWorkspace();
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState<string | null>(null);
@@ -42,41 +41,13 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
   const [editIcon, setEditIcon] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchWorkspaces();
-    }
-  }, [user]);
-
-  const fetchWorkspaces = async () => {
-    if (!user) return;
-    
-    const { data, error } = await supabase
-      .from('workspaces')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      toast.error('Failed to load workspaces');
-      return;
-    }
-
-    setWorkspaces(data || []);
-    
-    // Auto-select first workspace if none selected
-    if (data && data.length > 0 && !activeWorkspace) {
-      onWorkspaceChange(data[0]);
-    }
-  };
-
   const createWorkspace = async () => {
     if (!user || !newName.trim()) return;
-    
+
     setLoading(true);
     try {
       console.log('Creating workspace for user:', user.id);
-      
+
       const { data, error } = await supabase
         .from('workspaces')
         .insert({
@@ -93,8 +64,8 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
       } else {
         console.log('Workspace created successfully:', data);
         toast.success('Workspace created!');
-        setWorkspaces([...workspaces, data]);
-        onWorkspaceChange(data);
+        await refreshWorkspaces();
+        setActiveWorkspace(data);
         setNewName('');
         setNewIcon('📁');
         setIsCreating(false);
@@ -120,12 +91,7 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
       toast.error('Failed to update workspace');
     } else {
       toast.success('Workspace updated!');
-      setWorkspaces(workspaces.map(w => 
-        w.id === id ? { ...w, name: editName.trim(), icon: editIcon } : w
-      ));
-      if (activeWorkspace?.id === id) {
-        onWorkspaceChange({ ...activeWorkspace, name: editName.trim(), icon: editIcon });
-      }
+      await refreshWorkspaces();
       setIsEditing(null);
     }
     setLoading(false);
@@ -146,11 +112,7 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
       toast.error('Failed to delete workspace');
     } else {
       toast.success('Workspace deleted');
-      const remaining = workspaces.filter(w => w.id !== id);
-      setWorkspaces(remaining);
-      if (activeWorkspace?.id === id && remaining.length > 0) {
-        onWorkspaceChange(remaining[0]);
-      }
+      await refreshWorkspaces();
     }
   };
 
@@ -176,7 +138,7 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
           {workspaces.map(workspace => (
             <DropdownMenuItem
               key={workspace.id}
-              onClick={() => onWorkspaceChange(workspace)}
+              onClick={() => setActiveWorkspace(workspace)}
               className={cn(
                 "flex items-center gap-2",
                 activeWorkspace?.id === workspace.id && "bg-primary/10"
@@ -198,8 +160,8 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs tracking-widest text-muted-foreground">WORKSPACE</span>
-        <motion.button 
-          whileHover={{ scale: 1.1, rotate: 90 }} 
+        <motion.button
+          whileHover={{ scale: 1.1, rotate: 90 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsCreating(true)}
           className="text-muted-foreground hover:text-foreground transition-colors"
@@ -251,17 +213,17 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
                     placeholder="Workspace name"
                   />
                   <div className="flex gap-1">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="h-7 text-xs flex-1"
                       onClick={() => updateWorkspace(workspace.id)}
                       disabled={loading}
                     >
                       Save
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       className="h-7 text-xs"
                       onClick={() => setIsEditing(null)}
                     >
@@ -273,7 +235,7 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
                 <>
                   <DropdownMenuItem
                     onClick={() => {
-                      onWorkspaceChange(workspace);
+                      setActiveWorkspace(workspace);
                       setIsOpen(false);
                     }}
                     className={cn(
@@ -298,7 +260,7 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
                         <Pencil className="w-4 h-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => deleteWorkspace(workspace.id)}
                         className="text-destructive"
                       >
@@ -331,7 +293,7 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
               Organize your notes and ideas in a dedicated workspace
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6 pt-4">
             {/* Icon Selector */}
             <div className="space-y-3">
@@ -348,8 +310,8 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
                     onClick={() => setNewIcon(emoji)}
                     className={cn(
                       "w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all duration-200",
-                      newIcon === emoji 
-                        ? "bg-primary/20 ring-2 ring-primary shadow-lg shadow-primary/20" 
+                      newIcon === emoji
+                        ? "bg-primary/20 ring-2 ring-primary shadow-lg shadow-primary/20"
                         : "hover:bg-secondary"
                     )}
                   >
@@ -394,7 +356,7 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">
-              <Button 
+              <Button
                 variant="outline"
                 className="flex-1 h-11 rounded-xl"
                 onClick={() => {
@@ -405,7 +367,7 @@ const WorkspaceManager = ({ activeWorkspace, onWorkspaceChange, isCollapsed }: W
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 className="flex-1 h-11 rounded-xl gap-2"
                 onClick={createWorkspace}
                 disabled={loading || !newName.trim()}

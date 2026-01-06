@@ -10,11 +10,11 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import BlockEditor, { Block } from './BlockEditor';
-import NotebookAI from './NotebookAI';
+import NotebookAI from '../ai/NotebookAI';
 import CollaborativePresence from './CollaborativePresence';
 import { v4 as uuidv4 } from 'uuid';
-import { 
-  Plus, FileText, Search, Star, Archive, Trash2, 
+import {
+  Plus, FileText, Search, Star, Archive, Trash2,
   Sparkles, Menu, X, PanelRightOpen, Wifi, Users,
   Clock, ChevronRight
 } from 'lucide-react';
@@ -58,7 +58,7 @@ const Notebook = () => {
         },
         (payload) => {
           setIsRealtime(true);
-          
+
           if (payload.eventType === 'INSERT') {
             const newNote = payload.new as Note;
             // Only add if not created by current user (they already have it)
@@ -69,7 +69,7 @@ const Notebook = () => {
           } else if (payload.eventType === 'UPDATE') {
             const updatedNote = payload.new as Note;
             setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
-            
+
             // Update selected note if it's the one being edited by collaborator
             if (selectedNote?.id === updatedNote.id && updatedNote.user_id !== user.id) {
               setSelectedNote(updatedNote);
@@ -88,7 +88,7 @@ const Notebook = () => {
               toast.info('This note was deleted by a collaborator');
             }
           }
-          
+
           // Reset realtime indicator after a moment
           setTimeout(() => setIsRealtime(false), 2000);
         }
@@ -115,7 +115,7 @@ const Notebook = () => {
 
   const fetchNotes = async () => {
     if (!user) return;
-    
+
     let query = supabase
       .from('notes')
       .select('*')
@@ -144,9 +144,9 @@ const Notebook = () => {
     const newBlocks = [{ id: uuidv4(), type: 'paragraph' as const, content: '' }];
     const { data, error } = await supabase
       .from('notes')
-      .insert({ 
-        user_id: user.id, 
-        title: 'Untitled', 
+      .insert({
+        user_id: user.id,
+        title: 'Untitled',
         content: newBlocks,
         workspace_id: activeWorkspace?.id || null
       })
@@ -175,11 +175,11 @@ const Notebook = () => {
   const saveBlocks = useCallback(async (newBlocks: Block[]) => {
     setBlocks(newBlocks);
     setIsEditing(true);
-    
+
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
-    
+
     saveTimeoutRef.current = setTimeout(async () => {
       if (selectedNote) {
         await updateNote(selectedNote.id, { content: newBlocks as any });
@@ -246,8 +246,8 @@ const Notebook = () => {
         {/* Sidebar */}
         <motion.div
           initial={false}
-          animate={{ 
-            x: sidebarOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024) ? -300 : 0 
+          animate={{
+            x: sidebarOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024) ? -300 : 0
           }}
           className={cn(
             "fixed lg:relative z-40 w-72 h-full bg-card/95 backdrop-blur-xl border-r border-border/50 flex flex-col",
@@ -273,15 +273,15 @@ const Notebook = () => {
                 <TooltipContent>New note</TooltipContent>
               </Tooltip>
             </div>
-            
+
             {/* Workspace indicator */}
             {activeWorkspace && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
                   "mb-3 px-3 py-2 rounded-lg text-xs flex items-center gap-2",
-                  isSharedWorkspace 
+                  isSharedWorkspace
                     ? "bg-violet/10 border border-violet/20 text-violet"
                     : "bg-primary/10 border border-primary/20 text-primary"
                 )}
@@ -291,7 +291,7 @@ const Notebook = () => {
                 {isSharedWorkspace && <Badge variant="outline" className="text-[9px] px-1 py-0">Shared</Badge>}
               </motion.div>
             )}
-            
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -339,7 +339,7 @@ const Notebook = () => {
             </AnimatePresence>
 
             {filteredNotes.length === 0 && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="text-center py-8 text-muted-foreground"
@@ -365,7 +365,7 @@ const Notebook = () => {
                     onChange={(e) => updateNote(selectedNote.id, { title: e.target.value })}
                     className="text-lg md:text-xl font-bold bg-transparent border-none p-0 h-auto focus-visible:ring-0 flex-1 min-w-0"
                   />
-                  
+
                   {/* Real-time indicators */}
                   <div className="flex items-center gap-2">
                     {isRealtime && (
@@ -380,7 +380,7 @@ const Notebook = () => {
                         </Badge>
                       </motion.div>
                     )}
-                    
+
                     {lastEditedBy && (
                       <motion.div
                         initial={{ opacity: 0, x: 10 }}
@@ -394,14 +394,14 @@ const Notebook = () => {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {/* Collaborative presence - show who's viewing/editing */}
-                  <CollaborativePresence 
-                    noteId={selectedNote.id} 
+                  <CollaborativePresence
+                    noteId={selectedNote.id}
                     isEditing={isEditing}
                   />
-                  
+
                   {/* Mobile: Use Sheet for AI */}
                   <Sheet open={showAI} onOpenChange={setShowAI}>
                     <SheetTrigger asChild>
@@ -413,14 +413,14 @@ const Notebook = () => {
                       <AIPanel />
                     </SheetContent>
                   </Sheet>
-                  
+
                   {/* Desktop: Toggle side panel */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setShowAI(!showAI)} 
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowAI(!showAI)}
                         className={cn("hidden lg:flex", showAI && "bg-primary/20")}
                       >
                         <PanelRightOpen className="w-4 h-4 text-primary" />
@@ -428,12 +428,12 @@ const Notebook = () => {
                     </TooltipTrigger>
                     <TooltipContent>AI Assistant</TooltipContent>
                   </Tooltip>
-                  
+
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => updateNote(selectedNote.id, { is_favorite: !selectedNote.is_favorite })}
                       >
                         <Star className={cn("w-4 h-4", selectedNote.is_favorite ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground')} />
@@ -441,17 +441,17 @@ const Notebook = () => {
                     </TooltipTrigger>
                     <TooltipContent>{selectedNote.is_favorite ? 'Remove from favorites' : 'Add to favorites'}</TooltipContent>
                   </Tooltip>
-                  
+
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="hidden sm:flex"
-                        onClick={() => { 
-                          updateNote(selectedNote.id, { is_archived: true }); 
-                          setNotes(prev => prev.filter(n => n.id !== selectedNote.id)); 
-                          setSelectedNote(null); 
+                        onClick={() => {
+                          updateNote(selectedNote.id, { is_archived: true });
+                          setNotes(prev => prev.filter(n => n.id !== selectedNote.id));
+                          setSelectedNote(null);
                         }}
                       >
                         <Archive className="w-4 h-4 text-muted-foreground" />
@@ -459,12 +459,12 @@ const Notebook = () => {
                     </TooltipTrigger>
                     <TooltipContent>Archive</TooltipContent>
                   </Tooltip>
-                  
+
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => deleteNote(selectedNote.id)}
                       >
                         <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
@@ -497,9 +497,9 @@ const Notebook = () => {
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center p-4">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }} 
-                animate={{ opacity: 1, scale: 1 }} 
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
                 className="text-center max-w-sm"
               >
                 <motion.div

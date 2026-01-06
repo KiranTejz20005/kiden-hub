@@ -1,212 +1,273 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { WorkspaceProvider } from '@/hooks/useWorkspace';
 import { SpotifyProvider } from '@/hooks/useSpotify';
-import { useWorkspaceInvitations } from '@/hooks/useWorkspaceInvitations';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile, FocusSettings, UserStatus, ActiveView } from '@/lib/types';
+import { Profile, ActiveView } from '@/lib/types';
 import AppSidebar from '@/components/app/AppSidebar';
-import CommandCenter from '@/components/app/CommandCenter';
-import IdeaBar from '@/components/app/IdeaBar';
-import VoiceLink from '@/components/app/VoiceLink';
-import AIChat from '@/components/app/AIChat';
-import Notebook from '@/components/app/Notebook';
-import FocusMode from '@/components/app/FocusMode';
-import Templates from '@/components/app/Templates';
-import OnboardingFlow from '@/components/app/OnboardingFlow';
-import { ProjectList } from '@/components/app/projects/ProjectList';
-import { TaskBoard } from '@/components/app/tasks/TaskBoard';
-import { Journal } from '@/components/app/Journal';
-import { BookTracker } from '@/components/app/BookTracker';
-import { HabitTracker } from '@/components/app/HabitTracker';
-import { SpotifyPlayer } from '@/components/app/SpotifyPlayer';
-import { SpotifyMiniPlayer } from '@/components/app/SpotifyMiniPlayer';
-import LeetCodeTracker from '@/components/app/LeetCodeTracker';
-import { NewYearResolutions } from '@/components/app/NewYearResolutions';
-import { AnalyticsDashboard } from '@/components/app/analytics/AnalyticsDashboard';
-import { Loader2 } from 'lucide-react';
+import { format, subDays } from 'date-fns';
+import { Play, Zap, CheckCircle2, Droplets } from 'lucide-react';
 
-const ONBOARDING_KEY = 'kiden_onboarding_completed';
+// --- View Components ---
+// --- View Components ---
+import CommandCenter from '@/components/features/dashboard/CommandCenter';
+import IdeaBar from '@/components/features/notes/IdeaBar';
+import VoiceLink from '@/components/features/media/VoiceLink';
+import AIChat from '@/components/features/ai/AIChat';
+import Notebook from '@/components/features/notes/Notebook';
+import FocusMode from '@/components/features/focus/FocusMode';
+import Templates from '@/components/features/notes/Templates';
+import { ProjectList } from '@/components/features/projects/ProjectList';
+import { TaskBoard } from '@/components/features/tasks/TaskBoard';
+import { Journal } from '@/components/features/journal/Journal';
+import { BookTracker } from '@/components/features/books/BookTracker';
+import { HabitTracker } from '@/components/features/habits/HabitTracker';
+import { SpotifyPlayer } from '@/components/features/media/SpotifyPlayer';
+import LeetCodeTracker from '@/components/features/leetcode/LeetCodeTracker';
+import { NewYearResolutions } from '@/components/features/resolutions/NewYearResolutions';
+import { AnalyticsDashboard } from '@/components/features/analytics/AnalyticsDashboard';
 
-const DashboardContent = ({
-  activeView,
-  setActiveView
-}: {
-  activeView: ActiveView;
-  setActiveView: (view: ActiveView) => void;
-}) => {
-  const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+// --- Widget Components ---
+import { StatsCard } from '@/components/dashboard/StatsCard';
+import { ActivityHeatmap } from '@/components/dashboard/ActivityHeatmap';
+import { DashboardMusic } from '@/components/dashboard/DashboardMusic';
+import { UpcomingTasks, TaskItem } from '@/components/dashboard/UpcomingTasks';
+import { SkillTracker } from '@/components/dashboard/SkillTracker';
 
-  // Handle pending workspace invitations
-  useWorkspaceInvitations();
+// --- Main Dashboard View (Rewritten from scratch) ---
+import { User } from '@supabase/supabase-js';
+
+const MainDashboardView = ({ user, profile, setActiveView }: { user: User, profile: Profile | null, setActiveView: (v: ActiveView) => void }) => {
+  const [stats, setStats] = useState({
+    productivity: 0,
+    tasksCompleted: 0,
+    tasksTotal: 0,
+    waterIntake: 1.2, // Placeholder
+    waterGoal: 2.5
+  });
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [gridData, setGridData] = useState<Record<string, number>>({});
+  const [lcStats, setLcStats] = useState({ easy: 0, medium: 0, hard: 0, total: 0, rank: 0 });
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
-
-  const checkOnboarding = useCallback(() => {
-    const completed = localStorage.getItem(ONBOARDING_KEY);
-    if (!completed) {
-      setShowOnboarding(true);
-    }
-  }, []);
-
-  const completeOnboarding = useCallback(() => {
-    localStorage.setItem(ONBOARDING_KEY, 'true');
-    setShowOnboarding(false);
-  }, []);
-
-  const fetchUserData = useCallback(async () => {
     if (!user) return;
 
-    try {
-      // Fetch profile
-      const { data: profileData } = await supabase
-        .from('profiles')
+    const fetchData = async () => {
+      // 1. Fetch Today's Tasks & Calc Stats
+      const { data: todayTasks } = await supabase
+        .from('tasks')
         .select('*')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .order('created_at', { ascending: false })
+        .limit(50); // Fetch enough to filter
 
-      if (profileData) {
-        setProfile({
-          ...profileData,
-          status: (profileData.status as UserStatus) || 'online',
-          focus_settings: profileData.focus_settings as unknown as FocusSettings
-        });
+      if (todayTasks) {
+        // Map to UI model
+        const mappedTasks: TaskItem[] = todayTasks.map(t => ({
+          id: t.id,
+          title: t.title,
+          completed: t.status === 'completed',
+          tag: t.project_id ? 'Project' : 'Daily', // Simplified
+          priority: t.priority as 'low' | 'medium' | 'high'
+        }));
+
+        const activeT = mappedTasks.filter(t => !t.completed).length; // Pending
+        const doneT = mappedTasks.filter(t => t.completed).length;    // Done today (simplified logic)
+        const totalT = mappedTasks.length;
+
+        setTasks(mappedTasks.filter(t => !t.completed || isRecent(t.id))); // Show pending + recently done? Or just all today's? 
+        // Let's show filtered list: PENDING + Done Today
+        // Ideally we'd separate queries but for now this works on limited set.
+        setTasks(mappedTasks); // Pass all, component sorts them
+
+        setStats(prev => ({
+          ...prev,
+          tasksCompleted: doneT,
+          tasksTotal: totalT,
+          productivity: totalT > 0 ? Math.round((doneT / totalT) * 100) : 0
+        }));
       }
 
-      // Fetch total focus time
-      const { data: sessionsData } = await supabase
-        .from('focus_sessions')
-        .select('duration_minutes')
+      // 2. Heatmap Data (Activity over last ~5 months)
+      const { data: activity } = await supabase
+        .from('tasks')
+        .select('updated_at')
         .eq('user_id', user.id)
-        .eq('completed', true);
+        .eq('status', 'completed')
+        .gte('updated_at', subDays(new Date(), 150).toISOString());
 
-      if (sessionsData) {
-        const total = sessionsData.reduce((acc, s) => acc + s.duration_minutes, 0);
-        setTotalFocusMinutes(total);
+      if (activity) {
+        const counts: Record<string, number> = {};
+        activity.forEach(a => {
+          const d = format(new Date(a.updated_at), 'yyyy-MM-dd');
+          counts[d] = (counts[d] || 0) + 1;
+        });
+        setGridData(counts);
       }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    } finally {
-      setLoading(false);
-    }
+
+      // 3. LeetCode Stats
+      const { data: lc } = await supabase.from('leetcode_problems').select('*').eq('user_id', user.id).eq('status', 'solved');
+      if (lc) {
+        let e = 0, m = 0, h = 0;
+        lc.forEach(p => {
+          if (p.difficulty === 'Easy') e++;
+          else if (p.difficulty === 'Medium') m++;
+          else if (p.difficulty === 'Hard') h++;
+        });
+        setLcStats({ easy: e, medium: m, hard: h, total: e + m + h, rank: 0 });
+      }
+    };
+
+    fetchData();
+
+    // Realtime
+    const ch = supabase.channel('dash_main')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, fetchData)
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); }
   }, [user]);
 
-  useEffect(() => {
-    if (user) {
-      fetchUserData();
-      checkOnboarding();
-    }
-  }, [user, fetchUserData, checkOnboarding]);
+  // Helper: isRecent (placeholder log)
+  const isRecent = (_id: string) => true;
 
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground text-sm animate-pulse">Loading your workspace...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) return null;
-
-  const renderActiveView = () => {
-    switch (activeView) {
-      case 'command':
-        return (
-          <CommandCenter
-            profile={profile}
-            totalFocusMinutes={totalFocusMinutes}
-            onEnterFocus={() => setActiveView('focus')}
-            onNewThought={() => setActiveView('ideas')}
-            onAIAssistant={() => setActiveView('chat')}
-          />
-        );
-      case 'analytics':
-        return <AnalyticsDashboard />;
-      case 'tasks':
-        return <TaskBoard />;
-      case 'projects':
-        return <ProjectList />;
-      case 'ideas':
-        return <IdeaBar />;
-      case 'voice':
-        return <VoiceLink />;
-      case 'chat':
-        return <AIChat />;
-      case 'notebook':
-        return <Notebook />;
-      case 'focus':
-        return <FocusMode focusSettings={profile?.focus_settings} onComplete={fetchUserData} />;
-      case 'templates':
-        return <Templates />;
-      case 'journal':
-        return <Journal />;
-      case 'books':
-        return <BookTracker />;
-      case 'habits':
-        return <HabitTracker />;
-      case 'spotify':
-        return <SpotifyPlayer />;
-      case 'leetcode':
-        return <LeetCodeTracker />;
-      case 'resolutions':
-        return <NewYearResolutions />;
-      default:
-        return null;
-    }
+  // Task Toggle Handler
+  const handleToggle = async (id: string, status: boolean) => {
+    // Optimistic
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: status } : t));
+    const dbStatus = status ? 'completed' : 'todo';
+    await supabase.from('tasks').update({ status: dbStatus, updated_at: new Date().toISOString() }).eq('id', id);
   };
 
   return (
-    <>
-      <AnimatePresence>
-        {showOnboarding && (
-          <OnboardingFlow
-            onComplete={completeOnboarding}
-            userName={profile?.display_name || undefined}
+    <div className="h-full flex flex-col p-6 lg:p-10 mx-auto w-full max-w-[1920px] overflow-y-auto bg-background">
+      {/* Header */}
+      <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="mt-12 md:mt-0">
+          <h1 className="text-3xl font-bold text-white tracking-tight">
+            Welcome back, {profile?.display_name?.split(' ')[0] || 'Kaiden'}
+          </h1>
+          <p className="text-gray-400 mt-1">Here's what's happening in your workspace today.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-mono text-gray-500 bg-[#161B22] border border-white/5 px-3 py-1.5 rounded-lg">
+            {format(new Date(), 'MMMM dd, yyyy')}
+          </span>
+        </div>
+      </header>
+
+      {/* Grid Layout */}
+      <div className="flex flex-col gap-6">
+
+        {/* 1. Metrics Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatsCard
+            label="Productivity" value={`${stats.productivity}%`} subValue="Target 80%"
+            icon={Zap} color="blue" progress={stats.productivity} delay={0.1}
+            change="5%" trend="up"
           />
-        )}
-      </AnimatePresence>
+          <StatsCard
+            label="Tasks Done" value={stats.tasksCompleted.toString()} subValue={`${stats.tasksTotal} Total`}
+            icon={CheckCircle2} color="purple" progress={(stats.tasksCompleted / stats.tasksTotal) * 100 || 0} delay={0.15}
+          />
+          <StatsCard
+            label="Water Intake" value={`${stats.waterIntake}L`} subValue={`${stats.waterGoal}L Goal`}
+            icon={Droplets} color="cyan" progress={(stats.waterIntake / stats.waterGoal) * 100} delay={0.2}
+          />
+          {/* Quick Action Button as 4th card */}
+          <button
+            onClick={() => setActiveView('focus')}
+            className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl p-6 flex flex-col justify-between group hover:shadow-2xl hover:shadow-indigo-500/20 transition-all border border-indigo-400/20"
+          >
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-white mb-2 group-hover:scale-110 transition-transform">
+              <Play className="w-5 h-5 fill-current" />
+            </div>
+            <div className="text-left">
+              <h3 className="text-xl font-bold text-white">Focus Mode</h3>
+              <p className="text-indigo-200 text-sm">Start a deep work session</p>
+            </div>
+          </button>
+        </div>
 
-      <div className="min-h-screen bg-background flex flex-col lg:flex-row pb-16 lg:pb-0">
-        <AppSidebar
-          activeView={activeView}
-          onViewChange={setActiveView}
-          profile={profile}
-          onProfileUpdate={fetchUserData}
-        />
-        <main className="flex-1 overflow-auto min-h-0 pt-14 lg:pt-0">
-          {renderActiveView()}
-        </main>
+        {/* 2. Heatmap & Music */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto lg:h-[300px]">
+          <div className="lg:col-span-2 h-[300px] lg:h-full">
+            <ActivityHeatmap data={gridData} />
+          </div>
+          <div className="lg:col-span-1 h-[240px] lg:h-full">
+            <DashboardMusic />
+          </div>
+        </div>
+
+        {/* 3. Tasks & Skills */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto min-h-[400px]">
+          <div className="lg:col-span-2 h-[450px]">
+            <UpcomingTasks tasks={tasks} onToggle={handleToggle} />
+          </div>
+          <div className="lg:col-span-1 h-auto lg:h-[450px]">
+            <SkillTracker stats={lcStats} />
+          </div>
+        </div>
       </div>
-
-      {/* Mini Player - persists across all views */}
-      {activeView !== 'spotify' && (
-        <SpotifyMiniPlayer onExpand={() => setActiveView('spotify')} />
-      )}
-    </>
+    </div>
   );
 };
 
+// --- Page Wrapper ---
 const Dashboard = () => {
   const [activeView, setActiveView] = useState<ActiveView>('command');
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchProfile = async () => {
+      const { data } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
+      if (data) setProfile(data as unknown as Profile);
+    };
+    fetchProfile();
+  }, [user]);
+
+  // View Switching Logic
+  const CurrentView = useMemo(() => {
+    // If Dashboard is active, show our new MainDashboardView
+    if (activeView === 'command') return <MainDashboardView user={user} profile={profile} setActiveView={setActiveView} />;
+
+    const views: Record<string, JSX.Element> = {
+      analytics: <AnalyticsDashboard />,
+      tasks: <TaskBoard />,
+      projects: <ProjectList />,
+      ideas: <IdeaBar />,
+      voice: <VoiceLink />,
+      chat: <AIChat />,
+      notebook: <Notebook />,
+      journal: <Journal />,
+      books: <BookTracker />,
+      habits: <HabitTracker />,
+      spotify: <SpotifyPlayer />,
+      leetcode: <LeetCodeTracker />,
+      resolutions: <NewYearResolutions />,
+      focus: <FocusMode onComplete={() => console.log('Focus session completed')} />,
+      templates: <Templates />
+    };
+
+    return views[activeView] || <div className="p-8 text-white">View Not Found</div>;
+  }, [activeView, user, profile]);
 
   return (
     <WorkspaceProvider>
       <SpotifyProvider>
-        <DashboardContent activeView={activeView} setActiveView={setActiveView} />
+        <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden">
+          <AppSidebar
+            activeView={activeView}
+            onViewChange={setActiveView}
+            profile={profile}
+            onProfileUpdate={() => { }}
+          />
+          <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+            {CurrentView}
+          </main>
+        </div>
       </SpotifyProvider>
     </WorkspaceProvider>
   );

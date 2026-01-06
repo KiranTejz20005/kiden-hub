@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -40,7 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string, displayName?: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -64,10 +65,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+  };
+
+  const signInAsGuest = async () => {
+    const guestUser = {
+      id: `guest-${Math.random().toString(36).substr(2, 9)}`,
+      app_metadata: { provider: 'guest' },
+      user_metadata: { display_name: 'Guest User' },
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+      email: 'guest@example.com',
+      phone: '',
+      confirmed_at: new Date().toISOString(),
+      email_confirmed_at: new Date().toISOString(),
+      phone_confirmed_at: '',
+      last_sign_in_at: new Date().toISOString(),
+      role: 'authenticated',
+      updated_at: new Date().toISOString(),
+    } as unknown as User;
+
+    setUser(guestUser);
+    setSession({
+      access_token: 'guest_token',
+      refresh_token: 'guest_refresh',
+      expires_in: 3600,
+      token_type: 'bearer',
+      user: guestUser
+    } as Session);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, signInAsGuest }}>
       {children}
     </AuthContext.Provider>
   );
