@@ -188,7 +188,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                         onClick={() => handleViewChange(item.id as ActiveView)}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 20 }}
+                        transition={{ delay: index * 0.03, type: "spring", stiffness: 200, damping: 24 }}
                         whileHover={{ x: isCollapsed ? 0 : 6 }}
                         whileTap={{ scale: 0.95 }}
                         className={cn(
