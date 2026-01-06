@@ -145,27 +145,27 @@
 
 @layer utilities {
   .animate-fade-up {
-    animation: fadeUp 0.8s ease-out forwards;
+    animation: fadeUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     opacity: 0;
   }
 
   .animate-fade-up-delay-1 {
-    animation: fadeUp 0.8s ease-out 0.1s forwards;
+    animation: fadeUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s forwards;
     opacity: 0;
   }
 
   .animate-fade-up-delay-2 {
-    animation: fadeUp 0.8s ease-out 0.2s forwards;
+    animation: fadeUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s forwards;
     opacity: 0;
   }
 
   .animate-fade-up-delay-3 {
-    animation: fadeUp 0.8s ease-out 0.3s forwards;
+    animation: fadeUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s forwards;
     opacity: 0;
   }
 
   .animate-fade-up-delay-4 {
-    animation: fadeUp 0.8s ease-out 0.4s forwards;
+    animation: fadeUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s forwards;
     opacity: 0;
   }
 
