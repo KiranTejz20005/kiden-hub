@@ -38,9 +38,80 @@ const Notebook = () => {
 
   const isSharedWorkspace = activeWorkspace && activeWorkspace.user_id !== user?.id;
 
+  // Mock Data for Raw Mode
+  const MOCK_NOTES: Note[] = [
+    { id: '1', user_id: 'guest', workspace_id: null, title: 'Project Ideas', content: [{ id: '1', type: 'paragraph', content: 'Brainstorming for the new app launch.' }], is_favorite: true, is_archived: false, is_template: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: '2', user_id: 'guest', workspace_id: null, title: 'Meeting Notes', content: [{ id: '2', type: 'paragraph', content: 'Discussion with the design team regarding the new UI kit.' }], is_favorite: false, is_archived: false, is_template: false, created_at: new Date().toISOString(), updated_at: new Date(Date.now() - 86400000).toISOString() },
+    { id: '3', user_id: 'guest', workspace_id: null, title: 'To-Do List', content: [{ id: '3', type: 'paragraph', content: '- Fix bugs\n- Deploy to prod\n- Update docs' }], is_favorite: false, is_archived: false, is_template: false, created_at: new Date().toISOString(), updated_at: new Date(Date.now() - 172800000).toISOString() },
+  ];
+
+  const [isLoaded, setIsLoaded] = useState(false);
+  const STORAGE_KEY_NOTES = 'kiden_guest_notes';
+
+  const fetchNotes = useCallback(async () => {
+    if (!user) {
+      // Guest: Load from LocalStorage
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY_NOTES);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setNotes(parsed);
+          if (parsed.length > 0) setSelectedNote(prev => prev || parsed[0]);
+        } else {
+          setNotes(MOCK_NOTES);
+          setSelectedNote(prev => prev || MOCK_NOTES[0]);
+        }
+      } catch {
+        setNotes(MOCK_NOTES);
+        setSelectedNote(prev => prev || MOCK_NOTES[0]);
+      }
+      setLoading(false);
+      setIsLoaded(true);
+      return;
+    }
+
+    try {
+      let query = supabase
+        .from('notes')
+        .select('*')
+        .eq('is_archived', false)
+        .eq('is_template', false)
+        .order('updated_at', { ascending: false });
+
+      if (activeWorkspace) {
+        query = query.eq('workspace_id', activeWorkspace.id);
+      } else {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error || !data || data.length === 0) {
+        setNotes(MOCK_NOTES);
+        setSelectedNote(prev => prev || MOCK_NOTES[0]);
+      } else {
+        setNotes(data as Note[]);
+        if (data.length > 0) setSelectedNote(prev => prev || (data[0] as Note));
+      }
+    } catch (error: unknown) {
+      setNotes(MOCK_NOTES);
+      setSelectedNote(prev => prev || MOCK_NOTES[0]);
+    }
+
+    setLoading(false);
+    setIsLoaded(true);
+  }, [user, activeWorkspace]);
+
   useEffect(() => {
-    if (user) fetchNotes();
-  }, [user, activeWorkspace?.id]);
+    fetchNotes();
+  }, [fetchNotes]);
+
+  // Persistence Effect for Guest
+  useEffect(() => {
+    if (isLoaded && (!user || user.id.startsWith('guest'))) {
+      localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(notes));
+    }
+  }, [notes, isLoaded, user]);
 
   // Set up real-time subscription for notes
   useEffect(() => {
@@ -61,7 +132,6 @@ const Notebook = () => {
 
           if (payload.eventType === 'INSERT') {
             const newNote = payload.new as Note;
-            // Only add if not created by current user (they already have it)
             if (newNote.user_id !== user.id) {
               setNotes(prev => [newNote, ...prev]);
               toast.info('New note created by a collaborator');
@@ -70,7 +140,6 @@ const Notebook = () => {
             const updatedNote = payload.new as Note;
             setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
 
-            // Update selected note if it's the one being edited by collaborator
             if (selectedNote?.id === updatedNote.id && updatedNote.user_id !== user.id) {
               setSelectedNote(updatedNote);
               const content = updatedNote.content;
@@ -89,7 +158,6 @@ const Notebook = () => {
             }
           }
 
-          // Reset realtime indicator after a moment
           setTimeout(() => setIsRealtime(false), 2000);
         }
       )
@@ -98,7 +166,7 @@ const Notebook = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, activeWorkspace?.id, selectedNote?.id]);
+  }, [user, activeWorkspace, selectedNote?.id]);
 
   useEffect(() => {
     if (selectedNote) {
@@ -111,36 +179,30 @@ const Notebook = () => {
         setBlocks([{ id: uuidv4(), type: 'paragraph', content: '' }]);
       }
     }
-  }, [selectedNote?.id]);
-
-  const fetchNotes = async () => {
-    if (!user) return;
-
-    let query = supabase
-      .from('notes')
-      .select('*')
-      .eq('is_archived', false)
-      .eq('is_template', false)
-      .order('updated_at', { ascending: false });
-
-    // If workspace is selected, filter by workspace
-    if (activeWorkspace) {
-      query = query.eq('workspace_id', activeWorkspace.id);
-    } else {
-      query = query.eq('user_id', user.id);
-    }
-
-    const { data, error } = await query;
-
-    if (!error && data) {
-      setNotes(data as Note[]);
-      if (data.length > 0 && !selectedNote) setSelectedNote(data[0] as Note);
-    }
-    setLoading(false);
-  };
+  }, [selectedNote?.id]); // Only re-run when ID changes to avoid loop
 
   const createNote = async () => {
-    if (!user) return;
+    if (!user || user.id.startsWith('guest')) {
+      const newNote: Note = {
+        id: Math.random().toString(),
+        user_id: user?.id || 'guest',
+        workspace_id: activeWorkspace?.id || null,
+        title: 'Untitled Note',
+        content: [{ id: uuidv4(), type: 'paragraph', content: '' }],
+        is_favorite: false,
+        is_archived: false,
+        is_template: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setNotes(prev => [newNote, ...prev]);
+      setSelectedNote(newNote);
+      setBlocks(newNote.content as Block[]);
+      setSidebarOpen(false);
+      toast.success('Note created (Local)');
+      return;
+    }
+
     const newBlocks = [{ id: uuidv4(), type: 'paragraph' as const, content: '' }];
     const { data, error } = await supabase
       .from('notes')
@@ -164,14 +226,14 @@ const Notebook = () => {
   };
 
   const updateNote = async (id: string, updates: Partial<Note>) => {
-    const { error } = await supabase.from('notes').update(updates).eq('id', id);
-    if (!error) {
-      setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
-      if (selectedNote?.id === id) setSelectedNote(prev => prev ? { ...prev, ...updates } : null);
-    }
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
+    if (selectedNote?.id === id) setSelectedNote(prev => prev ? { ...prev, ...updates } : null);
+
+    if (!user || user.id.startsWith('guest')) return;
+
+    await supabase.from('notes').update(updates).eq('id', id);
   };
 
-  // Debounced save for collaborative editing
   const saveBlocks = useCallback(async (newBlocks: Block[]) => {
     setBlocks(newBlocks);
     setIsEditing(true);
@@ -182,18 +244,20 @@ const Notebook = () => {
 
     saveTimeoutRef.current = setTimeout(async () => {
       if (selectedNote) {
-        await updateNote(selectedNote.id, { content: newBlocks as any });
+        await updateNote(selectedNote.id, { content: newBlocks as any }); // Keeping cast to appease TS complex type mismatch for now
         setIsEditing(false);
       }
-    }, 300); // 300ms debounce for smoother real-time collaboration
+    }, 300);
   }, [selectedNote]);
 
 
   const deleteNote = async (id: string) => {
-    await supabase.from('notes').delete().eq('id', id);
     setNotes(prev => prev.filter(n => n.id !== id));
     if (selectedNote?.id === id) setSelectedNote(null);
     toast.success('Note deleted');
+
+    if (!user || user.id.startsWith('guest')) return;
+    await supabase.from('notes').delete().eq('id', id);
   };
 
   const getPlainText = () => blocks.map(b => b.content).join('\n');
@@ -207,7 +271,6 @@ const Notebook = () => {
 
   const filteredNotes = notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  // Mobile AI Panel using Sheet
   const AIPanel = () => (
     <NotebookAI
       noteContent={getPlainText()}
@@ -220,7 +283,6 @@ const Notebook = () => {
   return (
     <TooltipProvider>
       <div className="h-full min-h-[calc(100vh-4rem)] flex relative overflow-hidden bg-gradient-to-br from-background to-secondary/20">
-        {/* Mobile sidebar toggle */}
         <Button
           variant="ghost"
           size="icon"
@@ -230,7 +292,6 @@ const Notebook = () => {
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </Button>
 
-        {/* Mobile overlay */}
         <AnimatePresence>
           {sidebarOpen && (
             <motion.div
@@ -243,7 +304,6 @@ const Notebook = () => {
           )}
         </AnimatePresence>
 
-        {/* Sidebar */}
         <motion.div
           initial={false}
           animate={{
@@ -274,7 +334,6 @@ const Notebook = () => {
               </Tooltip>
             </div>
 
-            {/* Workspace indicator */}
             {activeWorkspace && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -354,7 +413,6 @@ const Notebook = () => {
           </div>
         </motion.div>
 
-        {/* Editor */}
         <div className="flex-1 flex flex-col min-w-0">
           {selectedNote ? (
             <>
@@ -366,7 +424,6 @@ const Notebook = () => {
                     className="text-lg md:text-xl font-bold bg-transparent border-none p-0 h-auto focus-visible:ring-0 flex-1 min-w-0"
                   />
 
-                  {/* Real-time indicators */}
                   <div className="flex items-center gap-2">
                     {isRealtime && (
                       <motion.div
@@ -396,13 +453,11 @@ const Notebook = () => {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {/* Collaborative presence - show who's viewing/editing */}
                   <CollaborativePresence
                     noteId={selectedNote.id}
                     isEditing={isEditing}
                   />
 
-                  {/* Mobile: Use Sheet for AI */}
                   <Sheet open={showAI} onOpenChange={setShowAI}>
                     <SheetTrigger asChild>
                       <Button variant="ghost" size="icon" className="lg:hidden">
@@ -414,7 +469,6 @@ const Notebook = () => {
                     </SheetContent>
                   </Sheet>
 
-                  {/* Desktop: Toggle side panel */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -480,7 +534,6 @@ const Notebook = () => {
                   <BlockEditor blocks={blocks} onChange={saveBlocks} />
                 </div>
 
-                {/* Desktop AI Panel */}
                 <AnimatePresence>
                   {showAI && (
                     <motion.div

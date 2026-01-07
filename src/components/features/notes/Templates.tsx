@@ -15,6 +15,8 @@ const categoryColors: Record<string, string> = {
   goal: 'bg-yellow-500/20 text-yellow-400',
   sprint: 'bg-orange-500/20 text-orange-400',
   custom: 'bg-pink-500/20 text-pink-400',
+  github: 'bg-gray-500/20 text-gray-400',
+  code: 'bg-cyan-500/20 text-cyan-400',
 };
 
 const Templates = () => {
@@ -30,17 +32,57 @@ const Templates = () => {
   }, []);
 
   const fetchTemplates = async () => {
-    const { data, error } = await supabase
-      .from('templates')
-      .select('*')
-      .order('is_system', { ascending: false })
-      .order('created_at', { ascending: false });
+    // Hardcoded "Raw Data" Templates
+    const rawTemplates: Template[] = [
+      {
+        id: 'github-setup',
+        user_id: 'system',
+        name: 'GitHub Repo Setup',
+        description: 'Standard structure for a new GitHub repository including README, LICENSE, and .gitignore.',
+        category: 'github',
+        content: '# Project Title\n\nDescription of the project.\n\n## Installation\n\n```bash\nnpm install\n```\n\n## Usage\n\nStart coding!',
+        icon: '📦',
+        is_system: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'code-review',
+        user_id: 'system',
+        name: 'Code Review Checklist',
+        description: 'A checklist for reviewing pull requests effectively.',
+        category: 'code',
+        content: '- [ ] Code follows style guide\n- [ ] No console.log statements\n- [ ] Tests pass\n- [ ] Documentation updated',
+        icon: '👀',
+        is_system: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'bug-report',
+        user_id: 'system',
+        name: 'Bug Report',
+        description: 'Template for reporting software bugs.',
+        category: 'task',
+        content: '### Steps to Reproduce\n1.\n2.\n3.\n\n### Expected Behavior\n\n### Actual Behavior',
+        icon: '🐛',
+        is_system: true,
+        created_at: new Date().toISOString()
+      }
+    ];
 
-    if (error) {
-      console.error('Error fetching templates:', error);
-    } else {
-      setTemplates(data as Template[]);
+    let dbTemplates: Template[] = [];
+    try {
+      const { data } = await supabase
+        .from('templates')
+        .select('*')
+        .order('is_system', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (data) dbTemplates = data as Template[];
+    } catch (e) {
+      console.warn("Using offline templates only");
     }
+
+    setTemplates([...rawTemplates, ...dbTemplates]);
     setLoading(false);
   };
 
@@ -70,7 +112,8 @@ const Templates = () => {
     }
   };
 
-  const useTemplate = async (template: Template) => {
+  // Renamed from useTemplate to handleUseTemplate to satisfy React Rules of Hooks
+  const handleUseTemplate = async (template: Template) => {
     if (!user) return;
 
     const { error } = await supabase.from('notes').insert({
@@ -91,16 +134,16 @@ const Templates = () => {
     ? templates
     : templates.filter((t) => t.category === filterCategory);
 
-  const categories = ['all', 'project', 'task', 'kanban', 'goal', 'sprint', 'custom'];
+  const categories = ['all', 'project', 'task', 'github', 'code', 'kanban', 'goal', 'sprint', 'custom'];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="p-4 md:p-8 max-w-6xl mx-auto pt-16 lg:pt-8"
     >
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8"
@@ -151,6 +194,8 @@ const Templates = () => {
                 <option value="kanban">Kanban</option>
                 <option value="goal">Goal</option>
                 <option value="sprint">Sprint</option>
+                <option value="github">GitHub</option>
+                <option value="code">Code</option>
                 <option value="custom">Custom</option>
               </select>
             </div>
@@ -176,7 +221,7 @@ const Templates = () => {
       )}
 
       {/* Category Filter */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
@@ -191,11 +236,10 @@ const Templates = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setFilterCategory(cat)}
-            className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${
-              filterCategory === cat
-                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            }`}
+            className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${filterCategory === cat
+              ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+              : 'bg-secondary text-muted-foreground hover:text-foreground'
+              }`}
           >
             {cat.charAt(0).toUpperCase() + cat.slice(1)}
           </motion.button>
@@ -203,7 +247,7 @@ const Templates = () => {
       </motion.div>
 
       {/* Templates Grid */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
@@ -219,7 +263,7 @@ const Templates = () => {
             className="bg-card border border-border rounded-2xl p-5 md:p-6 hover:border-primary/50 transition-all group cursor-pointer"
           >
             <div className="flex items-start justify-between mb-4">
-              <motion.span 
+              <motion.span
                 className="text-3xl"
                 whileHover={{ scale: 1.2, rotate: 10 }}
               >
@@ -236,13 +280,13 @@ const Templates = () => {
               {template.description || 'No description'}
             </p>
             <div className="flex items-center justify-between">
-              <span className={`text-xs px-2 py-1 rounded-full ${categoryColors[template.category]}`}>
+              <span className={`text-xs px-2 py-1 rounded-full ${categoryColors[template.category] || categoryColors.custom}`}>
                 {template.category}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => useTemplate(template)}
+                onClick={() => handleUseTemplate(template)}
                 className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
               >
                 <Check className="w-4 h-4 mr-1" />
@@ -254,7 +298,7 @@ const Templates = () => {
       </motion.div>
 
       {filteredTemplates.length === 0 && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center py-20"
