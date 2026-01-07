@@ -10,18 +10,9 @@ import {
   Play, Pause, RotateCcw, Settings, Volume2, VolumeX,
   Coffee, Zap, Moon, X, Save
 } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useFocusSessions } from '@/hooks/useFocusSessions';
-import { useProjects } from '@/hooks/useProjects';
-import { useTasks } from '@/hooks/useTasks';
 
 interface FocusModeProps {
   focusSettings?: FocusSettings;
@@ -39,9 +30,7 @@ const sessionConfig = {
 
 const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
   const { user } = useAuth();
-  const { createSession } = useFocusSessions();
-  const { projects } = useProjects();
-  const { tasks } = useTasks();
+  const { createSession, sessions, fetchSessions } = useFocusSessions();
 
   const [sessionType, setSessionType] = useState<SessionType>('work');
   const [timeLeft, setTimeLeft] = useState((focusSettings?.workDuration || 25) * 60);
@@ -51,13 +40,84 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
   const [showSettings, setShowSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('unassigned');
-  const [selectedTaskId, setSelectedTaskId] = useState<string>('unassigned');
+  // State for stats
+  const [stats, setStats] = useState({
+    todayMinutes: 0,
+    weekMinutes: 0,
+    monthMinutes: 0,
+    breakMinutesWeek: 0,
+    streak: 0
+  });
 
-  // Filter tasks based on selected project
-  const availableTasks = selectedProjectId && selectedProjectId !== 'unassigned'
-    ? tasks.filter((t) => t.project_id === selectedProjectId && t.status !== 'done')
-    : tasks.filter((t) => t.status !== 'done');
+  useEffect(() => {
+    // Calculate Stats
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let todayMins = 0;
+    let weekMins = 0;
+    let monthMins = 0;
+    let breakWeek = 0;
+
+    const workSessions = sessions.filter(s => s.session_type === 'work' || s.session_type === 'flow');
+    const breakSessions = sessions.filter(s => s.session_type === 'short_break' || s.session_type === 'long_break');
+
+    workSessions.forEach(s => {
+      if (!s.started_at) return;
+      const d = new Date(s.started_at);
+      const mins = s.duration_minutes || 0;
+      if (d >= today) todayMins += mins;
+      if (d >= startOfWeek) weekMins += mins;
+      if (d >= startOfMonth) monthMins += mins;
+    });
+
+    breakSessions.forEach(s => {
+      if (!s.started_at) return;
+      const d = new Date(s.started_at);
+      if (d >= startOfWeek) breakWeek += (s.duration_minutes || 0);
+    });
+
+    // Streak Logic (Approximate, based on work sessions)
+    let currentStreak = 0;
+    let checkDate = new Date(today);
+
+    // Safety break loop
+    for (let i = 0; i < 365; i++) {
+      const hasSession = workSessions.some(s => {
+        if (!s.started_at) return false;
+        const d = new Date(s.started_at);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime() === checkDate.getTime();
+      });
+
+      if (hasSession) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        // If today has no sessions, we don't count it as break yet if checking today.
+        // We check yesterday.
+        if (checkDate.getTime() === today.getTime()) {
+          checkDate.setDate(checkDate.getDate() - 1);
+          continue; // Check yesterday
+        }
+        break;
+      }
+    }
+
+    setStats({
+      todayMinutes: todayMins,
+      weekMinutes: weekMins,
+      monthMinutes: monthMins,
+      breakMinutesWeek: breakWeek,
+      streak: currentStreak
+    });
+  }, [sessions]);
 
   const [editableSettings, setEditableSettings] = useState<FocusSettings>({
     workDuration: focusSettings?.workDuration || 25,
@@ -116,8 +176,8 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
       duration_minutes: duration,
       session_type: sessionType,
       completed: true,
-      project_id: selectedProjectId === 'unassigned' ? null : selectedProjectId,
-      task_id: selectedTaskId === 'unassigned' ? null : selectedTaskId,
+      project_id: null,
+      task_id: null,
       ended_at: new Date().toISOString(),
       started_at: new Date(Date.now() - duration * 60000).toISOString(),
       interruptions_count: 0
@@ -128,9 +188,11 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
       setSessionsCompleted(newSessionsCompleted);
       toast.success('Focus session complete!');
       setSessionType(newSessionsCompleted % settings.sessionsBeforeLongBreak === 0 ? 'long_break' : 'short_break');
+      fetchSessions(); // Refresh stats
     } else {
       toast.success('Break complete!');
       setSessionType('work');
+      fetchSessions(); // Refresh stats
     }
     onComplete();
   };
@@ -146,7 +208,7 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
       const { error } = await supabase
         .from('profiles')
         .update({
-          focus_settings: editableSettings
+          focus_settings: editableSettings as any
         })
         .eq('user_id', user.id);
 
@@ -219,50 +281,7 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
         })}
       </motion.div>
 
-      {(sessionType === 'work' || sessionType === 'flow') && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          className="flex flex-col sm:flex-row gap-4 mb-8 w-full max-w-md"
-        >
-          <div className="flex-1">
-            <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isRunning}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select Project" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">No Project</SelectItem>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-                      {p.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex-1">
-            <Select value={selectedTaskId} onValueChange={setSelectedTaskId} disabled={isRunning}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select Task" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">No Task</SelectItem>
-                {availableTasks.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    <div className="flex items-center gap-2 truncate">
-                      {t.priority === 'urgent' && <span className="text-red-500">!</span>}
-                      <span className="truncate">{t.title}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </motion.div>
-      )}
+      {/* Selectors Removed per user request */}
 
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
@@ -389,9 +408,42 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
         ))}
       </motion.div>
 
-      <p className="text-muted-foreground text-sm">
+      <div className="text-muted-foreground text-sm mt-2">
         Sessions completed: <span className="text-foreground font-bold">{sessionsCompleted}</span>
-      </p>
+      </div>
+
+      {/* Stats Display */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8 w-full max-w-2xl"
+      >
+        <div className="p-4 rounded-xl bg-secondary/30 border border-border/50 text-center">
+          <div className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            {Math.round(stats.weekMinutes / 60 * 10) / 10}h
+          </div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Focus (Week)</p>
+        </div>
+        <div className="p-4 rounded-xl bg-secondary/30 border border-border/50 text-center">
+          <div className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+            {Math.round(stats.monthMinutes / 60 * 10) / 10}h
+          </div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Focus (Month)</p>
+        </div>
+        <div className="p-4 rounded-xl bg-secondary/30 border border-border/50 text-center">
+          <div className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
+            {Math.round(stats.breakMinutesWeek)}m
+          </div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Breaks (Week)</p>
+        </div>
+        <div className="p-4 rounded-xl bg-secondary/30 border border-border/50 text-center">
+          <div className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            {stats.streak} <span className="text-sm font-normal text-muted-foreground">days</span>
+          </div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Current Streak</p>
+        </div>
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0 }}
