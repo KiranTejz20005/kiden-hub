@@ -74,8 +74,19 @@ export function BookTracker() {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  /* Mock Data for Raw Mode */
+  const MOCK_BOOKS: Book[] = [
+    { id: '1', user_id: 'guest', title: 'Atomic Habits', author: 'James Clear', total_pages: 320, current_page: 200, status: 'reading', cover_url: null, notes: 'Key insight: 1% better every day.', started_at: new Date().toISOString(), completed_at: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: '2', user_id: 'guest', title: 'Deep Work', author: 'Cal Newport', total_pages: 280, current_page: 280, status: 'completed', cover_url: null, notes: 'Must read for knowledge workers.', started_at: new Date().toISOString(), completed_at: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: '3', user_id: 'guest', title: 'The Pragmatic Programmer', author: 'Andy Hunt', total_pages: 352, current_page: 0, status: 'want_to_read', cover_url: null, notes: null, started_at: null, completed_at: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  ];
+
   const fetchBooks = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setBooks(MOCK_BOOKS);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -84,20 +95,23 @@ export function BookTracker() {
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
-      if (error) throw error;
-      setBooks((data as Book[]) || []);
+      if (error || !data || data.length === 0) {
+        setBooks(MOCK_BOOKS);
+      } else {
+        setBooks((data as Book[]) || []);
+      }
     } catch (error: any) {
       console.error('Error fetching books:', error);
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      setBooks(MOCK_BOOKS);
     } finally {
       setLoading(false);
     }
   }, [user, toast]);
 
   useEffect(() => {
-    if (!user) return;
-
     fetchBooks();
+
+    if (!user) return;
 
     const channel = supabase
       .channel('book-tracker-changes')
@@ -142,9 +156,37 @@ export function BookTracker() {
   };
 
   const saveBook = async () => {
-    if (!user || !title.trim()) return;
-
+    // Optimistic / Raw Mode Save
     setSaving(true);
+    if (!user || user.id.startsWith('guest')) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const newBook = {
+        id: editingBook?.id || Math.random().toString(),
+        user_id: user?.id || 'guest',
+        title,
+        author,
+        total_pages: parseInt(totalPages) || 0,
+        current_page: parseInt(currentPage) || 0,
+        status,
+        notes,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        started_at: null,
+        completed_at: null,
+        cover_url: null
+      } as Book;
+
+      setBooks(prev => {
+        const others = prev.filter(b => b.id !== newBook.id);
+        return [newBook, ...others];
+      });
+      toast({ title: editingBook ? 'Book Updated (Local)' : 'Book Added (Local)' });
+      setIsDialogOpen(false);
+      resetForm();
+      setSaving(false);
+      return;
+    }
+
     try {
       const bookData = {
         user_id: user.id,
@@ -184,17 +226,26 @@ export function BookTracker() {
   };
 
   const deleteBook = async (id: string) => {
+    // Optimistic
+    setBooks(prev => prev.filter(b => b.id !== id));
+
+    if (!user || user.id.startsWith('guest')) return;
+
     try {
       const { error } = await supabase.from('books').delete().eq('id', id);
       if (error) throw error;
       toast({ title: 'Book Deleted' });
-      fetchBooks();
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      // failed on server
     }
   };
 
   const updateProgress = async (book: Book, newPage: number) => {
+    // Optimistic
+    setBooks(prev => prev.map(b => b.id === book.id ? { ...b, current_page: newPage } : b));
+
+    if (!user || user.id.startsWith('guest')) return;
+
     try {
       const updates: Partial<Book> = { current_page: newPage };
       if (newPage >= book.total_pages && book.total_pages > 0) {

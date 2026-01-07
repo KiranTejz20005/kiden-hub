@@ -1,297 +1,176 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { Send, Bot, User, Sparkles, Zap, Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Bot, User, Loader2, Sparkles, Trash2, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
-import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from '@/hooks/useAuth';
+import { PageLayout } from '@/components/ui/PageLayout';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { cn } from '@/lib/utils';
+import ReactMarkdown from 'react-markdown';
+
+// Mock Knowledge Base for "Simulated AI"
+const KNOWLEDGE_BASE = {
+  'productivity': "To improve productivity, try the Pomodoro technique (25m focus, 5m break). Kiden Hub has a built-in Focus Mode for this!",
+  'habits': "Building habits takes consistency. Start small (atomic habits) and track them daily in the Habits tab.",
+  'journal': "Journaling helps clear the mind. Try the 'Morning Pages' technique in the Journal tab.",
+  'default': "I'm Kiden AI. I can help you navigate your productivity system. Try asking about habits, focus, or project management."
+};
 
 interface Message {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
+  timestamp: Date;
 }
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
-
-const suggestedPrompts = [
-  "Help me brainstorm ideas for a new project",
-  "Summarize my recent notes",
-  "Create a study plan for learning something new",
-  "Help me write a professional email"
+const SUGGESTIONS = [
+  "How can I be more productive?",
+  "Tips for building habits",
+  "Explain the Focus Mode",
+  "Draft a project plan"
 ];
 
 const AIChat = () => {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [conversationId] = useState(() => uuidv4());
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<Message[]>([
+    { id: '1', role: 'assistant', content: "Hello! I'm your specific Kiden Assistant. How can I suppress entropy today?", timestamp: new Date() }
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const sendMessage = async (content?: string) => {
-    const messageContent = content || input.trim();
-    if (!messageContent || isLoading) return;
-
-    const userMessage: Message = { role: 'user', content: messageContent };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    let assistantContent = '';
-
-    try {
-      const response = await fetch(CHAT_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({ messages: [...messages, userMessage] }),
-      });
-
-      if (response.status === 429) {
-        toast.error('Rate limit exceeded. Please try again later.');
-        setIsLoading(false);
-        return;
-      }
-
-      if (!response.ok || !response.body) throw new Error('Failed to start stream');
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = '';
-
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (line.startsWith(':') || line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              setMessages(prev => {
-                const newMessages = [...prev];
-                const lastIndex = newMessages.length - 1;
-                if (newMessages[lastIndex]?.role === 'assistant') {
-                  newMessages[lastIndex] = { ...newMessages[lastIndex], content: assistantContent };
-                }
-                return newMessages;
-              });
-            }
-          } catch {
-            textBuffer = line + '\n' + textBuffer;
-            break;
-          }
-        }
-      }
-
-      if (user && assistantContent) {
-        await supabase.from('chat_messages').insert([
-          { user_id: user.id, conversation_id: conversationId, role: 'user', content: userMessage.content },
-          { user_id: user.id, conversation_id: conversationId, role: 'assistant', content: assistantContent },
-        ]);
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      toast.error('Failed to get response');
-    } finally {
-      setIsLoading(false);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  };
+  }, [messages, isTyping]);
 
-  const clearChat = () => {
-    setMessages([]);
-    toast.success('Chat cleared');
+  const handleSend = async (text: string = input) => {
+    if (!text.trim()) return;
+
+    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text, timestamp: new Date() };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    setIsTyping(true);
+
+    // Simulate AI Response Delay
+    setTimeout(() => {
+      let response = KNOWLEDGE_BASE['default'];
+      const lower = text.toLowerCase();
+
+      if (lower.includes('productivity') || lower.includes('productive') || lower.includes('focus')) response = KNOWLEDGE_BASE['productivity'];
+      else if (lower.includes('habit')) response = KNOWLEDGE_BASE['habits'];
+      else if (lower.includes('journal') || lower.includes('write')) response = KNOWLEDGE_BASE['journal'];
+      else if (lower.includes('plan') || lower.includes('project')) response = "I suggest breaking your project down into actionable tasks in the Project tab. Define a clear goal and deadline first.";
+
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: response,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, aiMsg]);
+      setIsTyping(false);
+    }, 1500);
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="h-[calc(100vh-2rem)] flex flex-col p-4 pt-16 lg:pt-4"
-    >
-      {/* Header */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-4 flex items-center justify-between"
-      >
-        <div className="flex items-center gap-3">
+    <PageLayout className="p-0 lg:p-4 flex flex-col h-full overflow-hidden">
+      <PageHeader className="px-6 pt-6" title="Kiden Assistant" description="Your neural productivity companion" />
+
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6" ref={scrollRef}>
+        {messages.map((msg) => (
           <motion.div
-            animate={{ rotate: [0, 360] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet to-primary flex items-center justify-center"
+            key={msg.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(
+              "flex gap-4 max-w-3xl",
+              msg.role === 'user' ? "ml-auto flex-row-reverse" : ""
+            )}
           >
-            <Bot className="w-5 h-5 text-white" />
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border shadow-sm",
+              msg.role === 'assistant'
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-secondary text-foreground border-border"
+            )}>
+              {msg.role === 'assistant' ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
+            </div>
+
+            <div className={cn(
+              "p-4 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[85%]",
+              msg.role === 'assistant'
+                ? "bg-card border border-border/50 rounded-tl-none"
+                : "bg-primary text-primary-foreground rounded-tr-none"
+            )}>
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
+              <span className="text-[10px] opacity-50 mt-2 block text-right">
+                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
           </motion.div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">AI Assistant</h1>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Sparkles className="w-3 h-3" />
-              Powered by Kiden Intelligence
-            </p>
+        ))}
+
+        {isTyping && (
+          <div className="flex gap-4">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 border border-primary">
+              <Loader2 className="w-4 h-4 text-primary-foreground animate-spin" />
+            </div>
+            <div className="bg-card border border-border/50 px-4 py-3 rounded-2xl rounded-tl-none flex items-center gap-1">
+              <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
           </div>
-        </div>
-        {messages.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={clearChat} className="text-muted-foreground">
-            <Trash2 className="w-4 h-4 mr-1" />
-            Clear
-          </Button>
         )}
-      </motion.div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-auto space-y-4 mb-4 px-2">
-        <AnimatePresence mode="popLayout">
-          {messages.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="h-full flex flex-col items-center justify-center py-20"
-            >
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                <Bot className="w-20 h-20 text-primary/20 mb-6" />
-              </motion.div>
-              <h3 className="text-xl text-muted-foreground mb-2">Start a Conversation</h3>
-              <p className="text-sm text-muted-foreground/60 text-center max-w-md mb-6">
-                Ask me anything about your projects, ideas, or get help with writing.
-              </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-lg">
-                {suggestedPrompts.map((prompt, i) => (
-                  <motion.button
-                    key={i}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    whileHover={{ scale: 1.02 }}
-                    onClick={() => sendMessage(prompt)}
-                    className="p-3 rounded-xl bg-secondary/50 border border-border text-left text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
-                  >
-                    {prompt}
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {messages.map((message, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.3 }}
-              className={cn("flex gap-3", message.role === 'user' ? 'justify-end' : 'justify-start')}
-            >
-              {message.role === 'assistant' && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="w-8 h-8 rounded-full bg-gradient-to-br from-violet to-primary flex items-center justify-center flex-shrink-0"
-                >
-                  <Bot className="w-4 h-4 text-white" />
-                </motion.div>
-              )}
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                className={cn(
-                  "max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 shadow-lg",
-                  message.role === 'user'
-                    ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-tr-sm'
-                    : 'bg-card border border-border text-foreground rounded-tl-sm'
-                )}
-              >
-                <p className="whitespace-pre-wrap text-sm md:text-base">{message.content}</p>
-              </motion.div>
-              {message.role === 'user' && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"
-                >
-                  <User className="w-4 h-4 text-foreground" />
-                </motion.div>
-              )}
-            </motion.div>
-          ))}
-
-          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex gap-3"
-            >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet to-primary flex items-center justify-center">
-                <RefreshCw className="w-4 h-4 text-white animate-spin" />
-              </div>
-              <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3">
-                <motion.div
-                  animate={{ opacity: [0.5, 1, 0.5] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="flex items-center gap-1"
-                >
-                  <span className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="w-2 h-2 rounded-full bg-primary animation-delay-200" />
-                  <span className="w-2 h-2 rounded-full bg-primary animation-delay-400" />
-                </motion.div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex gap-3 p-2 bg-card/50 backdrop-blur-sm rounded-2xl border border-border"
-      >
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          className="flex-1 bg-transparent border-none h-12 focus-visible:ring-0"
-          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-        />
-        <Button
-          onClick={() => sendMessage()}
-          disabled={isLoading || !input.trim()}
-          size="icon"
-          className="h-12 w-12 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
-        >
-          <Send className="w-5 h-5" />
-        </Button>
-      </motion.div>
-    </motion.div>
+      {/* Input Area */}
+      <div className="p-4 lg:p-6 bg-card/30 backdrop-blur-md border-t border-border/50">
+        {/* Suggestions */}
+        {messages.length < 3 && (
+          <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
+            {SUGGESTIONS.map(s => (
+              <button
+                key={s}
+                onClick={() => handleSend(s)}
+                className="whitespace-nowrap px-4 py-2 bg-secondary/50 hover:bg-secondary border border-border/50 rounded-full text-xs font-medium transition-colors flex items-center gap-2"
+              >
+                <Sparkles className="w-3 h-3 text-amber-500" /> {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="relative max-w-4xl mx-auto flex items-center gap-2">
+          <div className="relative flex-1">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Ask me anything about your schedule..."
+              className="pr-12 h-12 bg-background/50 border-border/50 rounded-xl focus-visible:ring-primary/20 text-base"
+            />
+            <div className="absolute right-3 top-3">
+              <Zap className="w-6 h-6 text-primary/20" />
+            </div>
+          </div>
+          <Button
+            size="icon"
+            className="h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+            onClick={() => handleSend()}
+            disabled={!input.trim() || isTyping}
+          >
+            <ArrowRight className="w-5 h-5" />
+          </Button>
+        </div>
+        <div className="text-center mt-2 text-[10px] text-muted-foreground">
+          Kiden Assistant can make mistakes. Consider checking important info.
+        </div>
+      </div>
+    </PageLayout>
   );
 };
 

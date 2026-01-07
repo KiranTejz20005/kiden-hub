@@ -146,7 +146,7 @@ export function TaskDialog({ open, onOpenChange, task, onClose }: TaskDialogProp
                             </SelectContent>
                         </Select>
 
-                        <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
+                        <Select value={priority} onValueChange={(v) => setPriority(v as Task['priority'])}>
                             <SelectTrigger className="w-[120px] h-8 text-xs">
                                 <SelectValue placeholder="Priority" />
                             </SelectTrigger>

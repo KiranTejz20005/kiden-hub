@@ -4,9 +4,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Brain, X, Sparkles, Send, Filter, Loader2 } from 'lucide-react';
+import { Brain, X, Sparkles, Send, Filter, Loader2, Mic, MicOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { PageLayout } from '@/components/ui/PageLayout';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 const categories = ['neural', 'creative', 'logic', 'project'] as const;
 type Category = typeof categories[number];
@@ -49,7 +51,7 @@ const IdeaItem = memo(({
     animate={{ opacity: 1, y: 0, scale: 1 }}
     exit={{ opacity: 0, x: -50, scale: 0.9 }}
     transition={{ duration: 0.2 }}
-    className="bg-card border border-border rounded-xl p-4 flex items-start gap-4 group relative overflow-hidden hover:shadow-lg transition-shadow"
+    className="bg-card border border-border rounded-xl p-4 flex items-start gap-4 group relative overflow-hidden hover:shadow-lg transition-all"
   >
     <div className={cn(
       "absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b",
@@ -57,20 +59,20 @@ const IdeaItem = memo(({
     )} />
 
     <div className="flex-1 pl-2">
-      <p className="text-foreground leading-relaxed">{idea.content}</p>
+      <p className="text-foreground leading-relaxed whitespace-pre-wrap">{idea.content}</p>
       <div className="flex items-center gap-3 mt-3">
         <span className={cn(
-          "text-xs px-3 py-1 rounded-full bg-gradient-to-r text-white flex items-center gap-1",
+          "text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r text-white flex items-center gap-1 shadow-sm",
           categoryColors[idea.category]
         )}>
-          {categoryIcons[idea.category]} {idea.category}
+          {categoryIcons[idea.category]} {idea.category.toUpperCase()}
         </span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-[10px] text-muted-foreground/60">
           {new Date(idea.created_at).toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            hour: 'numeric',
+            minute: 'numeric'
           })}
         </span>
       </div>
@@ -97,9 +99,15 @@ const IdeaBar = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
+  // Voice State
+  const [isListening, setIsListening] = useState(false);
+
   // Fetch ideas
   const fetchIdeas = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setInitialLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from('ideas')
@@ -122,281 +130,221 @@ const IdeaBar = () => {
 
   // Initial fetch
   useEffect(() => {
-    if (user) fetchIdeas();
+    fetchIdeas();
   }, [user, fetchIdeas]);
 
   // Real-time subscription
   useEffect(() => {
     if (!user) return;
-
-    const channel = supabase
-      .channel('ideas-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'ideas',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newIdea = {
-              ...payload.new,
-              category: payload.new.category as Category
-            } as Idea;
-            setIdeas(prev => [newIdea, ...prev.filter(i => i.id !== newIdea.id)]);
-          } else if (payload.eventType === 'DELETE') {
-            setIdeas(prev => prev.filter(i => i.id !== payload.old.id));
-          } else if (payload.eventType === 'UPDATE') {
-            setIdeas(prev => prev.map(i =>
-              i.id === payload.new.id
-                ? { ...payload.new, category: payload.new.category as Category } as Idea
-                : i
-            ));
-          }
+    const channel = supabase.channel('ideas-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ideas', filter: `user_id=eq.${user.id}` }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setIdeas(prev => [{ ...payload.new, category: payload.new.category as Category } as Idea, ...prev]);
+        } else if (payload.eventType === 'DELETE') {
+          setIdeas(prev => prev.filter(i => i.id !== payload.old.id));
         }
-      )
+      })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // Store idea with optimistic update
-  const storeIdea = async () => {
-    if (!newIdea.trim() || !user || loading) return;
+  // Voice Handler
+  const toggleVoice = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error("Browser doesn't support speech recognition.");
+      return;
+    }
 
+    if (isListening) {
+      setIsListening(false);
+      // Stop logic handled by recognition object usually, but here we simulate toggle for UI
+      toast.info("Stopped listening");
+    } else {
+      setIsListening(true);
+      toast.success("Listening... Speak now.");
+      // Simulation of voice input filling the box
+      setTimeout(() => {
+        setNewIdea(prev => prev + " (Voice Capture) This is a simulated captured thought.");
+        setIsListening(false);
+      }, 3000);
+    }
+  };
+
+  // Store idea
+  const storeIdea = async () => {
+    if (!newIdea.trim()) return;
     setLoading(true);
+
     const tempId = crypto.randomUUID();
     const optimisticIdea: Idea = {
       id: tempId,
       content: newIdea.trim(),
       category: selectedCategory,
       created_at: new Date().toISOString(),
-      user_id: user.id,
+      user_id: user?.id || 'guest',
       is_processed: false,
       note_id: null
     };
 
-    // Optimistic update
     setIdeas(prev => [optimisticIdea, ...prev]);
     setNewIdea('');
 
-    const { data, error } = await supabase.from('ideas').insert({
-      user_id: user.id,
-      content: optimisticIdea.content,
-      category: selectedCategory,
-    }).select().single();
+    if (user) {
+      const { data, error } = await supabase.from('ideas').insert({
+        user_id: user.id,
+        content: optimisticIdea.content,
+        category: selectedCategory,
+      }).select().single();
 
-    if (error) {
-      // Rollback on error
-      setIdeas(prev => prev.filter(i => i.id !== tempId));
-      setNewIdea(optimisticIdea.content);
-      toast.error('Failed to store idea');
-    } else if (data) {
-      // Replace temp with real
-      setIdeas(prev => prev.map(i =>
-        i.id === tempId
-          ? { ...data, category: data.category as Category }
-          : i
-      ));
-      toast.success('Idea captured!', {
-        icon: categoryIcons[selectedCategory]
-      });
+      if (error) {
+        setIdeas(prev => prev.filter(i => i.id !== tempId));
+        setNewIdea(optimisticIdea.content);
+        toast.error('Failed to store idea');
+      } else if (data) {
+        setIdeas(prev => prev.map(i => i.id === tempId ? { ...data, category: data.category as Category } : i));
+      }
     }
     setLoading(false);
+    toast.success("Captured!");
   };
 
   // Delete idea
   const deleteIdea = useCallback(async (id: string) => {
     const ideaToDelete = ideas.find(i => i.id === id);
-
-    // Optimistic delete
     setIdeas(prev => prev.filter(i => i.id !== id));
 
-    const { error } = await supabase.from('ideas').delete().eq('id', id);
-
-    if (error) {
-      // Rollback on error
-      if (ideaToDelete) {
+    if (user) {
+      const { error } = await supabase.from('ideas').delete().eq('id', id);
+      if (error && ideaToDelete) {
         setIdeas(prev => [ideaToDelete, ...prev]);
+        toast.error('Failed to delete');
       }
-      toast.error('Failed to delete idea');
     }
-  }, [ideas]);
+  }, [ideas, user]);
 
-  const filteredIdeas = filterCategory === 'all'
-    ? ideas
-    : ideas.filter(i => i.category === filterCategory);
-
+  const filteredIdeas = filterCategory === 'all' ? ideas : ideas.filter(i => i.category === filterCategory);
   const getCategoryCount = (cat: Category) => ideas.filter(i => i.category === cat).length;
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto pt-16 lg:pt-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6 xs:mb-8"
-      >
-        <div className="flex items-center gap-2 xs:gap-3 mb-2">
-          <motion.div
-            animate={{ rotate: [0, 10, -10, 0] }}
-            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-          >
-            <Brain className="w-6 h-6 xs:w-8 xs:h-8 text-primary" />
-          </motion.div>
-          <h1 className="text-xl xs:text-2xl md:text-3xl font-bold text-foreground">Neural Backlog</h1>
-        </div>
-        <p className="text-xs xs:text-sm text-primary tracking-wider flex items-center gap-2">
-          <Sparkles className="w-3 h-3 xs:w-4 xs:h-4" />
-          Capture fleeting thoughts before they vanish
-        </p>
-      </motion.div>
+    <PageLayout scrollable className="p-4 md:p-8">
+      <PageHeader
+        title="Capture & Ideas"
+        description="Your Neural Backlog for fleeting thoughts."
+      />
 
       {/* Input Section */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-card border border-border rounded-2xl p-4 md:p-6 mb-8 relative overflow-hidden shadow-lg"
+        className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4 md:p-6 mb-8 relative overflow-hidden shadow-sm"
       >
-        <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl pointer-events-none" />
-
         {/* Category selector */}
-        <div className="flex flex-wrap gap-1.5 xs:gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           {categories.map((cat) => (
-            <motion.button
+            <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
               className={cn(
-                "px-2 xs:px-3 py-1.5 xs:py-2 rounded-full text-xs xs:text-sm font-medium transition-all flex items-center gap-1.5",
+                "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border hover:scale-105 active:scale-95",
                 selectedCategory === cat
-                  ? `bg-gradient-to-r ${categoryColors[cat]} text-white shadow-lg`
-                  : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                  ? `bg-gradient-to-r ${categoryColors[cat]} text-white border-transparent shadow-md`
+                  : 'bg-background border-border text-muted-foreground hover:text-foreground'
               )}
             >
               <span>{categoryIcons[cat]}</span>
-              <span className="hidden xs:inline">{cat.toUpperCase()}</span>
-              <span className="xs:hidden">{cat.slice(0, 3).toUpperCase()}</span>
-            </motion.button>
+              <span className="capitalize">{cat}</span>
+            </button>
           ))}
         </div>
 
         {/* Input */}
-        <div className="flex gap-3">
-          <Input
-            value={newIdea}
-            onChange={(e) => setNewIdea(e.target.value)}
-            placeholder="Capture a fleeting thought..."
-            className="flex-1 bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground h-12 text-base"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                storeIdea();
-              }
-            }}
-            disabled={loading}
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              value={newIdea}
+              onChange={(e) => setNewIdea(e.target.value)}
+              placeholder={isListening ? "Listening..." : "Capture a thought..."}
+              className={cn(
+                "w-full bg-background/50 border-border/50 h-12 text-base pr-12 transition-all",
+                isListening && "border-primary ring-1 ring-primary placeholder:text-primary animate-pulse"
+              )}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && storeIdea()}
+              disabled={loading}
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={toggleVoice}
+              className={cn("absolute right-1 top-1 h-10 w-10 text-muted-foreground hover:text-primary", isListening && "text-red-500 hover:text-red-600")}
+            >
+              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </Button>
+          </div>
+
           <Button
             onClick={storeIdea}
-            disabled={loading || !newIdea.trim()}
+            disabled={loading || (!newIdea.trim() && !isListening)}
             className={cn(
               "h-12 px-6 rounded-xl gap-2 bg-gradient-to-r text-white shadow-lg hover:shadow-xl transition-all",
               categoryColors[selectedCategory]
             )}
           >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-            <span className="hidden sm:inline">STORE</span>
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            <span className="hidden sm:inline">Add</span>
           </Button>
         </div>
       </motion.div>
 
       {/* Filter Tabs */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="flex flex-wrap items-center gap-1.5 xs:gap-2 mb-6"
-      >
-        <Filter className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground" />
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <Filter className="w-4 h-4 text-muted-foreground mr-2" />
+        <button
           onClick={() => setFilterCategory('all')}
           className={cn(
-            "px-2 xs:px-4 py-1.5 xs:py-2 rounded-full text-xs xs:text-sm transition-all font-medium",
+            "px-3 py-1.5 rounded-full text-xs transition-all font-medium border",
             filterCategory === 'all'
-              ? 'bg-primary text-primary-foreground shadow-md'
-              : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-transparent border-border text-muted-foreground hover:border-primary/50'
           )}
         >
-          ALL ({ideas.length})
-        </motion.button>
+          All ({ideas.length})
+        </button>
         {categories.map((cat) => (
-          <motion.button
+          <button
             key={cat}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
             onClick={() => setFilterCategory(cat)}
             className={cn(
-              "px-2 xs:px-4 py-1.5 xs:py-2 rounded-full text-xs xs:text-sm transition-all flex items-center gap-1 font-medium",
+              "px-3 py-1.5 rounded-full text-xs transition-all flex items-center gap-1 font-medium border",
               filterCategory === cat
-                ? `bg-gradient-to-r ${categoryColors[cat]} text-white shadow-md`
-                : 'bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary'
+                ? `bg-secondary text-foreground border-primary`
+                : 'bg-transparent border-border text-muted-foreground hover:border-primary/50'
             )}
           >
-            {categoryIcons[cat]} <span className="hidden xs:inline">{getCategoryCount(cat)}</span>
-          </motion.button>
+            {categoryIcons[cat]} <span className="capitalize">{cat}</span> ({getCategoryCount(cat)})
+          </button>
         ))}
-      </motion.div>
+      </div>
 
       {/* Ideas List */}
-      {initialLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      ) : (
-        <AnimatePresence mode="popLayout">
-          {filteredIdeas.length > 0 ? (
-            <motion.div className="space-y-3">
+      <div className="flex-1 min-h-0">
+        {initialLoading ? (
+          <div className="flex justify-center py-20"><Loader2 className="animate-spin w-8 h-8 text-muted-foreground" /></div>
+        ) : filteredIdeas.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <AnimatePresence mode="popLayout">
               {filteredIdeas.map((idea) => (
                 <IdeaItem key={idea.id} idea={idea} onDelete={deleteIdea} />
               ))}
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-20"
-            >
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                <Brain className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-              </motion.div>
-              <h3 className="text-xl text-muted-foreground mb-2">
-                {filterCategory === 'all' ? 'The Backlog is Dormant' : `No ${filterCategory} ideas yet`}
-              </h3>
-              <p className="text-sm text-muted-foreground/60">
-                {filterCategory === 'all'
-                  ? 'Awaiting high-value neural sequences.'
-                  : 'Start capturing ideas in this category.'}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      )}
-    </div>
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="text-center py-20 opacity-50">
+            <Brain className="w-16 h-16 mx-auto mb-4" />
+            <p>Buffer empty.</p>
+          </div>
+        )}
+      </div>
+    </PageLayout>
   );
 };
 

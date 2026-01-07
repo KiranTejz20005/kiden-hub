@@ -1,17 +1,18 @@
 import { useState, useMemo } from 'react';
 import {
     Plus, Check, AlertCircle, FileText, CheckCircle2,
-    Calendar, Target, Search, Bell, Clock, ChevronRight, Hash
+    Calendar, Target, Search, Bell, Clock, Trash2
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, subDays, isSameDay, parseISO, startOfWeek, addDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { TaskDialog } from './TaskDialog';
 import { Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// --- SVG Icons for Stats (Exactly from Habit Tracker) ---
+// --- SVG Icons for Stats ---
 const FireIcon = ({ className }: { className?: string }) => (
     <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.6-3.3.314.518.598 1.05.9 1.8z" />
@@ -37,7 +38,7 @@ const TrophyIcon = ({ className }: { className?: string }) => (
 )
 
 export function TaskBoard() {
-    const { tasks, updateTask } = useTasks();
+    const { tasks, updateTask, deleteTask } = useTasks();
     const { projects } = useProjects();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -52,22 +53,52 @@ export function TaskBoard() {
     const pendingTasks = filteredTasks.filter(t => t.status !== 'done');
     const doneTasks = filteredTasks.filter(t => t.status === 'done');
 
-    // Stats
+    // Stats Calculations - REAL DATA
     const totalToday = tasks.length || 0;
     const completedToday = doneTasks.length;
     const progressPercent = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
     const tasksLoad = pendingTasks.length > 5 ? 'High Load' : 'On Track';
 
-    // Calendar & Activity Data (Mocked for Visual Match)
+    // 1. Weekly Activity (Last 7 Days) - Calculated from tasks
+    const weeklyStats = useMemo(() => {
+        const stats = [];
+        const today = new Date();
+        for (let i = 6; i >= 0; i--) {
+            const date = subDays(today, i);
+            // Count tasks completed on this date
+            // Note: In real app, 'updated_at' might change on unrelated edits. 
+            // Ideally we use a 'completed_at' field. For now, using updated_at if status is 'done'.
+            const count = tasks.filter(t =>
+                t.status === 'done' &&
+                isSameDay(parseISO(t.updated_at), date)
+            ).length;
+            stats.push(count);
+        }
+        return stats;
+    }, [tasks]);
+    const maxActivity = Math.max(...weeklyStats, 1); // Avoid div by zero
+
+    // 2. Consistency Calendar (Current Week)
     const weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    const calendarDays = useMemo(() => [
-        { day: 1, status: 'inactive' }, { day: 2, status: 'inactive' }, { day: 3, status: 'success' },
-        { day: 4, status: 'success' }, { day: 5, status: 'success' }, { day: 6, status: 'inactive' },
-        { day: 7, status: 'success' }, { day: 8, status: 'success' }, { day: 9, status: 'success' },
-        { day: 10, status: 'success' }, { day: 11, status: 'success' }, { day: 12, status: 'success' },
-        { day: 13, status: 'success' }, { day: 14, status: 'selected' },
-    ], []);
-    const weeklyActivity = [30, 50, 45, 80, 60, 40, 75];
+    const calendarDays = useMemo(() => {
+        const start = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday start
+        return Array.from({ length: 14 }).map((_, i) => { // 2 weeks view
+            const date = addDays(start, i - 7); // Previous week + current week
+            const isFuture = date > new Date();
+            const hasDoneTasks = tasks.some(t => t.status === 'done' && isSameDay(parseISO(t.updated_at), date));
+            const isTodayDate = isSameDay(date, new Date());
+
+            let status = 'inactive';
+            if (isTodayDate) status = 'selected';
+            else if (hasDoneTasks) status = 'success';
+
+            return {
+                day: format(date, 'd'),
+                status,
+                date: date
+            };
+        });
+    }, [tasks]);
 
     // Priority color mapping
     const getPriorityStyles = (priority: string) => {
@@ -112,10 +143,6 @@ export function TaskBoard() {
                         />
                     </div>
                     <div className="flex items-center gap-4 w-full sm:w-auto">
-                        <button className="relative p-2 text-gray-400 hover:text-white shrink-0">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-[#090C10]"></span>
-                        </button>
                         <Button onClick={handleCreate} className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 text-white gap-2 rounded-lg font-medium whitespace-nowrap">
                             <Plus className="w-4 h-4" /> New Task
                         </Button>
@@ -161,7 +188,9 @@ export function TaskBoard() {
                 <div className="bg-blue-600 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between shadow-lg shadow-blue-900/20">
                     <div>
                         <h3 className="text-lg font-bold text-white mb-1">Daily Focus</h3>
-                        <p className="text-blue-100 text-sm">You're crushing it today!</p>
+                        <p className="text-blue-100 text-sm">
+                            {completedToday > 0 ? "You're making progress!" : "Let's get started!"}
+                        </p>
                     </div>
 
                     <div className="mt-6">
@@ -170,7 +199,7 @@ export function TaskBoard() {
                             <span>{progressPercent}%</span>
                         </div>
                         <div className="w-full h-1.5 bg-blue-800/50 rounded-full overflow-hidden">
-                            <div className="h-full bg-white rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%` }} />
+                            <div className="h-full bg-white rounded-full transition-all duration-500 ease-out" style={{ width: `${progressPercent}%` }} />
                         </div>
                     </div>
                 </div>
@@ -183,115 +212,141 @@ export function TaskBoard() {
                     <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                         <h2 className="text-xl font-bold">Active Tasks</h2>
                         <div className="bg-[#161B22] p-1 rounded-lg flex text-xs border border-white/5">
-                            <button className="px-3 py-1 bg-[#21262D] text-white rounded font-medium shadow-sm">All</button>
-                            <button className="px-3 py-1 text-gray-500 hover:text-gray-300">Pending</button>
-                            <button className="px-3 py-1 text-gray-500 hover:text-gray-300">Completed</button>
+                            <span className="px-3 py-1 bg-[#21262D] text-white rounded font-medium shadow-sm">All</span>
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        {pendingTasks.length === 0 && (
-                            <div className="text-center py-16 text-gray-500 bg-[#161B22] rounded-2xl border border-dashed border-white/5">
-                                <CheckCircle2 className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                <p className="font-medium">All caught up!</p>
-                                <p className="text-sm mt-1">No pending tasks for today.</p>
-                            </div>
-                        )}
-
-                        {pendingTasks.map(task => {
-                            const styles = getPriorityStyles(task.priority);
-                            const Icon = styles.icon;
-                            const project = projects.find(p => p.id === task.project_id);
-
-                            return (
-                                <div
-                                    key={task.id}
-                                    onClick={() => handleEdit(task)}
-                                    className="group bg-[#161B22] p-4 rounded-xl border border-white/5 flex items-center gap-4 hover:border-gray-700 transition-all cursor-pointer relative overflow-hidden"
+                        <AnimatePresence mode='popLayout'>
+                            {pendingTasks.length === 0 && doneTasks.length === 0 && (
+                                <motion.div
+                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                    className="text-center py-16 text-gray-500 bg-[#161B22] rounded-2xl border border-dashed border-white/5"
                                 >
-                                    {/* Hover Highlight Line */}
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <CheckCircle2 className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                    <p className="font-medium">No tasks found</p>
+                                    <Button onClick={handleCreate} variant="link" className="text-blue-500">Create one +</Button>
+                                </motion.div>
+                            )}
 
-                                    <div className={`w-12 h-12 rounded-xl bg-[#0D1117] flex items-center justify-center shrink-0 ${styles.text}`}>
-                                        <Icon className="w-6 h-6" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="font-semibold text-white truncate">{task.title}</h3>
+                            {pendingTasks.length === 0 && doneTasks.length > 0 && (
+                                <div className="text-center py-8 text-gray-500 bg-[#161B22] rounded-2xl border border-dashed border-white/5 mb-4">
+                                    <p>All pending tasks completed!</p>
+                                </div>
+                            )}
+
+                            {pendingTasks.map(task => {
+                                const styles = getPriorityStyles(task.priority);
+                                const Icon = styles.icon;
+                                const project = projects.find(p => p.id === task.project_id);
+
+                                return (
+                                    <motion.div
+                                        key={task.id}
+                                        layout
+                                        onClick={() => handleEdit(task)}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, x: -10 }}
+                                        className="group bg-[#161B22] p-4 rounded-xl border border-white/5 flex items-center gap-4 hover:border-gray-700 transition-all cursor-pointer relative overflow-hidden"
+                                    >
+                                        {/* Hover Highlight Line */}
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                                        <div className={`w-12 h-12 rounded-xl bg-[#0D1117] flex items-center justify-center shrink-0 ${styles.text}`}>
+                                            <Icon className="w-6 h-6" />
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                            {project && (
-                                                <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: project.color }}></span>
-                                                    {project.name}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h3 className="font-semibold text-white truncate">{task.title}</h3>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                {project && (
+                                                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                                                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: project.color }}></span>
+                                                        {project.name}
+                                                    </div>
+                                                )}
+                                                <div className="text-xs text-gray-500 flex items-center gap-1.5">
+                                                    {task.due_date && (
+                                                        <>
+                                                            <span className="w-1 h-1 rounded-full bg-gray-600" />
+                                                            {format(new Date(task.due_date), 'MMM d, h:mm a')}
+                                                        </>
+                                                    )}
+                                                    {task.estimated_minutes && (
+                                                        <>
+                                                            <span className="w-1 h-1 rounded-full bg-gray-600" />
+                                                            {task.estimated_minutes} min
+                                                        </>
+                                                    )}
                                                 </div>
-                                            )}
-                                            <div className="text-xs text-gray-500 flex items-center gap-1.5">
-                                                {task.due_date && (
-                                                    <>
-                                                        <span className="w-1 h-1 rounded-full bg-gray-600" />
-                                                        {format(new Date(task.due_date), 'h:mm a')}
-                                                    </>
-                                                )}
-                                                {task.estimated_minutes && (
-                                                    <>
-                                                        <span className="w-1 h-1 rounded-full bg-gray-600" />
-                                                        {task.estimated_minutes} min
-                                                    </>
-                                                )}
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 shrink-0">
-                                        {task.status === 'in_progress' && (
-                                            <span className="text-xs font-medium text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded hidden sm:inline-block border border-orange-400/20">
-                                                In Progress
-                                            </span>
-                                        )}
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); updateTask(task.id, { status: 'done' }); }}
-                                            className="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center text-gray-400 hover:bg-green-500 hover:text-black hover:border-green-500 transition-all group-hover:scale-105"
-                                        >
-                                            <Check className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-
-                        {/* Done Tasks Header */}
-                        {doneTasks.length > 0 && (
-                            <div className="pt-8">
-                                <div className="flex items-center gap-4 mb-4">
-                                    <div className="h-px bg-white/10 flex-1" />
-                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Completed Today</span>
-                                    <div className="h-px bg-white/10 flex-1" />
-                                </div>
-
-                                <div className="space-y-4">
-                                    {doneTasks.map(task => (
-                                        <div key={task.id} className="bg-[#161B22]/50 p-4 rounded-xl border border-white/5 flex items-center gap-4 group opacity-75 hover:opacity-100 transition-opacity">
-                                            <div className="w-12 h-12 rounded-xl bg-[#0D1117] flex items-center justify-center text-green-500">
-                                                <CheckCircleIcon className="w-6 h-6" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-gray-400 line-through decoration-gray-600 truncate">{task.title}</h3>
-                                                <p className="text-xs text-gray-600">Completed today</p>
-                                            </div>
-                                            <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-500">
-                                                <Check className="w-4 h-4" />
-                                            </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
+                                                className="p-2 rounded-full text-gray-600 hover:text-red-400 hover:bg-red-400/10 transition-colors opacity-0 group-hover:opacity-100"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); updateTask(task.id, { status: 'done' }); }}
+                                                className="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center text-gray-400 hover:bg-green-500 hover:text-black hover:border-green-500 transition-all group-hover:scale-105"
+                                                title="Mark as Done"
+                                            >
+                                                <Check className="w-5 h-5" />
+                                            </button>
                                         </div>
-                                    ))}
+                                    </motion.div>
+                                );
+                            })}
+
+                            {/* Done Tasks Header */}
+                            {doneTasks.length > 0 && (
+                                <div className="pt-8">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="h-px bg-white/10 flex-1" />
+                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Completed Today</span>
+                                        <div className="h-px bg-white/10 flex-1" />
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {doneTasks.map(task => (
+                                            <div key={task.id} className="bg-[#161B22]/50 p-4 rounded-xl border border-white/5 flex items-center gap-4 group opacity-75 hover:opacity-100 transition-opacity">
+                                                <div className="w-12 h-12 rounded-xl bg-[#0D1117] flex items-center justify-center text-green-500">
+                                                    <CheckCircleIcon className="w-6 h-6" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-semibold text-gray-400 line-through decoration-gray-600 truncate">{task.title}</h3>
+                                                    <p className="text-xs text-gray-600">Completed</p>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
+                                                    className="p-2 rounded-full text-gray-600 hover:text-red-400 hover:bg-red-400/10 transition-colors opacity-0 group-hover:opacity-100"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => updateTask(task.id, { status: 'todo' })}
+                                                    className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-500 hover:bg-green-500 hover:text-black transition-colors"
+                                                    title="Undo"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
 
                 {/* Right Column: Widgets */}
                 <div className="space-y-6 min-w-0">
-                    {/* Consistency Calendar */}
+                    {/* Consistency Calendar - Now REAL Data */}
                     <div className="bg-[#161B22] rounded-2xl p-6 border border-white/5">
                         <h3 className="font-bold text-white mb-4">Consistency</h3>
                         <div className="grid grid-cols-7 gap-2 text-center mb-2">
@@ -307,6 +362,7 @@ export function TaskBoard() {
                                             d.status === 'selected' ? "bg-blue-600 text-white font-bold shadow-lg shadow-blue-600/20" :
                                                 "text-gray-600 hover:bg-[#21262D]"
                                     )}
+                                    title={format(d.date, 'MMM d yyyy')}
                                 >
                                     {d.day}
                                 </div>
@@ -330,15 +386,17 @@ export function TaskBoard() {
                                 <p className="text-purple-200 text-sm mb-6 line-clamp-1">{pendingTasks[0].description || 'Get this done today!'}</p>
                                 <div className="flex gap-3">
                                     <button className="flex-1 bg-white text-purple-900 py-2.5 rounded-lg text-sm font-bold hover:bg-purple-50 transition-colors">Start Now</button>
-                                    <button className="px-4 py-2.5 bg-black/20 text-purple-100 rounded-lg text-sm font-medium hover:bg-black/30 transition-colors backdrop-blur-sm">Later</button>
                                 </div>
                             </div>
                         ) : (
-                            <div className="text-purple-200 py-4 relative z-10">All tasks completed!</div>
+                            <div className="text-purple-200 py-4 relative z-10 flex flex-col gap-2">
+                                <p>All tasks completed!</p>
+                                <Button className="bg-white/20 hover:bg-white/30 text-white" onClick={handleCreate}>Add New</Button>
+                            </div>
                         )}
                     </div>
 
-                    {/* Weekly Activity */}
+                    {/* Weekly Activity - Now REAL Data */}
                     <div className="bg-[#161B22] rounded-2xl p-6 border border-white/5 h-[240px] flex flex-col">
                         <div className="flex justify-between items-center mb-auto">
                             <h3 className="font-bold text-white text-sm">Weekly Activity</h3>
@@ -346,15 +404,19 @@ export function TaskBoard() {
                         </div>
 
                         <div className="flex items-end justify-between gap-2 h-32">
-                            {weeklyActivity.map((h, i) => (
-                                <div key={i} className="w-full bg-[#0D1117] rounded-sm h-full flex items-end">
+                            {weeklyStats.map((count, i) => (
+                                <div key={i} className="w-full bg-[#0D1117] rounded-sm h-full flex items-end group relative">
                                     <div
                                         className={cn(
                                             "w-full rounded-sm transition-all duration-1000",
                                             i === 6 ? "bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]" : "bg-blue-500/20 hover:bg-blue-500/40"
                                         )}
-                                        style={{ height: `${h}%` }}
+                                        style={{ height: `${(count / maxActivity) * 100}%` }}
                                     />
+                                    {/* Tooltip */}
+                                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">
+                                        {count} tasks
+                                    </span>
                                 </div>
                             ))}
                         </div>
