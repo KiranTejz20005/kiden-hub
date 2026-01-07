@@ -81,7 +81,7 @@ const Auth = () => {
           navigate('/dashboard');
         }
       } else {
-        const { error } = await signUp(email, password, displayName);
+        const { data, error } = await signUp(email, password, displayName);
         if (error) {
           if (error.message.includes('already registered')) {
             toast.error('This email is already registered. Please sign in.');
@@ -89,8 +89,16 @@ const Auth = () => {
             toast.error(error.message);
           }
         } else {
-          toast.success('Account created! Welcome to Kiden.');
-          navigate('/dashboard');
+          if (data?.session) {
+            toast.success('Account created! Welcome to Kiden.');
+            navigate('/dashboard');
+          } else if (data?.user) {
+            toast.success('Account created! Please check your email to verify your account.');
+            setIsLogin(true); // Switch to login view so they can try after verifying
+          } else {
+            toast.success('Account created! Please sign in.');
+            setIsLogin(true);
+          }
         }
       }
     } catch (error) {
