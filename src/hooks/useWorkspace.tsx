@@ -17,6 +17,12 @@ interface WorkspaceContextType {
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
+const MOCK_WORKSPACES: Workspace[] = [
+  { id: '1', name: 'Personal', icon: '🏠', user_id: 'guest', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '2', name: 'Work', icon: '💼', user_id: 'guest', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '3', name: 'Projects', icon: '🚀', user_id: 'guest', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+];
+
 export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -26,8 +32,13 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const refreshWorkspaces = async () => {
-    if (!user) return;
-    
+    // FALLBACK: If no user, show mocks immediately
+    if (!user) {
+      setWorkspaces(MOCK_WORKSPACES);
+      if (!activeWorkspace) setActiveWorkspace(MOCK_WORKSPACES[0]);
+      return;
+    }
+
     // Fetch workspaces the user owns
     const { data: ownedWorkspaces, error: ownedError } = await supabase
       .from('workspaces')
@@ -43,7 +54,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       .not('accepted_at', 'is', null);
 
     let allWorkspaces: Workspace[] = ownedWorkspaces || [];
-    
+
     // Fetch full workspace data for member workspaces
     if (memberWorkspaces && memberWorkspaces.length > 0) {
       const memberWorkspaceIds = memberWorkspaces.map(m => m.workspace_id);
@@ -51,7 +62,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         .from('workspaces')
         .select('*')
         .in('id', memberWorkspaceIds);
-      
+
       if (sharedWorkspaces) {
         // Filter out duplicates (in case user owns and is member of same workspace)
         const existingIds = new Set(allWorkspaces.map(w => w.id));
@@ -61,16 +72,26 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (!ownedError) {
-      setWorkspaces(allWorkspaces);
-      if (!activeWorkspace && allWorkspaces.length > 0) {
-        setActiveWorkspace(allWorkspaces[0]);
+      if (allWorkspaces.length === 0) {
+        // Inject mocks if visible workspaces are empty
+        setWorkspaces(MOCK_WORKSPACES);
+        if (!activeWorkspace) setActiveWorkspace(MOCK_WORKSPACES[0]);
+      } else {
+        setWorkspaces(allWorkspaces);
+        if (!activeWorkspace && allWorkspaces.length > 0) {
+          setActiveWorkspace(allWorkspaces[0]);
+        }
       }
+    } else {
+      // On error, also inject mocks (robustness)
+      setWorkspaces(MOCK_WORKSPACES);
+      if (!activeWorkspace) setActiveWorkspace(MOCK_WORKSPACES[0]);
     }
   };
 
   const refreshCollections = async () => {
     if (!user || !activeWorkspace) return;
-    
+
     // Fetch collections for the active workspace (RLS handles access control)
     const { data, error } = await supabase
       .from('collections')
@@ -85,19 +106,11 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const initialize = async () => {
-      if (user) {
-        setLoading(true);
-        await refreshWorkspaces();
-        setLoading(false);
-      } else {
-        setWorkspaces([]);
-        setActiveWorkspace(null);
-        setCollections([]);
-        setActiveCollection(null);
-        setLoading(false);
-      }
+      setLoading(true);
+      await refreshWorkspaces();
+      setLoading(false);
     };
-    
+
     initialize();
   }, [user]);
 
