@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Code2, Plus, Trophy, Target, Flame, TrendingUp, 
+import {
+  Code2, Plus, Trophy, Target, Flame, TrendingUp,
   Filter, Search, ExternalLink, Trash2, Edit2, Check,
   X, Clock, BookOpen, Zap, Star, BarChart3, Calendar
 } from 'lucide-react';
@@ -56,12 +56,12 @@ const statusColors = {
   revisit: 'bg-purple-500/20 text-purple-400'
 };
 
-const ProblemCard = memo(({ 
-  problem, 
-  onDelete, 
-  onEdit 
-}: { 
-  problem: LeetCodeProblem; 
+const ProblemCard = memo(({
+  problem,
+  onDelete,
+  onEdit
+}: {
+  problem: LeetCodeProblem;
   onDelete: (id: string) => void;
   onEdit: (problem: LeetCodeProblem) => void;
 }) => (
@@ -131,16 +131,16 @@ const ProblemCard = memo(({
 
 ProblemCard.displayName = 'ProblemCard';
 
-const StatCard = memo(({ 
-  icon: Icon, 
-  label, 
-  value, 
+const StatCard = memo(({
+  icon: Icon,
+  label,
+  value,
   gradient,
   delay = 0
-}: { 
-  icon: React.ElementType; 
-  label: string; 
-  value: number | string; 
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: number | string;
   gradient: string;
   delay?: number;
 }) => (
@@ -172,41 +172,41 @@ const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => 
   const { maxCount, weeks, months } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Generate last 52 weeks (364 days)
     const days: { date: Date; count: number; problems: LeetCodeProblem[] }[] = [];
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - 363);
-    
+
     // Adjust to start from Sunday
     const dayOfWeek = startDate.getDay();
     startDate.setDate(startDate.getDate() - dayOfWeek);
-    
+
     for (let i = 0; i < 371; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
       if (date > today) break;
-      
+
       const dayProblems = problems.filter(p => {
         if (!p.solved_at) return false;
         const solvedDate = new Date(p.solved_at);
         solvedDate.setHours(0, 0, 0, 0);
         return solvedDate.getTime() === date.getTime();
       });
-      
+
       days.push({
         date,
         count: dayProblems.length,
         problems: dayProblems
       });
     }
-    
+
     // Group into weeks
     const weeksData: typeof days[] = [];
     for (let i = 0; i < days.length; i += 7) {
       weeksData.push(days.slice(i, i + 7));
     }
-    
+
     // Get months for labels
     const monthsData: { name: string; weekIndex: number }[] = [];
     let lastMonth = -1;
@@ -223,9 +223,9 @@ const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => 
         }
       }
     });
-    
+
     const max = Math.max(...days.map(d => d.count), 1);
-    
+
     return { heatmapData: days, maxCount: max, weeks: weeksData, months: monthsData };
   }, [problems]);
 
@@ -244,14 +244,14 @@ const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => 
         <Calendar className="w-4 h-4" />
         Activity Heatmap
       </h3>
-      
+
       {/* Month labels */}
       <div className="flex mb-1 ml-8 text-xs text-muted-foreground">
         {months.map((month, i) => (
           <div
             key={i}
             className="flex-shrink-0"
-            style={{ 
+            style={{
               marginLeft: i === 0 ? 0 : `${(month.weekIndex - (months[i - 1]?.weekIndex || 0) - 1) * 14}px`,
               width: '28px'
             }}
@@ -260,7 +260,7 @@ const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => 
           </div>
         ))}
       </div>
-      
+
       <div className="flex gap-0.5 relative">
         {/* Day labels */}
         <div className="flex flex-col gap-0.5 mr-1 text-xs text-muted-foreground">
@@ -272,7 +272,7 @@ const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => 
           <span className="h-3 flex items-center">F</span>
           <span className="h-3"></span>
         </div>
-        
+
         {/* Heatmap grid */}
         <div className="flex gap-0.5 overflow-x-auto pb-2">
           {weeks.map((week, weekIndex) => (
@@ -286,9 +286,9 @@ const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => 
                   className={`w-3 h-3 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 ${getColorClass(day.count)}`}
                   onMouseEnter={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
-                    setHoveredDay({ 
-                      date: day.date, 
-                      count: day.count, 
+                    setHoveredDay({
+                      date: day.date,
+                      count: day.count,
                       x: rect.left + rect.width / 2,
                       y: rect.top - 10
                     });
@@ -299,7 +299,7 @@ const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => 
             </div>
           ))}
         </div>
-        
+
         {/* Tooltip */}
         <AnimatePresence>
           {hoveredDay && (
@@ -318,9 +318,9 @@ const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => 
                 {hoveredDay.count} problem{hoveredDay.count !== 1 ? 's' : ''}
               </p>
               <p className="text-muted-foreground">
-                {hoveredDay.date.toLocaleDateString('en-US', { 
+                {hoveredDay.date.toLocaleDateString('en-US', {
                   weekday: 'short',
-                  month: 'short', 
+                  month: 'short',
                   day: 'numeric',
                   year: 'numeric'
                 })}
@@ -329,7 +329,7 @@ const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => 
           )}
         </AnimatePresence>
       </div>
-      
+
       {/* Legend */}
       <div className="flex items-center justify-end gap-2 mt-3 text-xs text-muted-foreground">
         <span>Less</span>
@@ -337,13 +337,12 @@ const CalendarHeatmap = memo(({ problems }: { problems: LeetCodeProblem[] }) => 
           {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
             <div
               key={i}
-              className={`w-3 h-3 rounded-sm ${
-                intensity === 0 ? 'bg-muted/30' :
+              className={`w-3 h-3 rounded-sm ${intensity === 0 ? 'bg-muted/30' :
                 intensity <= 0.25 ? 'bg-emerald-500/30' :
-                intensity <= 0.5 ? 'bg-emerald-500/50' :
-                intensity <= 0.75 ? 'bg-emerald-500/70' :
-                'bg-emerald-500'
-              }`}
+                  intensity <= 0.5 ? 'bg-emerald-500/50' :
+                    intensity <= 0.75 ? 'bg-emerald-500/70' :
+                      'bg-emerald-500'
+                }`}
             />
           ))}
         </div>
@@ -380,7 +379,7 @@ const LeetCodeTracker = () => {
 
   const fetchProblems = useCallback(async () => {
     if (!user) return;
-    
+
     const { data, error } = await supabase
       .from('leetcode_problems')
       .select('*')
@@ -418,7 +417,7 @@ const LeetCodeTracker = () => {
           if (payload.eventType === 'INSERT') {
             setProblems(prev => [payload.new as LeetCodeProblem, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
-            setProblems(prev => prev.map(p => 
+            setProblems(prev => prev.map(p =>
               p.id === payload.new.id ? payload.new as LeetCodeProblem : p
             ));
           } else if (payload.eventType === 'DELETE') {
@@ -526,7 +525,7 @@ const LeetCodeTracker = () => {
     const easy = problems.filter(p => p.difficulty === 'easy' && p.status === 'solved').length;
     const medium = problems.filter(p => p.difficulty === 'medium' && p.status === 'solved').length;
     const hard = problems.filter(p => p.difficulty === 'hard' && p.status === 'solved').length;
-    
+
     // Category breakdown
     const categoryStats = CATEGORIES.reduce((acc, cat) => {
       acc[cat] = problems.filter(p => p.category === cat && p.status === 'solved').length;
@@ -537,8 +536,8 @@ const LeetCodeTracker = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     let streak = 0;
-    let currentDate = new Date(today);
-    
+    const currentDate = new Date(today);
+
     while (true) {
       const dayProblems = problems.filter(p => {
         if (!p.solved_at) return false;
@@ -546,7 +545,7 @@ const LeetCodeTracker = () => {
         solvedDate.setHours(0, 0, 0, 0);
         return solvedDate.getTime() === currentDate.getTime();
       });
-      
+
       if (dayProblems.length > 0) {
         streak++;
         currentDate.setDate(currentDate.getDate() - 1);
@@ -588,10 +587,13 @@ const LeetCodeTracker = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
-        />
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+          className="text-muted-foreground font-medium flex items-center gap-2"
+        >
+          <Code2 className="w-5 h-5" />
+          Loading problems...
+        </motion.div>
       </div>
     );
   }
@@ -626,31 +628,31 @@ const LeetCodeTracker = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 xs:gap-3">
-          <StatCard 
-            icon={Trophy} 
-            label="Total Solved" 
-            value={stats.solved} 
+          <StatCard
+            icon={Trophy}
+            label="Total Solved"
+            value={stats.solved}
             gradient="from-emerald-500 to-green-400"
             delay={0}
           />
-          <StatCard 
-            icon={Flame} 
-            label="Current Streak" 
-            value={`${stats.streak} days`} 
+          <StatCard
+            icon={Flame}
+            label="Current Streak"
+            value={`${stats.streak} days`}
             gradient="from-orange-500 to-amber-400"
             delay={0.1}
           />
-          <StatCard 
-            icon={Clock} 
-            label="Avg Time" 
-            value={`${stats.avgTime} min`} 
+          <StatCard
+            icon={Clock}
+            label="Avg Time"
+            value={`${stats.avgTime} min`}
             gradient="from-blue-500 to-cyan-400"
             delay={0.2}
           />
-          <StatCard 
-            icon={Target} 
-            label="Total Tracked" 
-            value={stats.total} 
+          <StatCard
+            icon={Target}
+            label="Total Tracked"
+            value={stats.total}
             gradient="from-purple-500 to-pink-400"
             delay={0.3}
           />
@@ -667,7 +669,7 @@ const LeetCodeTracker = () => {
               const count = stats[diff as 'easy' | 'medium' | 'hard'];
               const percentage = stats.solved > 0 ? (count / stats.solved * 100).toFixed(0) : 0;
               return (
-                <motion.div 
+                <motion.div
                   key={diff}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
