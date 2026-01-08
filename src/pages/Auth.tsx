@@ -16,14 +16,14 @@ const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 const phoneSchema = z.string().min(10, 'Phone must be at least 10 digits').regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format');
 
-type AuthMode = 'password' | 'email-otp' | 'phone-otp';
+type AuthMode = 'password' | 'email-otp';
 type ViewState = 'sign-in' | 'verify-otp';
 
 const Auth = () => {
   const location = useLocation();
   // Global State
   const [isLogin, setIsLogin] = useState(location.pathname !== '/sign-up');
-  const [authMode, setAuthMode] = useState<AuthMode>('password'); // password, email-otp, phone-otp
+  const [authMode, setAuthMode] = useState<AuthMode>('password'); // password, email-otp
   const [viewState, setViewState] = useState<ViewState>('sign-in'); // sign-in, verify-otp
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -31,12 +31,11 @@ const Auth = () => {
   // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [otpToken, setOtpToken] = useState('');
 
   // Hooks
-  const { signIn, signUp, signInAsGuest, user, sendEmailOtp, sendPhoneOtp, verifyOtp } = useAuth();
+  const { signIn, signUp, signInAsGuest, user, sendEmailOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -157,19 +156,10 @@ const Auth = () => {
         const { error } = await sendEmailOtp(email);
         if (error) throw error;
         toast.success(`Code sent to ${email}`);
-      } else if (authMode === 'phone-otp') {
-        const phoneResult = phoneSchema.safeParse(phone);
-        if (!phoneResult.success) {
-          toast.error(phoneResult.error.errors[0].message);
-          setLoading(false);
-          return;
-        }
-        const { error } = await sendPhoneOtp(phone);
-        if (error) throw error;
-        toast.success(`Code sent to ${phone}`);
+
+        setOtpToken("");
+        setViewState('verify-otp');
       }
-      setOtpToken("");
-      setViewState('verify-otp');
     } catch (error) {
       toast.error((error as Error).message || 'Failed to send OTP');
     } finally {
@@ -188,12 +178,7 @@ const Auth = () => {
         return;
       }
 
-      const type = authMode === 'email-otp' ? 'magiclink' : 'sms'; // Defaulting email to magiclink/otp flow
-      // Note: Standard Email OTP uses 'email' type usually in verifyOtp, or 'magiclink' if it was a link. 
-      // supabase.auth.verifyOtp({ email, token, type: 'email'}) is for Email OTP.
-      const verifyType = authMode === 'email-otp' ? 'email' : 'sms';
-
-      const { error } = await verifyOtp(otpToken, verifyType, authMode === 'email-otp' ? email : undefined, authMode === 'phone-otp' ? phone : undefined);
+      const { error } = await verifyOtp(otpToken, 'email', email);
 
       if (error) {
         toast.error(error.message || 'Invalid code');
@@ -438,24 +423,7 @@ const Auth = () => {
                   </div>
                 )}
 
-                {/* Phone Input */}
-                {viewState === 'sign-in' && authMode === 'phone-otp' && (
-                  <div>
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Phone Number</label>
-                    <div className="relative">
-                      <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="pl-10 h-11 bg-secondary/20 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all font-medium"
-                        placeholder="+1234567890"
-                        required
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Format: +[Country Code][Number]</p>
-                  </div>
-                )}
+
 
                 {/* Password Input */}
                 {viewState === 'sign-in' && authMode === 'password' && (
