@@ -13,9 +13,11 @@ export const DashboardMusic = () => {
         skipNext,
         skipPrevious,
         handleConnect,
-        progress = 0, // Assuming context provides progress in ms/percent
+        position = 0,
         duration = 1
     } = useSpotify();
+    
+    const progress = position;
 
     const [volumeOpen, setVolumeOpen] = useState(false);
 

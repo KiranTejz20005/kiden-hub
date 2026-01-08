@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Profile, ActiveView } from '@/lib/types';
 import AppSidebar from '@/components/app/AppSidebar';
 import { format, subDays } from 'date-fns';
-import { Play, Zap, CheckCircle2, Droplets, Menu } from 'lucide-react';
+import { Play, Zap, CheckCircle2, Droplets } from 'lucide-react';
 
 // --- View Components ---
 import IdeaBar from '@/components/features/notes/IdeaBar';
@@ -29,6 +29,8 @@ import { SkillTracker } from '@/components/dashboard/SkillTracker';
 import { User } from '@supabase/supabase-js';
 import { PageLayout } from '@/components/ui/PageLayout';
 
+const TASKS_STORAGE_KEY = 'kiden_guest_tasks';
+
 // --- Main Dashboard View ---
 const MainDashboardView = ({ user, profile, setActiveView }: { user: User | null, profile: Profile | null, setActiveView: (v: ActiveView) => void }) => {
   const [stats, setStats] = useState({
@@ -43,95 +45,79 @@ const MainDashboardView = ({ user, profile, setActiveView }: { user: User | null
   const [lcStats, setLcStats] = useState({ easy: 0, medium: 0, hard: 0, total: 0, rank: 0 });
 
   useEffect(() => {
-    if (!user) return;
-
     const fetchData = async () => {
-      // 1. Tasks
-      const { data: todayTasks } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // 1. Tasks from localStorage
+      try {
+        const stored = localStorage.getItem(TASKS_STORAGE_KEY);
+        if (stored) {
+          const parsedTasks = JSON.parse(stored);
+          const mappedTasks: TaskItem[] = parsedTasks.map((t: any) => ({
+            id: t.id,
+            title: t.title || 'Untitled',
+            completed: t.status === 'completed' || t.status === 'done',
+            tag: t.project_id ? 'Project' : 'Daily',
+            priority: t.priority || 'medium'
+          }));
 
-      if (todayTasks) {
-        const mappedTasks: TaskItem[] = todayTasks.map(t => ({
-          id: t.id,
-          title: t.title,
-          completed: t.status === 'completed' || t.status === 'done',
-          tag: t.project_id ? 'Project' : 'Daily',
-          priority: (t.priority as 'low' | 'medium' | 'high') || 'medium'
-        }));
+          const doneT = mappedTasks.filter(t => t.completed).length;
+          const totalT = mappedTasks.length;
 
-        const doneT = mappedTasks.filter(t => t.completed).length;
-        const totalT = mappedTasks.length;
+          setTasks(mappedTasks.slice(0, 50));
+          setStats(prev => ({
+            ...prev,
+            tasksCompleted: doneT,
+            tasksTotal: totalT,
+            productivity: totalT > 0 ? Math.round((doneT / totalT) * 100) : 0
+          }));
 
-        setTasks(mappedTasks);
-        setStats(prev => ({
-          ...prev,
-          tasksCompleted: doneT,
-          tasksTotal: totalT,
-          productivity: totalT > 0 ? Math.round((doneT / totalT) * 100) : 0
-        }));
+          // Build heatmap from tasks
+          const counts: Record<string, number> = {};
+          parsedTasks.filter((t: any) => t.status === 'done' || t.status === 'completed').forEach((t: any) => {
+            if (t.updated_at) {
+              const d = format(new Date(t.updated_at), 'yyyy-MM-dd');
+              counts[d] = (counts[d] || 0) + 1;
+            }
+          });
+          setGridData(counts);
+        }
+      } catch (e) {
+        console.error('Failed to load tasks', e);
       }
 
-      // 2. Heatmap
-      const { data: activity } = await supabase
-        .from('tasks')
-        .select('updated_at')
-        .eq('user_id', user.id)
-        .or('status.eq.completed,status.eq.done')
-        .gte('updated_at', subDays(new Date(), 150).toISOString());
-
-      if (activity) {
-        const counts: Record<string, number> = {};
-        activity.forEach(a => {
-          const d = format(new Date(a.updated_at), 'yyyy-MM-dd');
-          counts[d] = (counts[d] || 0) + 1;
-        });
-        setGridData(counts);
-      }
-
-      // 3. LeetCode
-      const { data: lc } = await supabase.from('leetcode_problems').select('*').eq('user_id', user.id).eq('status', 'solved');
-      if (lc) {
-        let e = 0, m = 0, h = 0;
-        lc.forEach(p => {
-          if (p.difficulty === 'Easy') e++;
-          else if (p.difficulty === 'Medium') m++;
-          else if (p.difficulty === 'Hard') h++;
-        });
-        setLcStats({ easy: e, medium: m, hard: h, total: e + m + h, rank: 0 });
-      }
-
-      // 4. Water
-      const { data: waterHabit } = await supabase.from('habits').select('id, goal').eq('user_id', user.id).eq('name', 'Drink Water').maybeSingle();
-
-      if (waterHabit) {
-        const today = format(new Date(), 'yyyy-MM-dd');
-        const { data: waterLog } = await supabase.from('habit_logs').select('value').eq('habit_id', waterHabit.id).eq('date', today).maybeSingle();
-
-        setStats(prev => ({
-          ...prev,
-          waterIntake: (waterLog?.value || 0) / 1000,
-          waterGoal: (waterHabit.goal || 2500) / 1000
-        }));
+      // 2. LeetCode (from database if user exists)
+      if (user) {
+        const { data: lc } = await supabase.from('leetcode_problems').select('*').eq('user_id', user.id).eq('status', 'solved');
+        if (lc) {
+          let e = 0, m = 0, h = 0;
+          lc.forEach(p => {
+            if (p.difficulty === 'Easy') e++;
+            else if (p.difficulty === 'Medium') m++;
+            else if (p.difficulty === 'Hard') h++;
+          });
+          setLcStats({ easy: e, medium: m, hard: h, total: e + m + h, rank: 0 });
+        }
       }
     };
 
     fetchData();
-
-    const ch = supabase.channel('dash_main')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_logs' }, fetchData)
-      .subscribe();
-
-    return () => { supabase.removeChannel(ch); }
   }, [user]);
 
   const handleToggle = async (id: string, status: boolean) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: status } : t));
-    if (user) await supabase.from('tasks').update({ status: status ? 'done' : 'todo', updated_at: new Date().toISOString() }).eq('id', id);
+    
+    // Update localStorage
+    try {
+      const stored = localStorage.getItem(TASKS_STORAGE_KEY);
+      if (stored) {
+        const allTasks = JSON.parse(stored);
+        const updated = allTasks.map((t: any) => 
+          t.id === id ? { ...t, status: status ? 'done' : 'todo', updated_at: new Date().toISOString() } : t
+        );
+        localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.error('Failed to update task', e);
+    }
   };
 
   return (
@@ -166,7 +152,7 @@ const MainDashboardView = ({ user, profile, setActiveView }: { user: User | null
             icon={Droplets} color="cyan" progress={(stats.waterIntake / stats.waterGoal) * 100} delay={0.2}
           />
           <button
-            onClick={() => setActiveView('focus' as ActiveView)}
+            onClick={() => setActiveView('command')}
             className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl p-6 flex flex-col justify-between group hover:shadow-2xl hover:shadow-indigo-500/20 transition-all border border-indigo-400/20 min-h-[140px]"
           >
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-white mb-2 group-hover:scale-110 transition-transform">
@@ -228,7 +214,6 @@ const Dashboard = () => {
       books: <BookTracker />,
       habits: <HabitTracker />,
       leetcode: <LeetCodeTracker />,
-      focus: <FocusMode />
     };
 
     return views[activeView] || <div className="p-8 text-white">View Not Found</div>;
@@ -236,7 +221,6 @@ const Dashboard = () => {
 
   return (
     <WorkspaceProvider>
-      {/* SpotifyProvider Removed */}
       <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden">
         <div className="relative z-[60]">
           <AppSidebar

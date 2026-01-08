@@ -20,7 +20,11 @@ export function useFocusSessions() {
                 .order('started_at', { ascending: false });
 
             if (error) throw error;
-            setSessions(data || []);
+            setSessions((data || []).map(s => ({
+                ...s,
+                session_type: s.session_type as FocusSession['session_type'],
+                completed: s.completed ?? false
+            })));
         } catch (error) {
             console.error('Error fetching sessions:', error);
             toast.error('Failed to load focus history');
@@ -36,7 +40,8 @@ export function useFocusSessions() {
             const { error } = await supabase
                 .from('focus_sessions')
                 .insert({
-                    ...session,
+                    duration_minutes: session.duration_minutes ?? 25,
+                    session_type: session.session_type ?? 'work',
                     user_id: user.id
                 });
 
