@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Workspace, Collection } from '@/lib/types';
@@ -25,17 +25,19 @@ const MOCK_WORKSPACES: Workspace[] = [
 
 export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
+  const userId = user?.id;
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [activeCollection, setActiveCollection] = useState<Collection | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshWorkspaces = async () => {
+  const refreshWorkspaces = useCallback(async () => {
     // FALLBACK: If no user, show mocks immediately
-    if (!user) {
+    if (!userId) {
       setWorkspaces(MOCK_WORKSPACES);
-      if (!activeWorkspace) setActiveWorkspace(MOCK_WORKSPACES[0]);
+      // Only set active workspace if not already set, to avoid trashing user selection
+      setActiveWorkspace(prev => prev || MOCK_WORKSPACES[0]);
       return;
     }
 
@@ -43,14 +45,14 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     const { data: ownedWorkspaces, error: ownedError } = await supabase
       .from('workspaces')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
     // Fetch workspace IDs where user is a member
-    const { data: memberWorkspaces, error: memberError } = await supabase
+    const { data: memberWorkspaces } = await supabase
       .from('workspace_members')
       .select('workspace_id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .not('accepted_at', 'is', null);
 
     let allWorkspaces: Workspace[] = ownedWorkspaces || [];
@@ -75,22 +77,20 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       if (allWorkspaces.length === 0) {
         // Inject mocks if visible workspaces are empty
         setWorkspaces(MOCK_WORKSPACES);
-        if (!activeWorkspace) setActiveWorkspace(MOCK_WORKSPACES[0]);
+        setActiveWorkspace(prev => prev || MOCK_WORKSPACES[0]);
       } else {
         setWorkspaces(allWorkspaces);
-        if (!activeWorkspace && allWorkspaces.length > 0) {
-          setActiveWorkspace(allWorkspaces[0]);
-        }
+        setActiveWorkspace(prev => prev || allWorkspaces[0]);
       }
     } else {
       // On error, also inject mocks (robustness)
       setWorkspaces(MOCK_WORKSPACES);
-      if (!activeWorkspace) setActiveWorkspace(MOCK_WORKSPACES[0]);
+      setActiveWorkspace(prev => prev || MOCK_WORKSPACES[0]);
     }
-  };
+  }, [userId]);
 
-  const refreshCollections = async () => {
-    if (!user || !activeWorkspace) return;
+  const refreshCollections = useCallback(async () => {
+    if (!userId || !activeWorkspace) return;
 
     // Fetch collections for the active workspace (RLS handles access control)
     const { data, error } = await supabase
@@ -102,7 +102,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     if (!error && data) {
       setCollections(data);
     }
-  };
+  }, [userId, activeWorkspace]);
 
   useEffect(() => {
     const initialize = async () => {
@@ -112,18 +112,18 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
     };
 
     initialize();
-  }, [user]);
+  }, [refreshWorkspaces]);
 
   useEffect(() => {
     if (activeWorkspace) {
       refreshCollections();
       setActiveCollection(null);
     }
-  }, [activeWorkspace]);
+  }, [activeWorkspace, refreshCollections]);
 
   // Set up realtime subscriptions
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
 
     const workspaceChannel = supabase
       .channel('workspace-changes')
@@ -133,7 +133,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
           event: '*',
           schema: 'public',
           table: 'workspaces',
-          filter: `user_id=eq.${user.id}`
+          filter: `user_id=eq.${userId}`
         },
         () => {
           refreshWorkspaces();
@@ -149,7 +149,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
           event: '*',
           schema: 'public',
           table: 'collections',
-          filter: `user_id=eq.${user.id}`
+          filter: `user_id=eq.${userId}`
         },
         () => {
           refreshCollections();
@@ -161,7 +161,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
       supabase.removeChannel(workspaceChannel);
       supabase.removeChannel(collectionChannel);
     };
-  }, [user, activeWorkspace]);
+  }, [userId, refreshWorkspaces, refreshCollections]);
 
   return (
     <WorkspaceContext.Provider value={{
