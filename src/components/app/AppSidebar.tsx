@@ -84,10 +84,10 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
 
   // Variants for Sidebar Animation
   const sidebarVariants = {
-    open: { width: 260, x: 0, transition: { type: "spring", stiffness: 300, damping: 30 } },
-    collapsed: { width: 80, x: 0, transition: { type: "spring", stiffness: 300, damping: 30 } },
-    mobileClosed: { x: "-100%", width: 280, transition: { type: "spring", stiffness: 300, damping: 30 } },
-    mobileOpen: { x: 0, width: 280, transition: { type: "spring", stiffness: 300, damping: 30 } }
+    open: { width: 260, x: 0, transition: { type: "spring" as const, stiffness: 300, damping: 30 } },
+    collapsed: { width: 80, x: 0, transition: { type: "spring" as const, stiffness: 300, damping: 30 } },
+    mobileClosed: { x: "-100%", width: 280, transition: { type: "spring" as const, stiffness: 300, damping: 30 } },
+    mobileOpen: { x: 0, width: 280, transition: { type: "spring" as const, stiffness: 300, damping: 30 } }
   };
 
   // Determine current interaction state

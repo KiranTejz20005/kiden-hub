@@ -9,8 +9,8 @@ export interface Habit {
     user_id: string;
     name: string;
     description?: string;
-    icon?: string;
-    color?: string;
+    icon: string;
+    color: string;
     goal: number;
     unit?: string;
     target_time?: string;
@@ -23,6 +23,7 @@ export interface HabitLog {
     habit_id: string;
     value: number;
     date: string;
+    user_id?: string;
 }
 
 const STORAGE_KEY_HABITS = 'kiden_guest_habits';
@@ -51,7 +52,7 @@ export function useHabits() {
         }
 
         try {
-            // Auth: Fetch Habits
+            // Auth: Fetch Habits from database
             const { data: habitsData, error: habitsError } = await supabase
                 .from('habits')
                 .select('*')
@@ -59,7 +60,19 @@ export function useHabits() {
                 .eq('is_active', true);
 
             if (habitsError) throw habitsError;
-            setHabits(habitsData || []);
+            
+            // Map database habits to our interface with defaults
+            const mappedHabits: Habit[] = (habitsData || []).map(h => ({
+                id: h.id,
+                user_id: h.user_id,
+                name: h.name,
+                icon: h.icon || 'Target',
+                color: h.color || '#3b82f6',
+                goal: 1, // Default goal
+                is_active: h.is_active,
+                created_at: h.created_at
+            }));
+            setHabits(mappedHabits);
 
             // Auth: Fetch Recent Logs (last 30 days)
             const thirtyDaysAgo = new Date();
@@ -69,10 +82,18 @@ export function useHabits() {
                 .from('habit_logs')
                 .select('*')
                 .eq('user_id', user.id)
-                .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
+                .gte('completed_date', thirtyDaysAgo.toISOString().split('T')[0]);
 
-            if (!logsError) {
-                setLogs(logsData || []);
+            if (!logsError && logsData) {
+                // Map database logs to our interface
+                const mappedLogs: HabitLog[] = logsData.map(l => ({
+                    id: l.id,
+                    habit_id: l.habit_id,
+                    value: 1,
+                    date: l.completed_date,
+                    user_id: l.user_id
+                }));
+                setLogs(mappedLogs);
             }
 
         } catch (error) {
@@ -109,21 +130,13 @@ export function useHabits() {
         }
 
         try {
-            const { id: _, ...payload } = newHabit; // Exclude local ID to let DB generate one
-            // Actually, we can let DB generate ID or use ours. Supabase defaults usually create uuid.
-            // But if we want to matching optimistic ID, we can force it if RLS/schema allows.
-            // Safer to simple insert payload without ID and update local state.
-
             const { data, error } = await supabase
                 .from('habits')
                 .insert({
                     user_id: user.id,
                     name: newHabit.name,
-                    description: newHabit.description,
                     icon: newHabit.icon,
                     color: newHabit.color,
-                    goal: newHabit.goal,
-                    unit: newHabit.unit,
                     is_active: true
                 })
                 .select()
@@ -132,18 +145,17 @@ export function useHabits() {
             if (error) throw error;
 
             // Replace temp ID with real one
-            setHabits(prev => prev.map(h => h.id === tempId ? (data as Habit) : h));
+            setHabits(prev => prev.map(h => h.id === tempId ? { ...newHabit, id: data.id } : h));
             toast.success('Habit created');
 
         } catch (error) {
             console.error('Create habit error:', error);
             toast.error('Failed to save habit to cloud');
-            // Keep local version but warn
         }
     };
 
     const logHabit = async (habitId: string, value: number = 1, date: string = new Date().toISOString().split('T')[0]) => {
-        const newLog = {
+        const newLog: HabitLog = {
             id: uuidv4(),
             habit_id: habitId,
             value,
@@ -151,18 +163,12 @@ export function useHabits() {
             user_id: user?.id || 'guest'
         };
 
-        // Optimistic
-        const updatedLogs = [...logs, newLog]; // Simple append, might need dedupe logic for UI if we strictly sum
-        setLogs(updatedLogs);
-
         if (!user) {
-            // For Guest, we need to be smarter: if log exists for date, update it.
+            // For Guest, handle locally
             const existingIndex = logs.findIndex(l => l.habit_id === habitId && l.date === date);
-            let finalLogs;
+            let finalLogs: HabitLog[];
             if (existingIndex >= 0) {
-                const updated = [...logs];
-                updated[existingIndex].value += value;
-                finalLogs = updated;
+                finalLogs = logs.map((l, i) => i === existingIndex ? { ...l, value: l.value + value } : l);
             } else {
                 finalLogs = [...logs, newLog];
             }
@@ -172,35 +178,30 @@ export function useHabits() {
             return;
         }
 
+        // Optimistic update
+        setLogs(prev => [...prev, newLog]);
+
         try {
-            // Upsert mechanism for Server
+            // Check if log exists for today
             const { data: existing } = await supabase
                 .from('habit_logs')
-                .select('id, value')
+                .select('id')
                 .eq('habit_id', habitId)
-                .eq('date', date)
-                .maybeSingle(); // Use maybeSingle to avoid 406 on zero rows
+                .eq('completed_date', date)
+                .maybeSingle();
 
             if (existing) {
-                await supabase
-                    .from('habit_logs')
-                    .update({ value: existing.value + value })
-                    .eq('id', existing.id);
+                // Already logged today
+                toast.success('Already logged today!');
             } else {
                 await supabase
                     .from('habit_logs')
-                    .insert({ habit_id: habitId, user_id: user.id, value, date });
+                    .insert({ habit_id: habitId, user_id: user.id, completed_date: date });
+                toast.success('Habit logged');
             }
-            toast.success('Habit logged');
-            // Background refresh to ensure perfect sync
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const { data: freshLogs } = await supabase
-                .from('habit_logs')
-                .select('*')
-                .eq('user_id', user.id)
-                .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
-            if (freshLogs) setLogs(freshLogs);
+            
+            // Refresh to sync
+            fetchHabits();
 
         } catch (error) {
             console.error(error);

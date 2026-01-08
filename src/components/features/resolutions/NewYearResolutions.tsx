@@ -29,8 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
@@ -67,6 +66,10 @@ const categories = [
   { value: 'relationships', label: 'Relationships', emoji: '❤️', color: 'from-pink-500 to-rose-500' },
 ];
 
+// Local storage based implementation since tables don't exist
+const STORAGE_KEY = 'kiden_resolutions';
+const HISTORY_KEY = 'kiden_resolution_history';
+
 export function NewYearResolutions() {
   const [resolutions, setResolutions] = useState<Resolution[]>([]);
   const [history, setHistory] = useState<ResolutionHistory[]>([]);
@@ -89,52 +92,38 @@ export function NewYearResolutions() {
   const [newProgress, setNewProgress] = useState(0);
   const [progressNote, setProgressNote] = useState('');
 
-  const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetchResolutions();
-    }
+    fetchResolutions();
   }, [user, selectedYear]);
 
   const fetchResolutions = async () => {
-    if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('resolutions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('year', selectedYear)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.warn('Resolutions fetch warning:', error.message);
-        setResolutions([]);
-        return;
+      const stored = localStorage.getItem(STORAGE_KEY);
+      const storedHistory = localStorage.getItem(HISTORY_KEY);
+      
+      if (stored) {
+        const all = JSON.parse(stored) as Resolution[];
+        setResolutions(all.filter(r => r.year === selectedYear && r.user_id === (user?.id || 'guest')));
       }
-      setResolutions((data as Resolution[]) || []);
-
-      // Fetch history for all resolutions
-      if (data && data.length > 0) {
-        const resolutionIds = data.map(r => r.id);
-        const { data: historyData, error: historyError } = await supabase
-          .from('resolution_history')
-          .select('*')
-          .in('resolution_id', resolutionIds)
-          .order('created_at', { ascending: false });
-
-        if (!historyError) {
-          setHistory((historyData as ResolutionHistory[]) || []);
-        }
+      
+      if (storedHistory) {
+        setHistory(JSON.parse(storedHistory));
       }
-    } catch (error: any) {
-      console.warn('Error fetching resolutions:', error);
-      setResolutions([]);
+    } catch (error) {
+      console.warn('Error loading resolutions:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const saveToStorage = (newResolutions: Resolution[]) => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const all = stored ? JSON.parse(stored) as Resolution[] : [];
+    const filtered = all.filter(r => !(r.year === selectedYear && r.user_id === (user?.id || 'guest')));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...filtered, ...newResolutions]));
   };
 
   const resetForm = () => {
@@ -155,76 +144,68 @@ export function NewYearResolutions() {
   };
 
   const saveResolution = async () => {
-    if (!user || !title.trim() || !targetDate) return;
+    if (!title.trim() || !targetDate) return;
 
     setSaving(true);
     try {
-      const resolutionData = {
-        user_id: user.id,
-        title: title.trim(),
-        description: description.trim() || null,
-        category,
-        target_date: targetDate,
-        year: new Date(targetDate).getFullYear(),
-      };
-
+      const now = new Date().toISOString();
+      
       if (editingResolution) {
-        const { error } = await supabase
-          .from('resolutions')
-          .update(resolutionData)
-          .eq('id', editingResolution.id);
-        if (error) throw error;
-        toast({ title: 'Resolution Updated' });
+        const updated = resolutions.map(r => 
+          r.id === editingResolution.id 
+            ? { ...r, title: title.trim(), description: description.trim() || null, category: category as Resolution['category'], target_date: targetDate, updated_at: now }
+            : r
+        );
+        setResolutions(updated);
+        saveToStorage(updated);
+        toast.success('Resolution Updated');
       } else {
-        const { error } = await supabase
-          .from('resolutions')
-          .insert(resolutionData);
-        if (error) throw error;
-        toast({ title: 'Resolution Added', description: 'Good luck with your goal! 🎯' });
+        const newResolution: Resolution = {
+          id: crypto.randomUUID(),
+          user_id: user?.id || 'guest',
+          title: title.trim(),
+          description: description.trim() || null,
+          category: category as Resolution['category'],
+          target_date: targetDate,
+          status: 'active',
+          progress: 0,
+          year: new Date(targetDate).getFullYear(),
+          created_at: now,
+          updated_at: now
+        };
+        const updated = [...resolutions, newResolution];
+        setResolutions(updated);
+        saveToStorage(updated);
+        toast.success('Resolution Added! Good luck with your goal! 🎯');
       }
 
       setIsDialogOpen(false);
       resetForm();
-      fetchResolutions();
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message || 'Failed to save');
     } finally {
       setSaving(false);
     }
   };
 
   const deleteResolution = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('resolutions')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      toast({ title: 'Resolution Deleted' });
-      fetchResolutions();
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    }
+    const updated = resolutions.filter(r => r.id !== id);
+    setResolutions(updated);
+    saveToStorage(updated);
+    toast.success('Resolution Deleted');
   };
 
   const updateStatus = async (id: string, status: 'active' | 'completed' | 'abandoned') => {
-    try {
-      const resolution = resolutions.find(r => r.id === id);
-      const { error } = await supabase
-        .from('resolutions')
-        .update({
-          status,
-          progress: status === 'completed' ? 100 : resolution?.progress
-        })
-        .eq('id', id);
-      if (error) throw error;
-
-      if (status === 'completed') {
-        toast({ title: '🎉 Congratulations!', description: 'You completed your resolution!' });
-      }
-      fetchResolutions();
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    const updated = resolutions.map(r => 
+      r.id === id 
+        ? { ...r, status, progress: status === 'completed' ? 100 : r.progress, updated_at: new Date().toISOString() }
+        : r
+    );
+    setResolutions(updated);
+    saveToStorage(updated);
+    
+    if (status === 'completed') {
+      toast.success('🎉 Congratulations! You completed your resolution!');
     }
   };
 
@@ -236,40 +217,36 @@ export function NewYearResolutions() {
   };
 
   const updateProgress = async () => {
-    if (!progressResolution || !user) return;
+    if (!progressResolution) return;
 
     setSaving(true);
     try {
-      // Update resolution progress
-      const { error: updateError } = await supabase
-        .from('resolutions')
-        .update({
-          progress: newProgress,
-          status: newProgress >= 100 ? 'completed' : progressResolution.status
-        })
-        .eq('id', progressResolution.id);
-      if (updateError) throw updateError;
+      const updated = resolutions.map(r => 
+        r.id === progressResolution.id 
+          ? { ...r, progress: newProgress, status: newProgress >= 100 ? 'completed' as const : r.status, updated_at: new Date().toISOString() }
+          : r
+      );
+      setResolutions(updated);
+      saveToStorage(updated);
 
       // Add history entry
-      const { error: historyError } = await supabase
-        .from('resolution_history')
-        .insert({
-          resolution_id: progressResolution.id,
-          user_id: user.id,
-          progress: newProgress,
-          previous_progress: progressResolution.progress,
-          note: progressNote.trim() || null,
-        });
-      if (historyError) throw historyError;
+      const historyEntry: ResolutionHistory = {
+        id: crypto.randomUUID(),
+        resolution_id: progressResolution.id,
+        user_id: user?.id || 'guest',
+        progress: newProgress,
+        previous_progress: progressResolution.progress,
+        note: progressNote.trim() || null,
+        created_at: new Date().toISOString()
+      };
+      const newHistory = [...history, historyEntry];
+      setHistory(newHistory);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
 
-      toast({
-        title: 'Progress Updated',
-        description: newProgress >= 100 ? '🎉 You did it!' : 'Keep going!'
-      });
+      toast.success(newProgress >= 100 ? '🎉 You did it!' : 'Progress Updated! Keep going!');
       setProgressDialogOpen(false);
-      fetchResolutions();
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message || 'Failed to update');
     } finally {
       setSaving(false);
     }
@@ -484,160 +461,178 @@ export function NewYearResolutions() {
                   </Card>
                 </div>
 
-                {/* Resolutions List */}
-                <div className="space-y-3">
-                  {resolutions.map((resolution) => {
-                    const catData = getCategoryData(resolution.category);
-                    const daysInfo = getDaysRemaining(resolution.target_date);
-                    const resHistory = getResolutionHistory(resolution.id);
-                    const isExpanded = expandedId === resolution.id;
+                {/* Resolution Cards */}
+                <ScrollArea className="flex-1">
+                  <div className="space-y-3">
+                    <AnimatePresence>
+                      {resolutions.map((resolution, index) => {
+                        const catData = getCategoryData(resolution.category);
+                        const daysInfo = getDaysRemaining(resolution.target_date);
+                        const isExpanded = expandedId === resolution.id;
+                        const resHistory = getResolutionHistory(resolution.id);
 
-                    return (
-                      <motion.div
-                        key={resolution.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="group"
-                      >
-                        <Card className={cn(
-                          "border-border/50 bg-card/50 backdrop-blur-sm transition-all",
-                          resolution.status === 'completed' && "bg-green-500/5 border-green-500/30",
-                          resolution.status === 'abandoned' && "opacity-60"
-                        )}>
-                          <CardContent className="p-4">
-                            <div className="flex flex-col gap-3">
-                              {/* Header */}
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex items-start gap-3 flex-1 min-w-0">
+                        return (
+                          <motion.div
+                            key={resolution.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ delay: index * 0.05 }}
+                          >
+                            <Card className={cn(
+                              "border-border/50 overflow-hidden transition-all",
+                              resolution.status === 'completed' && "border-green-500/30 bg-green-500/5",
+                              resolution.status === 'abandoned' && "opacity-60"
+                            )}>
+                              <CardContent className="p-4">
+                                <div className="flex items-start gap-4">
                                   <div className={cn(
-                                    "w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0",
-                                    `bg-gradient-to-br ${catData.color}`
+                                    "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-2xl bg-gradient-to-br",
+                                    catData.color
                                   )}>
                                     {catData.emoji}
                                   </div>
+
                                   <div className="flex-1 min-w-0">
-                                    <h3 className={cn(
-                                      "font-semibold truncate",
-                                      resolution.status === 'completed' && "line-through text-muted-foreground"
-                                    )}>
-                                      {resolution.title}
-                                    </h3>
-                                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div>
+                                        <h3 className={cn(
+                                          "font-semibold",
+                                          resolution.status === 'completed' && "line-through text-muted-foreground"
+                                        )}>
+                                          {resolution.title}
+                                        </h3>
+                                        {resolution.description && (
+                                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                                            {resolution.description}
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {resolution.status === 'active' && (
+                                          <>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-8 w-8"
+                                              onClick={() => openEditDialog(resolution)}
+                                            >
+                                              <Edit2 className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-8 w-8 text-green-500 hover:text-green-600"
+                                              onClick={() => updateStatus(resolution.id, 'completed')}
+                                            >
+                                              <Check className="h-4 w-4" />
+                                            </Button>
+                                          </>
+                                        )}
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 text-destructive hover:text-destructive"
+                                          onClick={() => deleteResolution(resolution.id)}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-2 mt-3">
                                       <Badge variant="secondary" className="text-xs">
                                         {catData.label}
                                       </Badge>
+                                      <Badge
+                                        variant={resolution.status === 'completed' ? 'default' : 'outline'}
+                                        className={cn(
+                                          "text-xs",
+                                          resolution.status === 'completed' && "bg-green-500",
+                                          resolution.status === 'abandoned' && "text-muted-foreground"
+                                        )}
+                                      >
+                                        {resolution.status}
+                                      </Badge>
                                       <span className={cn(
-                                        "text-xs",
-                                        daysInfo.overdue ? "text-red-500" : "text-muted-foreground"
+                                        "text-xs flex items-center gap-1",
+                                        daysInfo.overdue ? "text-destructive" : "text-muted-foreground"
                                       )}>
-                                        <Calendar className="h-3 w-3 inline mr-1" />
+                                        <Calendar className="h-3 w-3" />
                                         {daysInfo.text}
                                       </span>
-                                      {resolution.status !== 'active' && (
-                                        <Badge variant={resolution.status === 'completed' ? 'default' : 'destructive'}>
-                                          {resolution.status}
-                                        </Badge>
+                                    </div>
+
+                                    {/* Progress Bar */}
+                                    <div className="mt-4">
+                                      <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs text-muted-foreground">Progress</span>
+                                        <span className="text-xs font-medium">{resolution.progress}%</span>
+                                      </div>
+                                      <Progress value={resolution.progress} className="h-2" />
+                                      {resolution.status === 'active' && (
+                                        <Button
+                                          variant="link"
+                                          size="sm"
+                                          className="p-0 h-auto mt-1 text-xs"
+                                          onClick={() => openProgressDialog(resolution)}
+                                        >
+                                          Update Progress
+                                        </Button>
                                       )}
                                     </div>
-                                  </div>
-                                </div>
 
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  {resolution.status === 'active' && (
-                                    <>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openProgressDialog(resolution)}>
-                                        <TrendingUp className="h-4 w-4" />
+                                    {/* Expand/Collapse History */}
+                                    {resHistory.length > 0 && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full mt-3 text-xs"
+                                        onClick={() => setExpandedId(isExpanded ? null : resolution.id)}
+                                      >
+                                        <History className="h-3 w-3 mr-1" />
+                                        {resHistory.length} update{resHistory.length > 1 ? 's' : ''}
+                                        {isExpanded ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
                                       </Button>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateStatus(resolution.id, 'completed')}>
-                                        <Check className="h-4 w-4 text-green-500" />
-                                      </Button>
-                                    </>
-                                  )}
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(resolution)}>
-                                    <Edit2 className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteResolution(resolution.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-
-                              {/* Progress Bar */}
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-xs">
-                                  <span className="text-muted-foreground">Progress</span>
-                                  <span className="font-medium">{resolution.progress}%</span>
-                                </div>
-                                <Progress value={resolution.progress} className="h-2" />
-                              </div>
-
-                              {/* Description & History Toggle */}
-                              {(resolution.description || resHistory.length > 0) && (
-                                <button
-                                  onClick={() => setExpandedId(isExpanded ? null : resolution.id)}
-                                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                  {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                  {isExpanded ? 'Hide details' : 'Show details'}
-                                  {resHistory.length > 0 && ` (${resHistory.length} updates)`}
-                                </button>
-                              )}
-
-                              {/* Expanded Content */}
-                              <AnimatePresence>
-                                {isExpanded && (
-                                  <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden"
-                                  >
-                                    {resolution.description && (
-                                      <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
-                                        {resolution.description}
-                                      </p>
                                     )}
 
-                                    {resHistory.length > 0 && (
-                                      <div className="border-t border-border/50 pt-3">
-                                        <h4 className="text-xs font-medium flex items-center gap-1 mb-2">
-                                          <History className="h-3 w-3" />
-                                          Progress History
-                                        </h4>
-                                        <ScrollArea className="max-h-32">
-                                          <div className="space-y-2">
-                                            {resHistory.map(h => (
+                                    <AnimatePresence>
+                                      {isExpanded && (
+                                        <motion.div
+                                          initial={{ height: 0, opacity: 0 }}
+                                          animate={{ height: 'auto', opacity: 1 }}
+                                          exit={{ height: 0, opacity: 0 }}
+                                          className="overflow-hidden"
+                                        >
+                                          <div className="mt-3 space-y-2 border-t border-border/50 pt-3">
+                                            {resHistory.slice(0, 5).map(h => (
                                               <div key={h.id} className="flex items-start gap-2 text-xs">
-                                                <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                                                <div className="flex-1">
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="font-medium">
-                                                      {h.previous_progress}% → {h.progress}%
-                                                    </span>
-                                                    <span className="text-muted-foreground">
-                                                      {format(parseISO(h.created_at), 'MMM d, yyyy')}
-                                                    </span>
-                                                  </div>
-                                                  {h.note && (
-                                                    <p className="text-muted-foreground mt-0.5">{h.note}</p>
-                                                  )}
+                                                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                                                <div>
+                                                  <span className="text-muted-foreground">
+                                                    {format(parseISO(h.created_at), 'MMM d, yyyy')}
+                                                  </span>
+                                                  <span className="mx-1">—</span>
+                                                  <span className="text-green-500">+{h.progress - h.previous_progress}%</span>
+                                                  {h.note && <p className="text-muted-foreground mt-0.5">{h.note}</p>}
                                                 </div>
                                               </div>
                                             ))}
                                           </div>
-                                        </ScrollArea>
-                                      </div>
-                                    )}
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    );
-                  })}
-                </div>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                </ScrollArea>
               </>
             )}
           </div>
@@ -645,115 +640,38 @@ export function NewYearResolutions() {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="flex-1 m-0 overflow-auto">
-          <div className="p-4 pt-0 space-y-4">
-            {/* Overview Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <Card className="border-border/50 bg-gradient-to-br from-blue-500/10 to-cyan-500/10">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Total Resolutions</p>
-                      <p className="text-3xl font-bold text-blue-500">{resolutions.length}</p>
-                    </div>
-                    <Flag className="h-10 w-10 text-blue-500/50" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50 bg-gradient-to-br from-green-500/10 to-emerald-500/10">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Completed</p>
-                      <p className="text-3xl font-bold text-green-500">{completedResolutions.length}</p>
-                    </div>
-                    <Award className="h-10 w-10 text-green-500/50" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50 bg-gradient-to-br from-amber-500/10 to-orange-500/10">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">In Progress</p>
-                      <p className="text-3xl font-bold text-amber-500">{activeResolutions.length}</p>
-                    </div>
-                    <TrendingUp className="h-10 w-10 text-amber-500/50" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50 bg-gradient-to-br from-red-500/10 to-rose-500/10">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Abandoned</p>
-                      <p className="text-3xl font-bold text-red-500">{abandonedResolutions.length}</p>
-                    </div>
-                    <X className="h-10 w-10 text-red-500/50" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Category Breakdown */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-primary" />
-                  Category Breakdown
-                </CardTitle>
+          <div className="p-4 space-y-6">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-lg">Category Breakdown</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {categoryStats.filter(c => c.count > 0).map(cat => (
-                    <div key={cat.value} className="flex items-center gap-3">
-                      <span className="text-xl w-8">{cat.emoji}</span>
-                      <div className="flex-1">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>{cat.label}</span>
-                          <span className="text-muted-foreground">{cat.completed}/{cat.count}</span>
+                    <div key={cat.value}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span>{cat.emoji}</span>
+                          <span className="text-sm font-medium">{cat.label}</span>
                         </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className={cn("h-full rounded-full bg-gradient-to-r", cat.color)}
-                            style={{ width: `${cat.count > 0 ? (cat.completed / cat.count) * 100 : 0}%` }}
-                          />
-                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {cat.completed}/{cat.count} completed
+                        </span>
                       </div>
+                      <Progress
+                        value={cat.count > 0 ? (cat.completed / cat.count) * 100 : 0}
+                        className="h-2"
+                      />
                     </div>
                   ))}
-                  {categoryStats.filter(c => c.count > 0).length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No resolutions yet. Add some to see the breakdown!
+                  {categoryStats.every(c => c.count === 0) && (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No resolutions yet. Add some to see analytics!
                     </p>
                   )}
                 </div>
               </CardContent>
             </Card>
-
-            {/* Success Motivation */}
-            {completedResolutions.length > 0 && (
-              <Card className="border-border/50 bg-gradient-to-r from-green-500/5 via-emerald-500/5 to-teal-500/5">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                      <Award className="h-8 w-8 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">
-                        {completionRate >= 50 ? "🎉 Amazing progress!" : "💪 Keep pushing!"}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        You've completed {completedResolutions.length} resolution{completedResolutions.length !== 1 ? 's' : ''} this year!
-                        {activeResolutions.length > 0 && ` ${activeResolutions.length} more to go.`}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </TabsContent>
       </Tabs>
@@ -764,36 +682,26 @@ export function NewYearResolutions() {
           <DialogHeader>
             <DialogTitle>Update Progress</DialogTitle>
           </DialogHeader>
-          {progressResolution && (
-            <div className="space-y-4 mt-4">
-              <p className="text-sm text-muted-foreground">{progressResolution.title}</p>
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Progress</span>
-                  <span className="font-medium">{newProgress}%</span>
-                </div>
-                <Slider
-                  value={[newProgress]}
-                  onValueChange={(v) => setNewProgress(v[0])}
-                  max={100}
-                  step={5}
-                />
-              </div>
-
-              <Textarea
-                placeholder="Add a note about your progress (optional)"
-                value={progressNote}
-                onChange={(e) => setProgressNote(e.target.value)}
-                className="min-h-20"
+          <div className="space-y-4 mt-4">
+            <div>
+              <label className="text-sm mb-2 block">Progress: {newProgress}%</label>
+              <Slider
+                value={[newProgress]}
+                onValueChange={(v) => setNewProgress(v[0])}
+                max={100}
+                step={5}
               />
-
-              <Button onClick={updateProgress} disabled={saving} className="w-full">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Update Progress
-              </Button>
             </div>
-          )}
+            <Input
+              placeholder="Add a note (optional)"
+              value={progressNote}
+              onChange={(e) => setProgressNote(e.target.value)}
+            />
+            <Button onClick={updateProgress} disabled={saving} className="w-full">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Progress
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </motion.div>

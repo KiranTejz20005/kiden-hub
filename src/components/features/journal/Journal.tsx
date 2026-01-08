@@ -201,7 +201,7 @@ export function Journal() {
 
   const saveEntry = async () => {
     if (!title && !content && !selectedMood && !recordedUrl) {
-      toast({ title: "Nothing to save", description: "Please add some content.", variant: "secondary" });
+      toast({ title: "Nothing to save", description: "Please add some content." });
       return;
     }
 

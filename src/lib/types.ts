@@ -19,7 +19,8 @@ export interface Profile {
   full_name?: string | null;
   avatar_url?: string | null;
   website?: string | null;
-  status?: 'online' | 'away' | 'offline';
+  bio?: string | null;
+  status?: 'online' | 'away' | 'offline' | 'dnd';
   updated_at?: string;
 }
 
@@ -91,6 +92,7 @@ export interface Workspace {
   slug?: string;
   icon?: string;
   created_at?: string;
+  updated_at?: string;
   role?: 'owner' | 'admin' | 'member';
 }
 
@@ -99,6 +101,8 @@ export interface Collection {
   workspace_id: string;
   name: string;
   color?: string;
+  icon?: string;
+  item_count?: number;
   created_at?: string;
 }
 
