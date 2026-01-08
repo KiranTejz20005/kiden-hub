@@ -1,19 +1,10 @@
 import { useEffect, useRef, useCallback } from "react";
-import useEmblaCarousel from "embla-carousel-react";
+// import useEmblaCarousel from "embla-carousel-react"; // Removed for stability
 import { Box, AudioWaveform, Figma, Github, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Integrations = () => {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "start" });
   const sectionRef = useRef<HTMLDivElement>(null);
-
-  const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
-
-  const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -96,13 +87,13 @@ const Integrations = () => {
           </p>
         </div>
 
-        {/* Carousel */}
+        {/* Carousel (Replaced with Native Scroll) */}
         <div className="animate-on-scroll opacity-0 relative">
-          <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex gap-6">
+          <div className="overflow-x-auto pb-8 snap-x snap-mandatory scrollbar-none">
+            <div className="flex gap-6 w-max px-4">
               {integrations.map((item, index) => (
-                <div key={item.name} className="flex-[0_0_85%] md:flex-[0_0_45%] lg:flex-[0_0_30%] min-w-0">
-                  <div className={`relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/5 bg-gradient-to-br ${item.gradient} p-8 flex flex-col justify-end group transition-all duration-300 hover:border-white/10`}>
+                <div key={item.name} className="snap-center w-[300px] md:w-[400px] lg:w-[450px] shrink-0">
+                  <div className={`relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/5 bg-gradient-to-br ${item.gradient} p-8 flex flex-col justify-end group transition-all duration-300 hover:border-white/10 hover:shadow-2xl hover:shadow-primary/5`}>
 
                     {/* Ambient Glow */}
                     <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full ${item.glow} blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-500`} />
@@ -123,18 +114,6 @@ const Integrations = () => {
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -right-4 md:-right-12 gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={scrollNext}
-              className="rounded-full bg-black/50 border-white/10 text-white hover:bg-white/10 hover:text-white"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </Button>
           </div>
         </div>
       </div>
