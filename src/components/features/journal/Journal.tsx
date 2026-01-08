@@ -291,24 +291,23 @@ export function Journal() {
 
   return (
     <PageLayout className="p-4 lg:p-6">
-      <PageHeader
-        title="Journal"
-        description="Reflect on your journey"
-        actions={
-          <TabsList className="bg-secondary/50 w-full sm:w-auto">
-            <TabsTrigger value="journal" className="gap-2 flex-1 sm:flex-none">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden xs:inline">Journal</span>
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-2 flex-1 sm:flex-none">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden xs:inline">Analytics</span>
-            </TabsTrigger>
-          </TabsList>
-        }
-      />
-
       <Tabs defaultValue="journal" className="flex-1 flex flex-col min-h-0">
+        <PageHeader
+          title="Journal"
+          description="Reflect on your journey"
+          actions={
+            <TabsList className="bg-secondary/50 w-full sm:w-auto">
+              <TabsTrigger value="journal" className="gap-2 flex-1 sm:flex-none">
+                <BookOpen className="h-4 w-4" />
+                <span className="hidden xs:inline">Journal</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="gap-2 flex-1 sm:flex-none">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden xs:inline">Analytics</span>
+              </TabsTrigger>
+            </TabsList>
+          }
+        />
         <TabsContent value="analytics" className="flex-1 m-0 overflow-auto">
           <JournalAnalytics />
         </TabsContent>
