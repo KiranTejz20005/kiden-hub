@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, VerifyOtpParams } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
@@ -10,6 +10,9 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
+  sendEmailOtp: (email: string) => Promise<{ error: Error | null }>;
+  sendPhoneOtp: (phone: string) => Promise<{ error: Error | null }>;
+  verifyOtp: (token: string, type: 'email' | 'sms' | 'signup' | 'recovery' | 'invite' | 'magiclink', email?: string, phone?: string) => Promise<{ data: { session: Session | null; user: User | null } | null; error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -119,8 +122,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } as Session);
   };
 
+  const sendEmailOtp = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false, // Only for existing users, typically? Or true if you want signup via OTP. 
+        // For now, let's assume default behaviour or let it create user if user wants to signup via OTP.
+        // Actually for pure "2 factor" style login we might assume account exists, but for ease of use we default to true (default).
+      }
+    });
+    return { error: error as Error | null };
+  };
+
+  const sendPhoneOtp = async (phone: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      phone,
+    });
+    return { error: error as Error | null };
+  };
+
+  const verifyOtp = async (token: string, type: 'email' | 'sms' | 'signup' | 'recovery' | 'invite' | 'magiclink', email?: string, phone?: string) => {
+    let params: VerifyOtpParams;
+    if (email) {
+      params = { email, token, type } as VerifyOtpParams;
+    } else if (phone) {
+      params = { phone, token, type } as VerifyOtpParams;
+    } else {
+      return { data: null, error: new Error("Email or Phone required for verification") };
+    }
+
+    const { data, error } = await supabase.auth.verifyOtp(params);
+    return { data, error: error as Error | null };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, signInAsGuest }}>
+    <AuthContext.Provider value={{
+      user,
+      session,
+      loading,
+      signUp,
+      signIn,
+      signOut,
+      signInAsGuest,
+      sendEmailOtp,
+      sendPhoneOtp,
+      verifyOtp
+    }}>
       {children}
     </AuthContext.Provider>
   );

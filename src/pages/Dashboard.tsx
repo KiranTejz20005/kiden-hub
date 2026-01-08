@@ -32,6 +32,8 @@ import { PageLayout } from '@/components/ui/PageLayout';
 const TASKS_STORAGE_KEY = 'kiden_guest_tasks';
 
 // --- Main Dashboard View ---
+import { useNavigate } from 'react-router-dom';
+
 const MainDashboardView = ({ user, profile, setActiveView }: { user: User | null, profile: Profile | null, setActiveView: (v: ActiveView) => void }) => {
   const [stats, setStats] = useState({
     productivity: 0,
@@ -40,6 +42,10 @@ const MainDashboardView = ({ user, profile, setActiveView }: { user: User | null
     waterIntake: 0,
     waterGoal: 2.5
   });
+
+  // Handled in Dashboard wrapper
+
+  /* Removed duplicate tasks state - Fixed */
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [gridData, setGridData] = useState<Record<string, number>>({});
   const [lcStats, setLcStats] = useState({ easy: 0, medium: 0, hard: 0, total: 0, rank: 0 });
@@ -187,8 +193,15 @@ const MainDashboardView = ({ user, profile, setActiveView }: { user: User | null
 // --- Page Wrapper ---
 const Dashboard = () => {
   const [activeView, setActiveView] = useState<ActiveView>('command');
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
 
   useEffect(() => {
     if (!user) return;
