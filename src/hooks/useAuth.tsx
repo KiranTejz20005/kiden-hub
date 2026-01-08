@@ -12,7 +12,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   sendEmailOtp: (email: string) => Promise<{ error: Error | null }>;
   sendPhoneOtp: (phone: string) => Promise<{ error: Error | null }>;
-  verifyOtp: (token: string, type: 'email' | 'sms' | 'signup' | 'recovery' | 'invite' | 'magiclink', email?: string, phone?: string) => Promise<{ data: { session: Session | null; user: User | null } | null; error: Error | null }>;
+  verifyOtp: (token: string, type: 'email' | 'sms', email?: string, phone?: string) => Promise<{ data: { session: Session | null; user: User | null } | null; error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,54 +25,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    const initAuth = async () => {
+    async function getInitialSession() {
       try {
-        // Set up auth state listener FIRST
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (event, session) => {
-            if (mounted) {
-              setSession(session);
-              setUser(session?.user ?? null);
-              setLoading(false);
-            }
-          }
-        );
-
-        // THEN check for existing session
         const { data: { session } } = await supabase.auth.getSession();
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
         }
-
-        return () => {
-          mounted = false;
-          subscription.unsubscribe();
-        };
       } catch (error) {
-        console.error('Auth initialization error:', error);
-        if (mounted) {
-          setLoading(false);
-        }
+        console.error('Error getting session:', error);
+        if (mounted) setLoading(false);
       }
-    };
+    }
 
-    initAuth();
+    getInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    });
 
     return () => {
       mounted = false;
+      subscription.unsubscribe();
     };
   }, []);
 
   const signUp = async (email: string, password: string, displayName?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
         data: {
           display_name: displayName || email.split('@')[0],
         },
@@ -96,8 +83,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInAsGuest = async () => {
+    // Create a deterministic guest ID based on local storage or random if not present
+    const guestId = `guest-${Math.random().toString(36).substr(2, 9)}`;
     const guestUser = {
-      id: `guest-${Math.random().toString(36).substr(2, 9)}`,
+      id: guestId,
       app_metadata: { provider: 'guest' },
       user_metadata: { display_name: 'Guest User' },
       aud: 'authenticated',
@@ -126,9 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        shouldCreateUser: false, // Only for existing users, typically? Or true if you want signup via OTP. 
-        // For now, let's assume default behaviour or let it create user if user wants to signup via OTP.
-        // Actually for pure "2 factor" style login we might assume account exists, but for ease of use we default to true (default).
+        shouldCreateUser: true,
       }
     });
     return { error: error as Error | null };
@@ -141,18 +128,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: error as Error | null };
   };
 
-  const verifyOtp = async (token: string, type: 'email' | 'sms' | 'signup' | 'recovery' | 'invite' | 'magiclink', email?: string, phone?: string) => {
-    let params: VerifyOtpParams;
-    if (email) {
-      params = { email, token, type } as VerifyOtpParams;
-    } else if (phone) {
-      params = { phone, token, type } as VerifyOtpParams;
-    } else {
-      return { data: null, error: new Error("Email or Phone required for verification") };
-    }
+  const verifyOtp = async (token: string, type: 'email' | 'sms', email?: string, phone?: string) => {
+    try {
+      let params: VerifyOtpParams;
 
-    const { data, error } = await supabase.auth.verifyOtp(params);
-    return { data, error: error as Error | null };
+      if (email) {
+        // Standard OTP verification for email
+        params = { email, token, type: 'email' };
+      } else if (phone) {
+        // Standard OTP verification for phone (sms)
+        params = { phone, token, type: 'sms' };
+      } else {
+        return { data: null, error: new Error("Email or Phone required for verification") };
+      }
+
+      const { data, error } = await supabase.auth.verifyOtp(params);
+      return { data, error: error as Error | null };
+    } catch (err) {
+      return { data: null, error: err as Error };
+    }
   };
 
   return (
