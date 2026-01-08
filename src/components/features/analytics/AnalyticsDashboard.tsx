@@ -19,6 +19,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 const StatCard = ({
     title, value, sub, trend, trendVal, icon: Icon, colorClass, delay
 }: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     title: string, value: string, sub: string, trend?: 'up' | 'down', trendVal?: string, icon: any, colorClass: string, delay: number
 }) => (
     <motion.div

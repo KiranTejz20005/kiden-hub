@@ -131,6 +131,7 @@ export interface Note {
   user_id: string;
   workspace_id?: string | null;
   title: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any;
   is_favorite: boolean;
   is_archived: boolean;
@@ -146,6 +147,7 @@ export interface Template {
   name: string;
   description: string;
   category: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any;
   icon: string;
   is_system: boolean;

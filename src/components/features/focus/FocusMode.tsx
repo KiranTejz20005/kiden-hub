@@ -85,7 +85,7 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
 
     // Streak Logic (Approximate, based on work sessions)
     let currentStreak = 0;
-    let checkDate = new Date(today);
+    const checkDate = new Date(today);
 
     // Safety break loop
     for (let i = 0; i < 365; i++) {
@@ -144,23 +144,7 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
     }
   }, [sessionType, getDuration, isRunning]);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRunning && (timeLeft > 0 || sessionType === 'flow')) {
-      interval = setInterval(() => {
-        if (sessionType === 'flow') {
-          setTimeLeft(prev => prev + 1);
-        } else {
-          setTimeLeft(prev => prev - 1);
-        }
-      }, 1000);
-    } else if (isRunning && timeLeft === 0 && sessionType !== 'flow') {
-      handleSessionComplete();
-    }
-    return () => clearInterval(interval);
-  }, [isRunning, timeLeft, sessionType]);
-
-  const handleSessionComplete = async () => {
+  const handleSessionComplete = useCallback(async () => {
     setIsRunning(false);
     if (soundEnabled) {
       const audio = new Audio('/notification.mp3');
@@ -195,7 +179,32 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
       fetchSessions(); // Refresh stats
     }
     onComplete();
-  };
+  }, [
+    timeLeft,
+    sessionType,
+    soundEnabled,
+    settings,
+    createSession,
+    sessionsCompleted,
+    onComplete,
+    fetchSessions
+  ]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRunning && (timeLeft > 0 || sessionType === 'flow')) {
+      interval = setInterval(() => {
+        if (sessionType === 'flow') {
+          setTimeLeft(prev => prev + 1);
+        } else {
+          setTimeLeft(prev => prev - 1);
+        }
+      }, 1000);
+    } else if (isRunning && timeLeft === 0 && sessionType !== 'flow') {
+      handleSessionComplete();
+    }
+    return () => clearInterval(interval);
+  }, [isRunning, timeLeft, sessionType, handleSessionComplete]);
 
   const handleSaveSettings = async () => {
     if (!user) {
@@ -208,6 +217,7 @@ const FocusMode = ({ focusSettings, onComplete }: FocusModeProps) => {
       const { error } = await supabase
         .from('profiles')
         .update({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           focus_settings: editableSettings as any
         })
         .eq('user_id', user.id);
