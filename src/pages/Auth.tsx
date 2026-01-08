@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -20,8 +20,9 @@ type AuthMode = 'password' | 'email-otp' | 'phone-otp';
 type ViewState = 'sign-in' | 'verify-otp';
 
 const Auth = () => {
+  const location = useLocation();
   // Global State
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(location.pathname !== '/sign-up');
   const [authMode, setAuthMode] = useState<AuthMode>('password'); // password, email-otp, phone-otp
   const [viewState, setViewState] = useState<ViewState>('sign-in'); // sign-in, verify-otp
   const [loading, setLoading] = useState(false);
@@ -61,6 +62,35 @@ const Auth = () => {
       toast.error('Failed to sign in with Google');
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error('Please enter your email address first');
+      return;
+    }
+
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      toast.error(emailResult.error.errors[0].message);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Password reset link sent to your email!');
+      }
+    } catch (error) {
+      toast.error('Failed to send reset link');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -138,6 +168,7 @@ const Auth = () => {
         if (error) throw error;
         toast.success(`Code sent to ${phone}`);
       }
+      setOtpToken("");
       setViewState('verify-otp');
     } catch (error) {
       toast.error((error as Error).message || 'Failed to send OTP');
@@ -298,11 +329,10 @@ const Auth = () => {
 
           {/* Auth Mode Tabs (Only visible in Sign In mode) */}
           {viewState === 'sign-in' && (
-            <div className="grid grid-cols-3 gap-2 mb-6 p-1 bg-secondary/30 rounded-lg">
+            <div className="grid grid-cols-2 gap-2 mb-6 p-1 bg-secondary/30 rounded-lg">
               {[
                 { id: 'password', label: 'Password', icon: Lock },
-                { id: 'email-otp', label: 'Email OTP', icon: Mail },
-                { id: 'phone-otp', label: 'Phone', icon: Smartphone }
+                { id: 'email-otp', label: 'Email OTP', icon: Mail }
               ].map((mode) => (
                 <button
                   key={mode.id}
@@ -321,8 +351,8 @@ const Auth = () => {
 
           <div className="space-y-4">
 
-            {/* Google Button (Only Password Mode) */}
-            {viewState === 'sign-in' && authMode === 'password' && (
+            {/* Google Button (Password & Email OTP Mode) */}
+            {viewState === 'sign-in' && (authMode === 'password' || authMode === 'email-otp') && (
               <>
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -432,7 +462,15 @@ const Auth = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Password</label>
-                      {isLogin && <a href="#" className="text-xs text-primary hover:text-primary/80 transition-colors">Forgot?</a>}
+                      {isLogin && (
+                        <button
+                          type="button"
+                          onClick={handleForgotPassword}
+                          className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+                        >
+                          Forgot?
+                        </button>
+                      )}
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
