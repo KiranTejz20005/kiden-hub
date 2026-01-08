@@ -57,13 +57,7 @@ const Navbar = () => {
 
           {/* CTA Buttons */}
           <div className="flex items-center gap-4">
-            <a
-              href="/auth"
-              className={`hidden sm:block text-sm font-medium transition-colors duration-200 ${scrolled ? "text-gray-300 hover:text-white" : "text-muted-foreground hover:text-foreground"
-                }`}
-            >
-              Login
-            </a>
+
             <Link to="/auth">
               <Button
                 variant="default"
