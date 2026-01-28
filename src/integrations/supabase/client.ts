@@ -5,6 +5,10 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+console.log("Supabase URL:", SUPABASE_URL);
+console.log("Supabase Key:", SUPABASE_PUBLISHABLE_KEY);
+
+
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   console.error("Supabase Keys Missing! Check .env file.");
   document.body.innerHTML = '<div style="padding: 20px; color: red;"><h1>Configuration Error</h1><p>Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY in .env file.</p></div>';

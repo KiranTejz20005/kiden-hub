@@ -1,4 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
 import { WorkspaceProvider } from '@/hooks/useWorkspace';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, ActiveView } from '@/lib/types';
@@ -157,15 +159,15 @@ const MainDashboardView = ({ user, profile, setActiveView }: { user: any, profil
             icon={Droplets} color="cyan" progress={(stats.waterIntake / stats.waterGoal) * 100} delay={0.2}
           />
           <button
-            onClick={() => setActiveView('command')}
-            className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl p-6 flex flex-col justify-between group hover:shadow-2xl hover:shadow-indigo-500/20 transition-all border border-indigo-400/20 min-h-[140px]"
+            onClick={() => setActiveView('focus' as ActiveView)}
+            className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-2xl p-6 flex flex-col justify-between group hover:shadow-2xl hover:shadow-emerald-500/20 transition-all border border-emerald-400/20 min-h-[140px]"
           >
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-white mb-2 group-hover:scale-110 transition-transform">
               <Play className="w-5 h-5 fill-current" />
             </div>
             <div className="text-left">
               <h3 className="text-xl font-bold text-white">Focus Mode</h3>
-              <p className="text-indigo-200 text-sm">Start a deep work session</p>
+              <p className="text-emerald-100 text-sm">Start a deep work session</p>
             </div>
           </button>
         </div>
@@ -189,11 +191,49 @@ const MainDashboardView = ({ user, profile, setActiveView }: { user: any, profil
   );
 };
 
+
+
 // --- Page Wrapper ---
 const Dashboard = () => {
   const [activeView, setActiveView] = useState<ActiveView>('command');
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // 1. Connection Check
+  useEffect(() => {
+    const checkConnection = async () => {
+      // Simple lightweight query to check connection
+      const { error } = await supabase.from('profiles').select('id').limit(1);
+      if (error) {
+        console.error('Supabase Connection Error:', error);
+        toast.error('Database connection failed. Check console for details.');
+      }
+    };
+    checkConnection();
+  }, []);
+
+  // 2. Sync URL -> State (On Mount & PopState)
+  useEffect(() => {
+    const path = location.pathname.split('/dashboard')[1]?.replace('/', '');
+    // Mapping URL segment to View
+    if (path && path !== activeView) {
+      // Validate it's a known view, otherwise default to command
+      // Simplified check: Just set it. The switch case handles unknowns.
+      setActiveView(path as ActiveView);
+    } else if (!path && activeView !== 'command') {
+      setActiveView('command');
+    }
+  }, [location.pathname]);
+
+  // 3. Sync State -> URL (When user clicks)
+  const handleViewChange = (view: ActiveView) => {
+    setActiveView(view);
+    const path = view === 'command' ? '/dashboard' : `/dashboard/${view}`;
+    navigate(path);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -216,7 +256,7 @@ const Dashboard = () => {
 
   // View Switching Logic
   const CurrentView = useMemo(() => {
-    if (activeView === 'command') return <MainDashboardView user={user} profile={profile} setActiveView={setActiveView} />;
+    if (activeView === 'command') return <MainDashboardView user={user} profile={profile} setActiveView={handleViewChange} />;
 
     const views: Record<string, JSX.Element> = {
       analytics: <AnalyticsDashboard />,
@@ -229,7 +269,11 @@ const Dashboard = () => {
       books: <BookTracker />,
       habits: <HabitTracker />,
       leetcode: <LeetCodeTracker />,
+      focus: <FocusMode onComplete={() => handleViewChange('command')} />,
     };
+
+    // settings usually is a modal or sidebar panel, but if mapped here:
+    // settings: <SettingsView />
 
     return views[activeView] || <div className="p-8 text-white">View Not Found</div>;
   }, [activeView, user, profile]);
@@ -242,7 +286,7 @@ const Dashboard = () => {
         <div className="relative z-[60]">
           <AppSidebar
             activeView={activeView}
-            onViewChange={setActiveView}
+            onViewChange={handleViewChange}
             profile={profile}
             onProfileUpdate={() => { }}
           />
