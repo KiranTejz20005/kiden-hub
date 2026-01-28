@@ -186,7 +186,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
         </div>
 
         {/* Main Navigation */}
-        <ScrollArea className="flex-1 px-3 py-4">
+        <ScrollArea className="flex-1 px-4 py-4">
           <div className="space-y-1">
             {navItems.map((item) => {
               const isActive = activeView === item.id;

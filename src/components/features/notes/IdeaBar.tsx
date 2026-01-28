@@ -194,6 +194,8 @@ const IdeaBar = () => {
         user_id: user.id,
         content: optimisticIdea.content,
         category: selectedCategory,
+        created_at: optimisticIdea.created_at,
+        is_processed: false
       }).select().single();
 
       if (error) {
