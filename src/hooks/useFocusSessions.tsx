@@ -40,9 +40,15 @@ export function useFocusSessions() {
             const { error } = await supabase
                 .from('focus_sessions')
                 .insert({
+                    user_id: user.id,
                     duration_minutes: session.duration_minutes ?? 25,
                     session_type: session.session_type ?? 'work',
-                    user_id: user.id
+                    completed: session.completed ?? false,
+                    project_id: session.project_id,
+                    task_id: session.task_id,
+                    started_at: session.started_at,
+                    ended_at: session.ended_at,
+                    interruptions_count: session.interruptions_count ?? 0
                 });
 
             if (error) throw error;

@@ -26,7 +26,8 @@ import {
   Folder,
   BarChart,
   LogOut,
-  Settings
+  Settings,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -46,18 +47,16 @@ interface AppSidebarProps {
 // 1. Consolidated Nav Items
 const navItems = [
   { id: 'command', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'focus', label: 'Flowcus', icon: Zap }, // Added Flowcus
   { id: 'analytics', label: 'Analytics', icon: BarChart },
   { id: 'tasks', label: 'Tasks', icon: CheckSquare },
   { id: 'projects', label: 'Projects', icon: Folder },
   { id: 'notebook', label: 'Notebook', icon: FileText },
   { id: 'ideas', label: 'Capture & Ideas', icon: Lightbulb },
-  // Journal removed per request
-  // { id: 'journal', label: 'Journal', icon: BookOpen },
-  { id: 'chat', label: 'Kiden Assist', icon: MessageSquare }, // Renamed
+  { id: 'chat', label: 'Kiden Assist', icon: MessageSquare },
   { id: 'habits', label: 'Habits', icon: Target },
   { id: 'books', label: 'Library', icon: Library },
   { id: 'leetcode', label: 'Skills', icon: Code2 },
-  // Hidden Music & Voice to streamline per request
 ] as const;
 
 const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppSidebarProps) => {

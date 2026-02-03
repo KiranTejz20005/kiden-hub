@@ -160,14 +160,17 @@ const MainDashboardView = ({ user, profile, setActiveView }: { user: any, profil
           />
           <button
             onClick={() => setActiveView('focus' as ActiveView)}
-            className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-2xl p-6 flex flex-col justify-between group hover:shadow-2xl hover:shadow-emerald-500/20 transition-all border border-emerald-400/20 min-h-[140px]"
+            className="bg-gradient-to-br from-indigo-600 via-emerald-600 to-teal-800 rounded-2xl p-6 flex flex-col justify-between group hover:shadow-2xl hover:shadow-emerald-500/20 transition-all border border-emerald-400/20 min-h-[140px] relative overflow-hidden"
           >
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-white mb-2 group-hover:scale-110 transition-transform">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-150 transition-transform duration-500">
+              <Zap className="w-20 h-20 text-white" />
+            </div>
+            <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white mb-2 group-hover:scale-110 transition-transform relative z-10">
               <Play className="w-5 h-5 fill-current" />
             </div>
-            <div className="text-left">
-              <h3 className="text-xl font-bold text-white">Focus Mode</h3>
-              <p className="text-emerald-100 text-sm">Start a deep work session</p>
+            <div className="text-left relative z-10">
+              <h3 className="text-xl font-bold text-white">Flowcus</h3>
+              <p className="text-emerald-100 text-sm opacity-80">Deep work session</p>
             </div>
           </button>
         </div>

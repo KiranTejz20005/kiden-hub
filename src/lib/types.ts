@@ -10,6 +10,7 @@ export type ActiveView =
   | 'habits'
   | 'books'
   | 'leetcode'
+  | 'focus'
   | 'settings';
 
 export interface Profile {
