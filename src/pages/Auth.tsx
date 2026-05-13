@@ -211,7 +211,7 @@ const Auth = () => {
               scale: [1, 1.1, 1],
             }}
             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute -bottom-1/2 -left-1/2 w-[100%] h-[100%] border-[1px] border-white/5 rounded-full"
+            className="absolute -bottom-1/2 -left-1/2 w-full h-full border border-white/5 rounded-full"
           />
         </div>
 
@@ -234,7 +234,7 @@ const Auth = () => {
             transition={{ delay: 0.2 }}
             className="text-5xl font-bold text-white tracking-tight leading-[1.1] mb-6"
           >
-            Craft your <span className="text-emerald-400">perfect flow</span>.
+            Craft your <span className="text-primary">perfect flow</span>.
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -257,7 +257,7 @@ const Auth = () => {
                 transition={{ delay: 0.4 + (i * 0.1) }}
                 className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md"
               >
-                <f.icon className="w-4 h-4 text-emerald-400" />
+                <f.icon className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-zinc-200">{f.label}</span>
               </motion.div>
             ))}
@@ -281,7 +281,7 @@ const Auth = () => {
               className="lg:hidden mx-auto mb-6 w-12 h-12 relative"
             >
               <img src={kidenLogo} alt="Logo" className="w-full h-full rounded-xl shadow-xl" />
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-background" />
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full border-2 border-background" />
             </motion.div>
 
             <motion.h2
@@ -472,7 +472,7 @@ const Auth = () => {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-base mt-2 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-emerald-500/20"
+                className="w-full h-12 bg-primary hover:opacity-90 text-white font-semibold text-base mt-2 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary/20"
               >
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -508,7 +508,7 @@ const Auth = () => {
                 {isLogin ? "Don't have an account? " : "Already have an account? "}
                 <button
                   onClick={() => setIsLogin(!isLogin)}
-                  className="text-primary hover:underline font-semibold text-emerald-600 outline-none focus:underline"
+                  className="text-primary hover:underline font-semibold outline-none focus:underline"
                 >
                   {isLogin ? 'Sign up' : 'Sign in'}
                 </button>

@@ -1,40 +1,28 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Profile, ActiveView } from '@/lib/types';
-import { useWorkspace } from '@/hooks/useWorkspace';
-import WorkspaceManager from './WorkspaceManager';
-import CollectionsManager from './CollectionsManager';
-import WorkspaceCollaborators from './WorkspaceCollaborators';
 import SettingsPanel from './SettingsPanel';
-import kidenLogo from "@/assets/kiden-logo.jpg";
+import kidenLogo from "@/assets/kiden-logo-green.jpg";
 import {
   LayoutDashboard,
-  Lightbulb,
   MessageSquare,
   FileText,
   Menu,
   X,
   ChevronLeft,
   ChevronRight,
-  BookOpen,
-  Library,
-  Target,
-  Music,
-  Code2,
   Sparkles,
-  Crown,
-  CheckSquare,
   Folder,
-  BarChart,
   LogOut,
   Settings,
-  Zap
+  Zap,
+  Users,
+  Columns
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AppSidebarProps {
@@ -44,32 +32,25 @@ interface AppSidebarProps {
   onProfileUpdate?: () => void;
 }
 
-// 1. Consolidated Nav Items
 const navItems = [
-  { id: 'command', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'focus', label: 'Flowcus', icon: Zap }, // Added Flowcus
-  { id: 'analytics', label: 'Analytics', icon: BarChart },
-  { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-  { id: 'projects', label: 'Projects', icon: Folder },
-  { id: 'notebook', label: 'Notebook', icon: FileText },
-  { id: 'ideas', label: 'Capture & Ideas', icon: Lightbulb },
-  { id: 'chat', label: 'Kiden Assist', icon: MessageSquare },
-  { id: 'habits', label: 'Habits', icon: Target },
-  { id: 'books', label: 'Library', icon: Library },
-  { id: 'leetcode', label: 'Skills', icon: Code2 },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'files', label: 'Asset Library', icon: Folder },
+  { id: 'chat', label: 'AI Assistant', icon: MessageSquare },
+  { id: 'notes', label: 'Smart Notes', icon: FileText },
+  { id: 'boards', label: 'Research Boards', icon: Columns },
+  { id: 'team', label: 'Collaborators', icon: Users },
+  { id: 'settings', label: 'Preferences', icon: Settings },
 ] as const;
 
 const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppSidebarProps) => {
   const { user, signOut } = useAuth();
-  const { activeWorkspace, activeCollection, setActiveCollection } = useWorkspace();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Responsive Check
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
-    checkMobile(); // Check on mount
+    checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
@@ -79,77 +60,72 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
     setIsMobileOpen(false);
   };
 
-  const isWorkspaceOwner = activeWorkspace?.user_id === user?.id;
-
-  // Variants for Sidebar Animation
   const sidebarVariants = {
-    open: { width: 260, x: 0, transition: { type: "spring" as const, stiffness: 300, damping: 30 } },
-    collapsed: { width: 80, x: 0, transition: { type: "spring" as const, stiffness: 300, damping: 30 } },
-    mobileClosed: { x: "-100%", width: 280, transition: { type: "spring" as const, stiffness: 300, damping: 30 } },
-    mobileOpen: { x: 0, width: 280, transition: { type: "spring" as const, stiffness: 300, damping: 30 } }
+    open: { width: 280, x: 0, transition: { type: "spring", stiffness: 300, damping: 30 } },
+    collapsed: { width: 88, x: 0, transition: { type: "spring", stiffness: 300, damping: 30 } },
+    mobileClosed: { x: "-100%", width: 280, transition: { type: "spring", stiffness: 300, damping: 30 } },
+    mobileOpen: { x: 0, width: 280, transition: { type: "spring", stiffness: 300, damping: 30 } }
   };
 
-  // Determine current interaction state
   const getCurrentVariant = () => {
-    if (isMobile) {
-      return isMobileOpen ? "mobileOpen" : "mobileClosed";
-    }
+    if (isMobile) return isMobileOpen ? "mobileOpen" : "mobileClosed";
     return isCollapsed ? "collapsed" : "open";
   };
 
   return (
     <TooltipProvider delayDuration={0}>
-      {/* Mobile Menu Button - Fixed relative to viewport */}
       {isMobile && (
         <Button
           variant="ghost"
           size="icon"
           className={cn(
-            "fixed top-4 left-4 z-[70] bg-background/80 backdrop-blur-xl border border-border/50 shadow-sm rounded-lg",
-            isMobileOpen && "hidden" // Hide when sidebar is open to avoid clash
+            "fixed top-4 left-4 z-[70] bg-[#050505]/80 backdrop-blur-xl border border-white/10 shadow-xl rounded-xl",
+            isMobileOpen && "hidden"
           )}
           onClick={() => setIsMobileOpen(true)}
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-5 h-5 text-white" />
         </Button>
       )}
 
-      {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobile && isMobileOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[65]"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[65]"
             onClick={() => setIsMobileOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar Container */}
       <motion.aside
         initial={false}
         animate={getCurrentVariant()}
         variants={sidebarVariants}
         className={cn(
-          "fixed inset-y-0 left-0 z-[75] flex flex-col h-full bg-card/95 backdrop-blur-xl border-r border-border shadow-2xl",
-          // Desktop positioning: relative to flow, sticky
-          !isMobile && "sticky top-0 h-screen shadow-none border-r border-border/50 bg-background/50"
+          "fixed inset-y-0 left-0 z-[75] flex flex-col h-full bg-[#050505]/95 backdrop-blur-2xl border-r border-white/5",
+          !isMobile && "sticky top-0 h-screen shadow-none border-r border-white/5"
         )}
       >
         {/* Header */}
         <div className={cn(
-          "h-16 flex items-center px-4 border-b border-border/50 shrink-0",
+          "h-20 flex items-center px-6 border-b border-white/5 shrink-0",
           isCollapsed && !isMobile ? "justify-center px-2" : "justify-between"
         )}>
-          <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap">
-            <div className="relative shrink-0">
-              <img src={kidenLogo} alt="Logo" className="w-9 h-9 rounded-xl shadow-sm object-cover" />
-              <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-primary rounded-full flex items-center justify-center ring-2 ring-card">
-                <Sparkles className="w-2 h-2 text-primary-foreground" />
+          <div className="flex items-center gap-4 overflow-hidden whitespace-nowrap">
+            <motion.div 
+              whileHover={{ rotate: [0, -10, 10, 0] }}
+              className="relative shrink-0"
+            >
+              <div className="w-10 h-10 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+                <img src={kidenLogo} alt="Logo" className="w-full h-full object-cover" />
               </div>
-            </div>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center ring-2 ring-[#050505] shadow-lg">
+                <Sparkles className="w-2.5 h-2.5 text-white" />
+              </div>
+            </motion.div>
 
             <AnimatePresence>
               {(!isCollapsed || isMobile) && (
@@ -159,34 +135,33 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                   exit={{ opacity: 0, width: 0 }}
                   className="flex flex-col"
                 >
-                  <span className="font-bold text-lg tracking-tight">Kiden Hub</span>
+                  <span className="font-black text-xl tracking-tighter text-white">Kiden Hub</span>
+                  <span className="text-[10px] font-bold text-primary uppercase tracking-widest leading-none">Intelligence v3.0</span>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Collapse Toggle (Desktop Only) */}
           {!isMobile && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              className="h-8 w-8 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg"
               onClick={() => setIsCollapsed(!isCollapsed)}
             >
               {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </Button>
           )}
-          {/* Close Button (Mobile Only) */}
           {isMobile && (
-            <Button variant="ghost" size="icon" onClick={() => setIsMobileOpen(false)}>
+            <Button variant="ghost" size="icon" onClick={() => setIsMobileOpen(false)} className="text-white hover:bg-white/5">
               <X className="w-5 h-5" />
             </Button>
           )}
         </div>
 
         {/* Main Navigation */}
-        <ScrollArea className="flex-1 px-4 py-4">
-          <div className="space-y-1">
+        <ScrollArea className="flex-1 px-4 py-6">
+          <div className="space-y-2">
             {navItems.map((item) => {
               const isActive = activeView === item.id;
 
@@ -197,35 +172,40 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                       variant="ghost"
                       onClick={() => handleViewChange(item.id as ActiveView)}
                       className={cn(
-                        "w-full flex items-center justify-start gap-3 h-10 px-3 rounded-xl transition-all duration-200 group relative overflow-hidden",
+                        "w-full flex items-center justify-start gap-4 h-12 px-4 rounded-2xl transition-all duration-300 group relative overflow-hidden border border-transparent",
                         isActive
-                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
-                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                        isCollapsed && !isMobile && "justify-center px-0"
+                          ? "bg-primary/10 text-primary border-primary/20 shadow-[0_0_20px_rgba(var(--primary),0.1)]"
+                          : "text-gray-500 hover:bg-white/5 hover:text-white",
+                        isCollapsed && !isMobile && "justify-center px-0 h-14"
                       )}
                     >
-                      <item.icon className={cn("w-5 h-5 shrink-0", isActive ? "animate-pulse" : "group-hover:scale-110 transition-transform")} />
+                      <div className={cn(
+                        "p-1.5 rounded-lg transition-all duration-300",
+                        isActive ? "bg-primary text-white shadow-lg" : "group-hover:text-white"
+                      )}>
+                        <item.icon className={cn("w-5 h-5 shrink-0", isActive ? "" : "group-hover:scale-110")} />
+                      </div>
 
                       {(!isCollapsed || isMobile) && (
                         <span className={cn(
-                          "font-medium truncate transition-all duration-300 origin-left text-sm",
-                          isActive && "font-semibold"
+                          "font-bold text-sm tracking-tight transition-all duration-300",
+                          isActive ? "translate-x-1" : "group-hover:translate-x-1"
                         )}>
                           {item.label}
                         </span>
                       )}
 
-                      {/* Active Indicator Stripe (Desktop) */}
-                      {isActive && !isCollapsed && !isMobile && (
+                      {/* Active Indicator Glow */}
+                      {isActive && (
                         <motion.div
-                          layoutId="active-nav"
-                          className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary-foreground/20 rounded-l-full"
+                          layoutId="active-pill"
+                          className="absolute left-0 w-1 h-6 bg-primary rounded-r-full shadow-[0_0_10px_rgba(var(--primary),1)]"
                         />
                       )}
                     </Button>
                   </TooltipTrigger>
                   {isCollapsed && !isMobile && (
-                    <TooltipContent side="right" className="font-medium bg-secondary text-secondary-foreground border-border/50">
+                    <TooltipContent side="right" className="font-bold bg-[#161B22] text-white border-white/10 px-4 py-2 rounded-xl">
                       {item.label}
                     </TooltipContent>
                   )}
@@ -233,84 +213,38 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
               )
             })}
           </div>
-
-          <Separator className="my-4 bg-border/40" />
-
-          {/* Dynamic Content (Workspaces, Collections) */}
-          <div className="space-y-4">
-            <div className={cn(isCollapsed && !isMobile ? "items-center flex flex-col" : "")}>
-              <WorkspaceManager isCollapsed={isCollapsed && !isMobile} />
-            </div>
-
-            {activeWorkspace && (
-              <>
-                {/* Shared Badge */}
-                {!isWorkspaceOwner && (!isCollapsed || isMobile) && (
-                  <div className="px-2">
-                    <div className="flex items-center gap-2 p-2 rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20 text-xs font-medium">
-                      <Crown className="w-3.5 h-3.5" />
-                      <span>Shared Workspace</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Collections */}
-                <div className={cn(isCollapsed && !isMobile ? "items-center flex flex-col" : "")}>
-                  <CollectionsManager
-                    workspace={activeWorkspace}
-                    activeCollection={activeCollection}
-                    onCollectionChange={setActiveCollection}
-                    isCollapsed={isCollapsed && !isMobile}
-                  />
-                </div>
-
-                <Separator className="bg-border/40" />
-
-                {/* Members */}
-                <div className={cn(isCollapsed && !isMobile ? "items-center flex flex-col" : "")}>
-                  <WorkspaceCollaborators
-                    workspaceId={activeWorkspace.id}
-                    workspaceOwnerId={activeWorkspace.user_id}
-                    workspaceName={activeWorkspace.name}
-                    isCollapsed={isCollapsed && !isMobile}
-                  />
-                </div>
-              </>
-            )}
-          </div>
         </ScrollArea>
 
-        {/* Footer / User Profile */}
-        <div className="p-4 border-t border-border/50 bg-muted/20">
-          <div className={cn("flex items-center gap-3", isCollapsed && !isMobile ? "justify-center" : "")}>
-            {/* Avatar */}
+        {/* User Profile */}
+        <div className="p-6 border-t border-white/5 bg-white/[0.02]">
+          <div className={cn("flex items-center gap-4", isCollapsed && !isMobile ? "justify-center" : "")}>
             <div className="relative shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold ring-2 ring-background border border-white/10 overflow-hidden shadow-lg">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-primary flex items-center justify-center text-white font-black border-2 border-white/10 shadow-2xl overflow-hidden ring-4 ring-black/20">
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <span>{profile?.display_name?.[0]?.toUpperCase() || 'U'}</span>
+                  <span className="text-lg">{profile?.display_name?.[0]?.toUpperCase() || 'U'}</span>
                 )}
               </div>
-              {/* Status Dot */}
               <div className={cn(
-                "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background",
-                profile?.status === 'online' || !profile?.status ? "bg-green-500" :
-                  profile?.status === 'away' ? "bg-yellow-500" : "bg-gray-500"
+                "absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#050505] shadow-lg",
+                profile?.status === 'online' || !profile?.status ? "bg-primary" :
+                  profile?.status === 'away' ? "bg-amber-500" : "bg-gray-500"
               )} />
             </div>
 
-            {/* User Info */}
             {(!isCollapsed || isMobile) && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate leading-none mb-1">{profile?.display_name || 'User'}</p>
-                <p className="text-xs text-muted-foreground truncate capitalize">{profile?.status || 'Online'}</p>
+                <p className="text-sm font-black text-white truncate leading-none mb-1">{profile?.display_name || 'User'}</p>
+                <div className="flex items-center gap-1.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none">Active</p>
+                </div>
               </div>
             )}
 
-            {/* Actions */}
             {(!isCollapsed || isMobile) && (
-              <div className="flex items-center">
+              <div className="flex items-center gap-1">
                 {onProfileUpdate && (
                   <SettingsPanel
                     profile={profile}
@@ -318,14 +252,9 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                     isCollapsed={false}
                   />
                 )}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive">
-                      <LogOut className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Sign Out</TooltipContent>
-                </Tooltip>
+                <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9 hover:bg-red-500/10 hover:text-red-400 rounded-xl transition-all">
+                  <LogOut className="w-4 h-4" />
+                </Button>
               </div>
             )}
           </div>
