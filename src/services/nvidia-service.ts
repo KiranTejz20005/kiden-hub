@@ -48,7 +48,8 @@ class NVIDIAService {
   private async makeRequest(
     messages: NVIDIAMessage[],
     primaryKey: string,
-    fallbackKey: string
+    fallbackKey: string,
+    forceDirect: boolean = false
   ): Promise<string> {
     // Use the Vite dev server proxy: /api/nvidia/* → https://integrate.api.nvidia.com/v1/*
     // This runs server-side, so CORS is bypassed entirely in the browser.
@@ -58,36 +59,52 @@ class NVIDIAService {
     
     // Detect if running through Vite dev server (browser) or Electron (file://)
     const isDevServer = window.location.protocol === 'http:' || window.location.protocol === 'https:';
-    const url = isDevServer ? proxyUrl : directUrl;
+    
+    // Attempt proxy first, fallback to direct if proxy returns 404 or forced
+    let url = (isDevServer && !forceDirect) ? proxyUrl : directUrl;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${primaryKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 2048,
-        top_p: 0.9,
-      }),
-    });
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${primaryKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.model,
+          messages: messages,
+          temperature: 0.7,
+          max_tokens: 2048,
+          top_p: 0.9,
+        }),
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      return data.choices[0]?.message?.content || 'No response generated';
+      if (response.ok) {
+        const data = await response.json();
+        return data.choices[0]?.message?.content || 'No response generated';
+      }
+
+      // If proxy 404s, try direct URL
+      if (response.status === 404 && url === proxyUrl) {
+        console.warn('Proxy 404, falling back to direct NVIDIA API call...');
+        return this.makeRequest(messages, primaryKey, fallbackKey, true);
+      }
+
+      // If rate-limited or unauthorized, try fallback key
+      if ((response.status === 401 || response.status === 429) && fallbackKey && fallbackKey !== primaryKey) {
+        console.warn('Primary NVIDIA key failed, trying fallback key...');
+        return this.makeRequest(messages, fallbackKey, '');
+      }
+
+      const errText = await response.text().catch(() => 'Unknown error');
+      throw new Error(`NVIDIA API error ${response.status}: ${errText}`);
+    } catch (error: any) {
+      if (url === proxyUrl && !forceDirect) {
+        console.warn('Network error on proxy, falling back to direct call:', error.message);
+        return this.makeRequest(messages, primaryKey, fallbackKey, true);
+      }
+      throw error;
     }
-
-    // If rate-limited or unauthorized, try fallback key
-    if ((response.status === 401 || response.status === 429) && fallbackKey && fallbackKey !== primaryKey) {
-      console.warn('Primary NVIDIA key failed, trying fallback key...');
-      return this.makeRequest(messages, fallbackKey, '');
-    }
-
-    const errText = await response.text().catch(() => 'Unknown error');
-    throw new Error(`NVIDIA API error ${response.status}: ${errText}`);
   }
 
   /**
