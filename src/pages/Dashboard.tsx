@@ -49,6 +49,7 @@ const Dashboard = () => {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,9 +64,17 @@ const Dashboard = () => {
     }
   }, [location.pathname]);
 
-  // 2. Sync State -> URL
+  // 2. Sync State -> URL + Auto-Collapse Logic
   const handleViewChange = (view: ActiveView) => {
     setActiveView(view);
+    
+    // Auto-collapse for focus-heavy views
+    if (view === 'chat' || view === 'notes' || view === 'boards') {
+      setIsSidebarCollapsed(true);
+    } else {
+      setIsSidebarCollapsed(false);
+    }
+
     const path = view === 'dashboard' ? '/dashboard' : `/dashboard/${view}`;
     navigate(path);
   };
@@ -110,6 +119,8 @@ const Dashboard = () => {
             onViewChange={handleViewChange}
             profile={profile}
             onProfileUpdate={fetchProfile}
+            isCollapsed={isSidebarCollapsed}
+            setIsCollapsed={setIsSidebarCollapsed}
           />
         </div>
 

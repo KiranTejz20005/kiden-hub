@@ -30,6 +30,8 @@ interface AppSidebarProps {
   onViewChange: (view: ActiveView) => void;
   profile: Profile | null;
   onProfileUpdate?: () => void;
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
 }
 
 const navItems = [
@@ -42,10 +44,9 @@ const navItems = [
   { id: 'settings', label: 'Preferences', icon: Settings },
 ] as const;
 
-const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppSidebarProps) => {
+const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate, isCollapsed, setIsCollapsed }: AppSidebarProps) => {
   const { user, signOut } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -111,19 +112,19 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
       >
         {/* Header */}
         <div className={cn(
-          "h-20 flex items-center px-6 border-b border-white/5 shrink-0",
+          "h-24 flex items-center px-6 border-b border-white/5 shrink-0",
           isCollapsed && !isMobile ? "justify-center px-2" : "justify-between"
         )}>
-          <div className="flex items-center gap-4 overflow-hidden whitespace-nowrap">
+          <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap">
             <motion.div 
-              whileHover={{ rotate: [0, -10, 10, 0] }}
+              whileHover={{ rotate: [0, -10, 10, 0], scale: 1.05 }}
               className="relative shrink-0"
             >
-              <div className="w-10 h-10 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+              <div className="w-11 h-11 rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">
                 <img src={kidenLogo} alt="Logo" className="w-full h-full object-cover" />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center ring-2 ring-[#050505] shadow-lg">
-                <Sparkles className="w-2.5 h-2.5 text-white" />
+              <div className="absolute -bottom-1 -right-1 w-4.5 h-4.5 bg-primary rounded-full flex items-center justify-center ring-2 ring-[#050505] shadow-lg">
+                <Sparkles className="w-3 h-3 text-white" />
               </div>
             </motion.div>
 
@@ -135,8 +136,8 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                   exit={{ opacity: 0, width: 0 }}
                   className="flex flex-col"
                 >
-                  <span className="font-black text-xl tracking-tighter text-white">Kiden Hub</span>
-                  <span className="text-[10px] font-bold text-primary uppercase tracking-widest leading-none">Intelligence V1.0</span>
+                  <span className="font-black text-xl tracking-tight text-white leading-tight">Kiden Hub</span>
+                  <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] leading-none mt-1">Intelligence V1.0</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -146,10 +147,10 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg"
+              className="h-9 w-9 text-gray-500 hover:text-white hover:bg-white/5 rounded-xl border border-transparent hover:border-white/5 transition-all"
               onClick={() => setIsCollapsed(!isCollapsed)}
             >
-              {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
             </Button>
           )}
           {isMobile && (

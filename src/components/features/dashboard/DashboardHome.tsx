@@ -127,39 +127,39 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
         </section>
 
         {/* ── Stats Grid ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <StatsCard 
-            label="Workspace Files" 
+            label="Assets" 
             value={stats.files.toString()} 
-            subValue="Asset library"
+            subValue="Workspace files"
             icon={FileText} 
             color="primary" 
-            change="12%"
+            change="+12%"
             trend="up"
             delay={0.1}
           />
           <StatsCard 
-            label="AI Interactions" 
+            label="AI Context" 
             value={stats.chats.toString()} 
-            subValue="LLM Contexts"
+            subValue="Conversations"
             icon={MessageSquare} 
             color="primary" 
-            change="5"
+            change="+5"
             trend="up"
             delay={0.2}
           />
           <StatsCard 
-            label="Project Boards" 
+            label="Research" 
             value={stats.boards.toString()} 
-            subValue="Active research"
+            subValue="Active boards"
             icon={Layout} 
             color="primary" 
             delay={0.3}
           />
           <StatsCard 
-            label="Cloud Storage" 
+            label="Storage" 
             value={stats.storageText} 
-            subValue="50MB Quota"
+            subValue="Used of 50MB"
             icon={Database} 
             color="primary" 
             progress={(stats.storage / (50 * 1024 * 1024)) * 100}
@@ -167,8 +167,8 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <motion.div variants={itemVariants} className="lg:col-span-8 space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          <motion.div variants={itemVariants} className="xl:col-span-8 space-y-6">
             <div className="bg-[#050505] rounded-3xl border border-white/5 p-8 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                 <Activity className="w-32 h-32 text-primary" />
@@ -176,12 +176,12 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
               
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
                     <TrendingUp className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-white tracking-tight">Productivity Flow</h2>
-                    <p className="text-xs text-gray-500 font-medium">Engagement metrics across features</p>
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-bold text-white tracking-tight truncate">Productivity Flow</h2>
+                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Engagement metrics</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 bg-white/5 p-1 rounded-lg border border-white/5">
@@ -190,46 +190,70 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
                 </div>
               </div>
 
-              <div className="h-48 flex items-end gap-2 md:gap-3 px-2">
+              <div className="h-48 flex items-end gap-1.5 md:gap-3 px-2">
                 {[40, 70, 45, 90, 65, 80, 55, 95, 75, 85, 60, 100].map((h, i) => (
-                  <div key={i} className="flex-1 group/bar relative">
+                  <div key={i} className={cn("flex-1 group/bar relative", i < 6 ? "hidden sm:block" : "block")}>
                     <motion.div 
                       initial={{ height: 0 }}
                       animate={{ height: `${h}%` }}
                       transition={{ delay: 0.5 + (i * 0.05), duration: 1, ease: [0.16, 1, 0.3, 1] }}
                       className={cn(
-                        "w-full rounded-t-md transition-all duration-300 relative overflow-hidden",
-                        i === 7 ? "bg-gradient-to-t from-primary to-accent" : "bg-white/5 group-hover/bar:bg-primary/20"
+                        "w-full rounded-t-lg transition-all duration-300 relative overflow-hidden",
+                        i === 11 ? "bg-gradient-to-t from-primary to-accent" : "bg-white/5 group-hover/bar:bg-primary/20"
                       )}
                     >
-                      {i === 7 && <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2 }} className="absolute inset-0 bg-white/20" />}
+                      {i === 11 && <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2 }} className="absolute inset-0 bg-white/20" />}
                     </motion.div>
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 transition-opacity bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-xl pointer-events-none">
-                      {h}%
-                    </div>
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between mt-4 px-2 text-[10px] font-bold text-gray-600 uppercase tracking-widest">
-                <span>Mon</span>
-                <span>Wed</span>
-                <span>Fri</span>
-                <span>Sun</span>
+              <div className="flex justify-between mt-6 px-2 text-[9px] font-black text-gray-700 uppercase tracking-[0.2em] border-t border-white/5 pt-4">
+                <span className="hidden sm:block">Monday</span>
+                <span>Wednesday</span>
+                <span>Friday</span>
+                <span>Sunday</span>
               </div>
             </div>
 
-            <div className="bg-[#050505]/50 rounded-3xl border border-white/5 border-dashed p-12 flex flex-col items-center justify-center text-center group hover:bg-[#050505] transition-all duration-500">
-              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/5 group-hover:scale-110 transition-transform duration-500">
-                <Activity className="w-10 h-10 text-gray-600 group-hover:text-primary transition-colors" />
+            {/* ── Recent Activity Feed ── */}
+            <div className="bg-[#050505] rounded-3xl border border-white/5 p-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                    <Activity className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Recent Activity</h2>
+                </div>
+                <button className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">View History</button>
               </div>
-              <h3 className="text-xl font-bold text-white tracking-tight">Activity Feed</h3>
-              <p className="text-gray-500 max-w-sm mt-2 text-sm leading-relaxed">
-                Connect your tools and start working to see your activity populate here in real-time.
-              </p>
+
+              <div className="space-y-1">
+                {[
+                  { user: 'Kiran', action: 'updated', target: 'DBMS Notes', time: '2m ago', icon: FileText },
+                  { user: 'AI Assistant', action: 'summarized', target: 'Research Paper.pdf', time: '15m ago', icon: Sparkles },
+                  { user: 'System', action: 'synced', target: 'Cloud Storage', time: '1h ago', icon: Database },
+                ].map((item, i) => (
+                  <motion.div 
+                    key={i} 
+                    variants={itemVariants}
+                    className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/[0.02] transition-colors group border border-transparent hover:border-white/5"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-secondary/50 flex items-center justify-center shrink-0">
+                      <item.icon className="w-3.5 h-3.5 text-gray-500 group-hover:text-primary transition-colors" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] text-gray-300 truncate">
+                        <span className="font-bold text-white">{item.user}</span> {item.action} <span className="font-bold text-white">{item.target}</span>
+                      </p>
+                      <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">{item.time}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="lg:col-span-4 space-y-8">
+          <motion.div variants={itemVariants} className="xl:col-span-4 space-y-8">
             <div className="space-y-4">
               <div className="flex items-center justify-between px-1">
                 <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em]">Quick Launcher</h2>
@@ -246,9 +270,9 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
                     <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center border border-white/5 group-hover:scale-110 transition-transform", action.bg)}>
                       <action.icon className={cn("w-6 h-6", action.color)} />
                     </div>
-                    <div className="text-left flex-1">
-                      <p className="text-sm font-bold text-white leading-none mb-1">{action.label}</p>
-                      <p className="text-[10px] font-medium text-gray-500">{action.desc}</p>
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white leading-none mb-1 truncate">{action.label}</p>
+                      <p className="text-[10px] font-medium text-gray-500 truncate">{action.desc}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-700 group-hover:text-primary transition-colors" />
                   </motion.button>
@@ -256,20 +280,6 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
               </div>
             </div>
 
-            <div className="bg-gradient-primary rounded-3xl p-8 text-white relative overflow-hidden shadow-2xl shadow-primary/20 group">
-              <div className="absolute top-0 right-0 p-4 opacity-20 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-                <Sparkles className="w-20 h-20" />
-              </div>
-              <div className="relative z-10">
-                <h3 className="text-lg font-bold mb-2">Pro Workspace</h3>
-                <p className="text-white/60 text-xs leading-relaxed mb-6">
-                  Unlock limitless AI processing and team collaboration features.
-                </p>
-                <Button className="w-full bg-white text-primary font-bold hover:bg-white/90 rounded-xl">
-                  Upgrade Now
-                </Button>
-              </div>
-            </div>
 
             <div className="space-y-4">
                <div className="flex items-center justify-between px-1">

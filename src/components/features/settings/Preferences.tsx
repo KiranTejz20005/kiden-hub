@@ -266,15 +266,42 @@ const Preferences = ({ onProfileUpdate }: { onProfileUpdate?: () => void }) => {
               </CardContent>
             </Card>
 
-            <Card className="bg-card/30 border-border/40 shadow-sm opacity-50 pointer-events-none">
+            <Card className="bg-card/30 border-border/40 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Shield className="w-24 h-24 text-primary" />
+              </div>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-primary" /> Account Security
-                </CardTitle>
-                <CardDescription>Manage your authentication and password.</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-primary" /> Account Security
+                    </CardTitle>
+                    <CardDescription>Manage your authentication and security protocols.</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">Protected</span>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground italic">Security settings are managed through your primary login provider.</p>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-4 rounded-2xl bg-[#050505] border border-white/5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 shadow-xl">
+                      <Globe className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white leading-none mb-1">Provider Authentication</p>
+                      <p className="text-[10px] font-medium text-gray-500 uppercase tracking-widest">Managed by Supabase Auth</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] font-medium text-gray-400 italic mb-2">Security settings are managed through your primary login provider.</p>
+                    <Button variant="outline" className="h-8 text-[10px] font-bold uppercase tracking-widest border-border/40 hover:bg-white/5" disabled>
+                      Manage Externally
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

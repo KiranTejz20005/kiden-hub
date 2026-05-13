@@ -16,6 +16,7 @@ import {
   Copy,
   Check,
   ChevronDown,
+  ChevronRight,
   Bot,
   Zap,
 } from 'lucide-react';
@@ -186,6 +187,7 @@ const AIChat = () => {
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [showFileSelector, setShowFileSelector] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -393,16 +395,24 @@ const AIChat = () => {
   };
 
   return (
-    <div className="flex h-full bg-background overflow-hidden rounded-2xl border border-border/50">
+    <div className="flex h-full bg-[#030303] overflow-hidden rounded-3xl border border-white/5 relative shadow-2xl">
       {/* ── Sidebar ── */}
-      <div className="w-72 border-r border-border/50 flex flex-col bg-card/30 backdrop-blur-sm shrink-0">
+      <AnimatePresence initial={false}>
+        {showSidebar && (
+          <motion.div 
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 300, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="border-r border-white/5 flex flex-col bg-white/[0.01] backdrop-blur-3xl shrink-0 overflow-hidden"
+          >
         <div className="p-4 border-b border-border/50">
           <button
             onClick={handleNewChat}
-            className="w-full flex items-center gap-2.5 h-10 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-sm hover:from-emerald-500 hover:to-teal-500 transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+            className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm hover:from-emerald-500 hover:to-teal-500 transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98] group"
           >
-            <Plus className="w-4 h-4" />
-            New Chat
+            <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+            <span>New Chat</span>
           </button>
         </div>
 
@@ -410,33 +420,38 @@ const AIChat = () => {
           <div className="p-2 space-y-0.5">
             <AnimatePresence>
               {conversations.map((conv) => (
-                <motion.button
+                <motion.div
                   key={conv.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
-                  onClick={() => setActiveConv(conv)}
-                  className={cn(
-                    'w-full text-left px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 group relative',
-                    activeConv?.id === conv.id
-                      ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300'
-                      : 'hover:bg-secondary/40 text-muted-foreground hover:text-foreground'
-                  )}
+                  className="px-1"
                 >
-                  <MessageSquare className="w-3.5 h-3.5 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">{conv.title}</p>
-                    <p className="text-[10px] opacity-60 mt-0.5">
-                      {new Date(conv.last_message_at).toLocaleDateString()}
-                    </p>
-                  </div>
                   <button
-                    onClick={(e) => deleteConversation(conv.id, e)}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-destructive/20 hover:text-destructive text-muted-foreground transition-all shrink-0"
+                    onClick={() => setActiveConv(conv)}
+                    className={cn(
+                      'w-full text-left px-3 py-3 rounded-xl transition-all flex items-center gap-3 group relative overflow-hidden',
+                      activeConv?.id === conv.id
+                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300'
+                        : 'hover:bg-white/[0.03] text-muted-foreground hover:text-foreground border border-transparent'
+                    )}
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <MessageSquare className="w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold truncate leading-tight">{conv.title}</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mt-1">
+                        {new Date(conv.last_message_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => deleteConversation(conv.id, e)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-rose-500/10 hover:text-rose-400 text-muted-foreground/40 transition-all shrink-0"
+                      title="Delete conversation"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </button>
-                </motion.button>
+                </motion.div>
               ))}
             </AnimatePresence>
             {conversations.length === 0 && (
@@ -445,14 +460,20 @@ const AIChat = () => {
           </div>
         </ScrollArea>
 
-        {/* Sidebar footer */}
-        <div className="p-3 border-t border-border/50">
-          <div className="flex items-center gap-2 px-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] text-muted-foreground font-medium">Kiden AI · Online</span>
-          </div>
-        </div>
-      </div>
+        </motion.div>
+      )}
+      </AnimatePresence>
+
+      {/* Sidebar Toggle Button (Floating) */}
+      <button
+        onClick={() => setShowSidebar(!showSidebar)}
+        className={cn(
+          "absolute top-6 z-20 w-8 h-8 rounded-full bg-emerald-500 text-white shadow-lg flex items-center justify-center transition-all duration-500 hover:scale-110",
+          showSidebar ? "left-[284px]" : "left-4"
+        )}
+      >
+        <ChevronRight className={cn("w-4 h-4 transition-transform duration-300", showSidebar && "rotate-180")} />
+      </button>
 
       {/* ── Main Chat Area ── */}
       <div className="flex-1 flex flex-col min-w-0 relative">
