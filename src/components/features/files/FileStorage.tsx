@@ -14,6 +14,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { YouTubeSearchLibrary } from './YouTubeSearchLibrary';
+import { TrendingFeed } from './TrendingFeed';
 
 const FILE_SIZE_LIMIT = 50 * 1024 * 1024; // 50MB
 
@@ -48,7 +49,7 @@ const IS_IMAGE = (t: string) => ['jpg','jpeg','png','gif','webp','svg'].includes
 const IS_VIDEO = (t: string) => ['mp4','mov','avi','webm'].includes(t?.toLowerCase());
 const IS_TEXT  = (t: string) => ['md','txt','json','csv','js','ts','html','css'].includes(t?.toLowerCase());
 
-const TABS = ['All', 'Documents', 'Images', 'Videos', 'YouTube', 'Other'];
+const TABS = ['All', 'Documents', 'Images', 'Videos', 'YouTube', 'Trending', 'Other'];
 const TAB_TYPES: Record<string,string[]> = {
   Documents: ['pdf','doc','docx','md','txt','json','csv','js','ts','html','css'],
   Images:    ['jpg','jpeg','png','gif','svg','webp'],
@@ -228,7 +229,8 @@ const FileStorage = () => {
         </AnimatePresence>
 
         {/* ── Top Bar ── */}
-        <div className="flex items-center gap-4 px-6 py-3.5 border-b border-border/40 bg-card/20 shrink-0">
+        {(tab !== 'YouTube' && tab !== 'Trending') && (
+          <div className="flex items-center gap-4 px-6 py-3.5 border-b border-border/40 bg-card/20 shrink-0">
           <div className="min-w-0">
             <h1 className="text-lg font-bold leading-tight">Files</h1>
             <p className="text-[11px] text-muted-foreground">{files.length} files · {fmtSize(totalSize)}</p>
@@ -271,6 +273,7 @@ const FileStorage = () => {
             )}
           </div>
         </div>
+        )}
 
         {/* ── Filter Tabs ── */}
         <div className="flex items-center gap-1 px-6 py-2 border-b border-border/30 shrink-0">
@@ -282,7 +285,7 @@ const FileStorage = () => {
         </div>
 
         {/* ── Drop hint strip ── */}
-        {tab !== 'YouTube' && (
+        {(tab !== 'YouTube' && tab !== 'Trending') && (
           <div className="mx-6 mt-4 py-3 px-5 rounded-xl border border-dashed border-border/40 flex items-center gap-3 bg-secondary/10 shrink-0 cursor-pointer hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all" onClick={open}>
             <Upload className="w-4 h-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Drag & drop files anywhere, or <span className="text-emerald-400 font-semibold">click to browse</span> · Max <span className="font-semibold text-foreground">50MB</span> per file</span>
@@ -297,6 +300,8 @@ const FileStorage = () => {
             </div>
           ) : tab === 'YouTube' ? (
             <YouTubeSearchLibrary />
+          ) : tab === 'Trending' ? (
+            <TrendingFeed />
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
               <div className="w-14 h-14 rounded-2xl bg-secondary/30 border border-border/40 flex items-center justify-center">
