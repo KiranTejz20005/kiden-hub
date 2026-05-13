@@ -13,6 +13,7 @@ import { useDropzone } from 'react-dropzone';
 import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { YouTubeSearchLibrary } from './YouTubeSearchLibrary';
 
 const FILE_SIZE_LIMIT = 50 * 1024 * 1024; // 50MB
 
@@ -47,7 +48,7 @@ const IS_IMAGE = (t: string) => ['jpg','jpeg','png','gif','webp','svg'].includes
 const IS_VIDEO = (t: string) => ['mp4','mov','avi','webm'].includes(t?.toLowerCase());
 const IS_TEXT  = (t: string) => ['md','txt','json','csv','js','ts','html','css'].includes(t?.toLowerCase());
 
-const TABS = ['All','Documents','Images','Videos','Other'];
+const TABS = ['All', 'Documents', 'Images', 'Videos', 'YouTube', 'Other'];
 const TAB_TYPES: Record<string,string[]> = {
   Documents: ['pdf','doc','docx','md','txt','json','csv','js','ts','html','css'],
   Images:    ['jpg','jpeg','png','gif','svg','webp'],
@@ -243,10 +244,12 @@ const FileStorage = () => {
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input placeholder="Search files…" className="pl-9 h-9 w-48 bg-secondary/30 border-border/40 text-sm" value={search} onChange={e => setSearch(e.target.value)} />
-            </div>
+            {tab !== 'YouTube' && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input placeholder="Search files…" className="pl-9 h-9 w-48 bg-secondary/30 border-border/40 text-sm" value={search} onChange={e => setSearch(e.target.value)} />
+              </div>
+            )}
 
             <div className="flex items-center bg-secondary/40 rounded-lg p-0.5 border border-border/40">
               {(['grid','list'] as const).map(m => (
@@ -256,14 +259,16 @@ const FileStorage = () => {
               ))}
             </div>
 
-            <button
-              onClick={open}
-              disabled={uploading}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-500 hover:to-teal-500 transition-all shadow-lg shadow-emerald-500/20 active:scale-95 disabled:opacity-60"
-            >
-              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              {uploading ? 'Uploading…' : 'Upload'}
-            </button>
+            {tab !== 'YouTube' && (
+              <button
+                onClick={open}
+                disabled={uploading}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-500 hover:to-teal-500 transition-all shadow-lg shadow-emerald-500/20 active:scale-95 disabled:opacity-60"
+              >
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {uploading ? 'Uploading…' : 'Upload'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -277,10 +282,12 @@ const FileStorage = () => {
         </div>
 
         {/* ── Drop hint strip ── */}
-        <div className="mx-6 mt-4 py-3 px-5 rounded-xl border border-dashed border-border/40 flex items-center gap-3 bg-secondary/10 shrink-0 cursor-pointer hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all" onClick={open}>
-          <Upload className="w-4 h-4 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Drag & drop files anywhere, or <span className="text-emerald-400 font-semibold">click to browse</span> · Max <span className="font-semibold text-foreground">50MB</span> per file</span>
-        </div>
+        {tab !== 'YouTube' && (
+          <div className="mx-6 mt-4 py-3 px-5 rounded-xl border border-dashed border-border/40 flex items-center gap-3 bg-secondary/10 shrink-0 cursor-pointer hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all" onClick={open}>
+            <Upload className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Drag & drop files anywhere, or <span className="text-emerald-400 font-semibold">click to browse</span> · Max <span className="font-semibold text-foreground">50MB</span> per file</span>
+          </div>
+        )}
 
         {/* ── Files ── */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -288,6 +295,8 @@ const FileStorage = () => {
             <div className="flex items-center justify-center py-20 gap-3 text-muted-foreground">
               <Loader2 className="w-6 h-6 animate-spin" /> Loading files…
             </div>
+          ) : tab === 'YouTube' ? (
+            <YouTubeSearchLibrary />
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
               <div className="w-14 h-14 rounded-2xl bg-secondary/30 border border-border/40 flex items-center justify-center">
