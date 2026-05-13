@@ -71,7 +71,8 @@ const Preferences = ({ onProfileUpdate }: { onProfileUpdate?: () => void }) => {
     if (!user) return;
     setSaving(true);
     try {
-      const { error } = await supabase
+      // First attempt: Update everything
+      const { error: fullUpdateError } = await supabase
         .from('profiles')
         .update({ 
           display_name: displayName, 
@@ -81,8 +82,24 @@ const Preferences = ({ onProfileUpdate }: { onProfileUpdate?: () => void }) => {
           notification_settings: notifications
         })
         .eq('user_id', user.id);
-      if (error) throw error;
-      toast.success('Profile updated');
+      
+      if (!fullUpdateError) {
+        toast.success('Profile updated');
+        if (onProfileUpdate) onProfileUpdate();
+        return;
+      }
+
+      // Second attempt: Fallback to core fields if extended fields fail
+      console.warn('Full update failed, attempting core field update...', fullUpdateError);
+      const { error: coreUpdateError } = await supabase
+        .from('profiles')
+        .update({ display_name: displayName, bio })
+        .eq('user_id', user.id);
+
+      if (coreUpdateError) throw coreUpdateError;
+      
+      toast.success('Core profile updated');
+      toast.info('Social & Notification settings skipped (database migration required)');
       if (onProfileUpdate) onProfileUpdate();
     } catch (error) {
       console.error(error);
