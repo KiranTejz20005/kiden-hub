@@ -27,16 +27,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { extractPdfText } from '@/lib/pdf-extractor';
 
 // --- Typing Animation Dots ---
-const TypingDots = () => (
-  <div className="flex items-center gap-1 px-1">
-    {[0, 1, 2].map((i) => (
-      <motion.div
-        key={i}
-        className="w-2 h-2 rounded-full bg-emerald-500/60"
-        animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-      />
-    ))}
+// --- Thinking Animation with Timer ---
+const ThinkingIndicator = ({ seconds }: { seconds: number }) => (
+  <div className="flex items-center gap-4 py-1">
+    <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+          animate={{ 
+            scale: [1, 1.5, 1], 
+            opacity: [0.4, 1, 0.4],
+            backgroundColor: ['#10b981', '#34d399', '#10b981']
+          }}
+          transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+        />
+      ))}
+    </div>
+    <div className="flex flex-col">
+      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Thinking...</span>
+      <span className="text-[9px] font-mono text-muted-foreground">{seconds.toFixed(1)}s elapsed</span>
+    </div>
   </div>
 );
 
@@ -169,6 +180,7 @@ const AIChat = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [thinkingTime, setThinkingTime] = useState(0);
   const [streamingContent, setStreamingContent] = useState('');
   const [availableFiles, setAvailableFiles] = useState<any[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -209,6 +221,19 @@ const AIChat = () => {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
     }
   }, []);
+
+  useEffect(() => {
+    let interval: any;
+    if (loading) {
+      setThinkingTime(0);
+      interval = setInterval(() => {
+        setThinkingTime(prev => prev + 0.1);
+      }, 100);
+    } else {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
 
   useEffect(() => {
     scrollToBottom();
@@ -476,8 +501,8 @@ const AIChat = () => {
                           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0 mt-1 shadow-lg shadow-emerald-500/20">
                             <Bot className="w-4 h-4 text-white" />
                           </div>
-                          <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-card border border-border/60 shadow-sm">
-                            <TypingDots />
+                          <div className="px-5 py-4 rounded-3xl rounded-tl-sm bg-[#050505] border border-emerald-500/20 shadow-xl shadow-emerald-500/5">
+                            <ThinkingIndicator seconds={thinkingTime} />
                           </div>
                         </motion.div>
                       ) : (
