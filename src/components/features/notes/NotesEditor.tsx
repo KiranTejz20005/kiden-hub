@@ -4,16 +4,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import {
   Plus, Search, Trash2, MoreVertical, FileText,
-  Save, Bold, Italic, List, Heading1, Heading2, Code, Loader2, Star, Hash, PanelLeftClose, PanelRightClose, Columns2
+  Save, Bold, Italic, List, Heading1, Heading2, Code, Loader2, Star, Hash, PanelLeftClose, PanelRightClose, Columns2, 
+  ChevronRight, Share2, Star as StarOutline, Link as LinkIcon, Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
+import BlockEditor from './BlockEditor';
 
 type ViewMode = 'edit' | 'preview' | 'split';
 
@@ -21,10 +22,9 @@ const NotesEditor = () => {
   const { user } = useAuth();
   const [notes, setNotes] = useState<any[]>([]);
   const [activeNote, setActiveNote] = useState<any>(null);
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState<any>('');
   const [title, setTitle] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
   const [searchQuery, setSearchQuery] = useState('');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -46,7 +46,9 @@ const NotesEditor = () => {
     if (activeNote) {
       setTitle(activeNote.title || '');
       const raw = activeNote.content;
-      setContent(typeof raw === 'string' ? raw : '');
+      // If it's a string (old markdown), wrap it in a basic TipTap structure if possible, 
+      // but TipTap handles HTML/Text well too.
+      setContent(raw || '');
     } else {
       setTitle('');
       setContent('');
@@ -127,6 +129,42 @@ const NotesEditor = () => {
     const newVal = !note.is_favorite;
     await supabase.from('notes').update({ is_favorite: newVal }).eq('id', note.id);
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, is_favorite: newVal } : n));
+    if (activeNote?.id === note.id) {
+      setActiveNote({ ...activeNote, is_favorite: newVal });
+    }
+    toast.success(newVal ? 'Added to favorites' : 'Removed from favorites');
+  };
+
+  const duplicateNote = async (note: any) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('notes')
+      .insert([{ 
+        user_id: user.id, 
+        title: `${note.title} (Copy)`, 
+        content: note.content,
+        icon: note.icon
+      }])
+      .select().single();
+    if (data) {
+      setNotes(prev => [data, ...prev]);
+      setActiveNote(data);
+      toast.success('Note duplicated');
+    } else {
+      toast.error('Failed to duplicate note');
+    }
+  };
+
+  const copyNoteLink = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    toast.success('Note link copied to clipboard');
+  };
+
+  const handleShare = () => {
+    toast.info('Sharing options coming soon!', {
+      description: 'Public link sharing will be available in V1.1'
+    });
   };
 
   // Insert markdown syntax around selection
@@ -145,21 +183,8 @@ const NotesEditor = () => {
   };
 
   const filteredNotes = notes.filter(n =>
-    n.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (n.content_text || n.content || '').toLowerCase().includes(searchQuery.toLowerCase())
+    n.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const wordCount = content.split(/\s+/).filter(Boolean).length;
-
-  const formatButtons = [
-    { icon: <Bold className="w-3.5 h-3.5" />, label: 'Bold', action: () => insertFormat('**', '**') },
-    { icon: <Italic className="w-3.5 h-3.5" />, label: 'Italic', action: () => insertFormat('_', '_') },
-    { icon: <Code className="w-3.5 h-3.5" />, label: 'Code', action: () => insertFormat('`', '`') },
-    { icon: <Heading1 className="w-3.5 h-3.5" />, label: 'H1', action: () => insertFormat('# ') },
-    { icon: <Heading2 className="w-3.5 h-3.5" />, label: 'H2', action: () => insertFormat('## ') },
-    { icon: <List className="w-3.5 h-3.5" />, label: 'List', action: () => insertFormat('- ') },
-    { icon: <Hash className="w-3.5 h-3.5" />, label: 'Quote', action: () => insertFormat('> ') },
-  ];
 
   return (
     <div className="flex h-full bg-background overflow-hidden rounded-2xl border border-border/50">
@@ -256,58 +281,59 @@ const NotesEditor = () => {
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
 
-            {/* ── Toolbar ── */}
-            <div className="h-12 border-b border-border/50 flex items-center gap-3 px-4 bg-card/30 backdrop-blur-md shrink-0">
-              {/* Title */}
-              <input
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                onBlur={() => saveNote()}
-                onKeyDown={e => e.key === 'Enter' && saveNote()}
-                className="flex-1 bg-transparent border-none focus:outline-none text-sm font-bold placeholder:text-muted-foreground/40 min-w-0"
-                placeholder="Note title..."
-              />
-
-              {/* View mode toggles */}
-              <div className="flex items-center bg-secondary/50 rounded-lg p-0.5 shrink-0">
-                {([
-                  { mode: 'edit', icon: <PanelLeftClose className="w-3.5 h-3.5" />, label: 'Edit' },
-                  { mode: 'split', icon: <Columns2 className="w-3.5 h-3.5" />, label: 'Split' },
-                  { mode: 'preview', icon: <PanelRightClose className="w-3.5 h-3.5" />, label: 'Preview' },
-                ] as { mode: ViewMode; icon: React.ReactNode; label: string }[]).map(({ mode, icon, label }) => (
-                  <button
-                    key={mode}
-                    onClick={() => setViewMode(mode)}
-                    title={label}
-                    className={cn(
-                      'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all',
-                      viewMode === mode ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {icon} {label}
-                  </button>
-                ))}
+            {/* ── Notion-style Top Nav ── */}
+            <div className="h-11 border-b border-border/30 flex items-center justify-between px-4 bg-background/50 backdrop-blur-md shrink-0">
+              {/* Breadcrumbs */}
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium overflow-hidden">
+                <span className="hover:text-foreground cursor-pointer transition-colors shrink-0">Smart Notes</span>
+                <ChevronRight className="w-3 h-3 shrink-0 opacity-40" />
+                <div className="flex items-center gap-1.5 hover:bg-secondary/50 px-1.5 py-0.5 rounded transition-colors cursor-pointer min-w-0">
+                  <Lock className="w-3 h-3 shrink-0 text-amber-500/70" />
+                  <span className="truncate text-foreground/80">{title || 'Untitled Note'}</span>
+                </div>
               </div>
 
-              {/* Save indicator */}
-              <div className="flex items-center gap-2 shrink-0">
-                {isSaving ? (
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Saving…</span>
-                ) : lastSaved ? (
-                  <span className="text-[10px] text-primary font-medium">✓ Saved</span>
-                ) : null}
-                <button
-                  onMouseDown={e => { e.preventDefault(); saveNote(); }}
-                  className="p-1.5 rounded-lg text-primary hover:opacity-80 hover:bg-primary/10 transition-all"
-                  title="Save (Ctrl+S)"
+              {/* Top Right Actions */}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60 font-medium mr-2">
+                  {isSaving ? (
+                    <span className="flex items-center gap-1"><Loader2 className="w-2.5 h-2.5 animate-spin" />Saving…</span>
+                  ) : (
+                    <span>Edited {formatDistanceToNow(new Date(activeNote.updated_at), { addSuffix: true })}</span>
+                  )}
+                </div>
+                
+                <button 
+                  onClick={handleShare}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:bg-secondary text-[11px] font-semibold text-muted-foreground transition-all"
                 >
-                  <Save className="w-3.5 h-3.5" />
+                  <Share2 className="w-3.5 h-3.5" /> Share
+                </button>
+
+                <div className="w-px h-4 bg-border/40 mx-1" />
+
+                <button 
+                  onClick={copyNoteLink}
+                  className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-all"
+                  title="Copy Link"
+                >
+                  <LinkIcon className="w-3.5 h-3.5" />
+                </button>
+                <button 
+                  onClick={e => toggleFavorite(activeNote, e)} 
+                  className={cn("p-1.5 rounded-md hover:bg-secondary transition-all", activeNote.is_favorite ? "text-amber-400" : "text-muted-foreground")}
+                  title={activeNote.is_favorite ? "Remove from favorites" : "Add to favorites"}
+                >
+                  <Star className="w-3.5 h-3.5" fill={activeNote.is_favorite ? "currentColor" : "none"} />
                 </button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0"><MoreVertical className="w-4 h-4" /></Button>
+                    <button className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-all"><MoreVertical className="w-3.5 h-3.5" /></button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => duplicateNote(activeNote)}>
+                      <Save className="w-4 h-4 mr-2" /> Duplicate Note
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => deleteNote(activeNote.id)} className="text-destructive">
                       <Trash2 className="w-4 h-4 mr-2" /> Delete Note
                     </DropdownMenuItem>
@@ -316,90 +342,52 @@ const NotesEditor = () => {
               </div>
             </div>
 
-            {/* ── Format Bar (only in edit/split) ── */}
-            {(viewMode === 'edit' || viewMode === 'split') && (
-              <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-border/40 bg-muted/10 shrink-0 overflow-x-auto">
-                {formatButtons.map(({ icon, label, action }) => (
-                  <button
-                    key={label}
-                    title={label}
-                    onMouseDown={e => { e.preventDefault(); action(); }}
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all shrink-0"
+            {/* ── Main Content Area with Scroll Indicator ── */}
+            <div className="flex-1 overflow-hidden relative flex bg-[#050505]/20">
+              <ScrollArea className="flex-1" id="notes-content-scroll">
+                <div className="max-w-4xl mx-auto min-h-full py-12 px-12 md:px-20">
+                  {/* Title Area */}
+                  <div className="flex items-center gap-4 mb-8 group">
+                    <div className="w-14 h-14 rounded-2xl bg-secondary/50 flex items-center justify-center text-3xl shrink-0 group-hover:bg-secondary transition-all shadow-sm">
+                      {activeNote.icon || '📝'}
+                    </div>
+                    <input
+                      value={title}
+                      onChange={e => setTitle(e.target.value)}
+                      onBlur={() => saveNote()}
+                      className="flex-1 bg-transparent border-none focus:outline-none text-4xl font-black tracking-tight placeholder:text-muted-foreground/20 min-w-0 text-foreground"
+                      placeholder="Note title"
+                    />
+                  </div>
+
+                  <BlockEditor 
+                    content={content} 
+                    onChange={(newContent) => setContent(newContent)} 
+                  />
+                </div>
+              </ScrollArea>
+
+              {/* Side Navigation Dots (Notion-style TOC indicator) */}
+              <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 py-4 px-1 opacity-20 hover:opacity-100 transition-opacity pointer-events-none md:pointer-events-auto z-10">
+                {[...Array(24)].map((_, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => {
+                      const el = document.querySelector('#notes-content-scroll [data-radix-scroll-area-viewport]');
+                      if (el) el.scrollTo({ top: (el.scrollHeight / 24) * i, behavior: 'smooth' });
+                    }}
+                    className={cn(
+                      "group relative flex items-center justify-center transition-all",
+                      i % 4 === 0 ? "h-6 w-6" : "h-3 w-3"
+                    )}
                   >
-                    {icon}
+                    <div className={cn(
+                      "rounded-full transition-all group-hover:bg-primary/80 group-hover:scale-125", 
+                      i % 4 === 0 ? "w-5 h-0.5 bg-foreground/40" : "w-3 h-0.5 bg-foreground/20"
+                    )} />
                   </button>
                 ))}
               </div>
-            )}
-
-            {/* ── Main Content Area ── */}
-            <div className="flex-1 overflow-hidden flex min-h-0">
-
-              {/* Editor pane — shown in 'edit' and 'split' */}
-              {(viewMode === 'edit' || viewMode === 'split') && (
-                <div className={cn(
-                  'flex flex-col min-h-0',
-                  viewMode === 'split' ? 'w-1/2 border-r border-border/40' : 'flex-1'
-                )}>
-                  {viewMode === 'split' && (
-                    <div className="px-4 py-1.5 border-b border-border/30 bg-muted/10">
-                      <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">✏️ Editor</span>
-                    </div>
-                  )}
-                  <textarea
-                    ref={textareaRef}
-                    value={content}
-                    onChange={e => setContent(e.target.value)}
-                    className="flex-1 w-full bg-transparent px-6 py-5 focus:outline-none resize-none font-mono text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/30 overflow-y-auto"
-                    placeholder={`Start writing in Markdown…\n\n# Heading\n**bold** _italic_ \`code\`\n- List item\n> Blockquote`}
-                    onKeyDown={e => {
-                      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                        e.preventDefault();
-                        saveNote();
-                      }
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* Preview pane — shown in 'preview' and 'split' */}
-              {(viewMode === 'preview' || viewMode === 'split') && (
-                <div className={cn(
-                  'flex flex-col min-h-0',
-                  viewMode === 'split' ? 'w-1/2' : 'flex-1'
-                )}>
-                  {viewMode === 'split' && (
-                    <div className="px-4 py-1.5 border-b border-border/30 bg-muted/10">
-                      <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">👁 Preview</span>
-                    </div>
-                  )}
-                  <div className="flex-1 overflow-y-auto px-8 py-5">
-                    {viewMode === 'preview' && (
-                      <h1 className="text-2xl font-bold mb-5">{title}</h1>
-                    )}
-                    {content ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none
-                        prose-headings:font-bold prose-headings:text-foreground
-                        prose-p:text-foreground/90 prose-p:leading-relaxed
-                        prose-code:text-primary prose-code:bg-black/20 prose-code:rounded prose-code:px-1 prose-code:text-xs
-                        prose-pre:bg-black/30 prose-pre:rounded-xl prose-pre:border prose-pre:border-border/40
-                        prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground
-                        prose-strong:text-foreground prose-em:text-foreground/80
-                        prose-ul:text-foreground/90 prose-li:marker:text-primary">
-                        <ReactMarkdown>{content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground/40 text-sm italic">Nothing to preview yet. Start typing in the editor.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ── Footer ── */}
-            <div className="h-8 border-t border-border/40 flex items-center justify-between px-5 bg-muted/10 text-[10px] text-muted-foreground/60 font-medium shrink-0">
-              <span>{wordCount} words · {content.length} chars</span>
-              <span className="capitalize">{viewMode} mode · Markdown</span>
             </div>
           </div>
         )}

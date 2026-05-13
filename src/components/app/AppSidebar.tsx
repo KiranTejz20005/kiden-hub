@@ -136,7 +136,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate }: AppS
                   className="flex flex-col"
                 >
                   <span className="font-black text-xl tracking-tighter text-white">Kiden Hub</span>
-                  <span className="text-[10px] font-bold text-primary uppercase tracking-widest leading-none">Intelligence v3.0</span>
+                  <span className="text-[10px] font-bold text-primary uppercase tracking-widest leading-none">Intelligence V1.0</span>
                 </motion.div>
               )}
             </AnimatePresence>
