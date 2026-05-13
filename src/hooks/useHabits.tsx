@@ -82,15 +82,15 @@ export function useHabits() {
                 .from('habit_logs')
                 .select('*')
                 .eq('user_id', user.id)
-                .gte('completed_date', thirtyDaysAgo.toISOString().split('T')[0]);
+                .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
 
             if (!logsError && logsData) {
                 // Map database logs to our interface
                 const mappedLogs: HabitLog[] = logsData.map(l => ({
                     id: l.id,
                     habit_id: l.habit_id,
-                    value: 1,
-                    date: l.completed_date,
+                    value: l.value || 1,
+                    date: l.date,
                     user_id: l.user_id
                 }));
                 setLogs(mappedLogs);
@@ -187,7 +187,7 @@ export function useHabits() {
                 .from('habit_logs')
                 .select('id')
                 .eq('habit_id', habitId)
-                .eq('completed_date', date)
+                .eq('date', date)
                 .maybeSingle();
 
             if (existing) {
@@ -196,7 +196,7 @@ export function useHabits() {
             } else {
                 await supabase
                     .from('habit_logs')
-                    .insert({ habit_id: habitId, user_id: user.id, completed_date: date });
+                    .insert({ habit_id: habitId, user_id: user.id, date: date, value: value });
                 toast.success('Habit logged');
             }
             

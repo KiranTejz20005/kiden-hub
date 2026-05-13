@@ -43,6 +43,10 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !user) return;
+    if ((user as any)?.app_metadata?.provider === 'guest') {
+      toast.error('Please sign in with a real account before uploading an avatar. Guest mode cannot upload to Supabase.');
+      return;
+    }
     
     const file = e.target.files[0];
     if (!file.type.startsWith('image/')) {
@@ -60,7 +64,7 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/avatar.${fileExt}`;
 
-      // Upload to storage
+      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });

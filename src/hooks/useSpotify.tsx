@@ -124,9 +124,19 @@ interface SpotifyContextType {
   formatTime: (ms: number) => string;
 }
 
+declare global {
+  interface Window {
+    Spotify?: {
+      Player: new (config: SpotifyPlayerConfig) => SpotifyPlayerInstance;
+    };
+    onSpotifyWebPlaybackSDKReady?: () => void;
+  }
+}
+
 const SpotifyContext = createContext<SpotifyContextType | null>(null);
 
 const SPOTIFY_STORAGE_KEY = 'spotify_tokens';
+const SPOTIFY_SDK_SRC = 'https://sdk.scdn.co/spotify-player.js';
 
 export const SpotifyProvider = ({ children }: { children: ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false);
@@ -167,6 +177,46 @@ export const SpotifyProvider = ({ children }: { children: ReactNode }) => {
       }
     }
     setIsLoading(false);
+  }, []);
+
+  // Load Spotify SDK script
+  useEffect(() => {
+    try {
+      // Set the callback before loading the script
+      window.onSpotifyWebPlaybackSDKReady = () => {
+        setSdkReady(true);
+      };
+
+      // Check if script is already loaded
+      if (document.querySelector(`script[src="${SPOTIFY_SDK_SRC}"]`)) {
+        setSdkReady(true);
+        return;
+      }
+
+      // Create and load the script
+      const script = document.createElement('script');
+      script.src = SPOTIFY_SDK_SRC;
+      script.async = true;
+      script.onload = () => {
+        setSdkReady(true);
+      };
+      script.onerror = () => {
+        console.warn('Failed to load Spotify SDK');
+        setSdkReady(false);
+      };
+      
+      document.head.appendChild(script);
+
+      return () => {
+        // Clean up callback on unmount
+        if (window.onSpotifyWebPlaybackSDKReady) {
+          delete window.onSpotifyWebPlaybackSDKReady;
+        }
+      };
+    } catch (err) {
+      console.error('Error loading Spotify SDK:', err);
+      setSdkReady(false);
+    }
   }, []);
 
   // Handle OAuth callback
@@ -261,13 +311,31 @@ export const SpotifyProvider = ({ children }: { children: ReactNode }) => {
       playerRef.current = player;
     };
 
-    if (window.Spotify) {
-      initializePlayer();
-    } else {
+    const loadSpotifySdk = () => {
+      if (window.Spotify) {
+        initializePlayer();
+        return;
+      }
+
       window.onSpotifyWebPlaybackSDKReady = initializePlayer;
-    }
+
+      const existingScript = document.querySelector(`script[src="${SPOTIFY_SDK_SRC}"]`);
+      if (existingScript) return;
+
+      const script = document.createElement('script');
+      script.src = SPOTIFY_SDK_SRC;
+      script.async = true;
+      script.defer = true;
+      script.onerror = () => {
+        toast.error('Failed to load Spotify SDK');
+      };
+      document.body.appendChild(script);
+    };
+
+    loadSpotifySdk();
 
     return () => {
+      window.onSpotifyWebPlaybackSDKReady = undefined;
       if (playerRef.current) {
         playerRef.current.disconnect();
         playerRef.current = null;

@@ -15,49 +15,91 @@ CREATE TABLE public.workspace_members (
 -- Enable RLS
 ALTER TABLE public.workspace_members ENABLE ROW LEVEL SECURITY;
 
+-- Safe workspace access helpers
+CREATE OR REPLACE FUNCTION public.user_owns_workspace(workspace_uuid uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+SET row_security = off
+AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM public.workspaces
+        WHERE id = workspace_uuid AND user_id = auth.uid()
+    );
+$$;
+
+CREATE OR REPLACE FUNCTION public.user_has_workspace_access(workspace_uuid uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+SET row_security = off
+AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM public.workspaces
+        WHERE id = workspace_uuid AND user_id = auth.uid()
+    ) OR EXISTS (
+        SELECT 1 FROM public.workspace_members
+        WHERE workspace_id = workspace_uuid
+            AND user_id = auth.uid()
+            AND accepted_at IS NOT NULL
+    );
+$$;
+
 -- Policies for workspace_members
--- Members can view their own memberships
-CREATE POLICY "Users can view workspaces they are members of"
+DROP POLICY IF EXISTS "Users can view workspaces they are members of" ON public.workspace_members;
+DROP POLICY IF EXISTS "Workspace owners can add members" ON public.workspace_members;
+DROP POLICY IF EXISTS "Workspace owners can remove members" ON public.workspace_members;
+DROP POLICY IF EXISTS "Users can accept their own invites" ON public.workspace_members;
+
+CREATE POLICY "Users can view workspace members"
 ON public.workspace_members
 FOR SELECT
-USING (user_id = auth.uid() OR workspace_id IN (
-    SELECT id FROM public.workspaces WHERE user_id = auth.uid()
-));
+USING (
+    user_id = auth.uid()
+    OR email = auth.email()
+    OR public.user_owns_workspace(workspace_id)
+);
 
--- Workspace owners can add members
-CREATE POLICY "Workspace owners can add members"
+CREATE POLICY "Users can create workspace members"
 ON public.workspace_members
 FOR INSERT
 WITH CHECK (
-    workspace_id IN (SELECT id FROM public.workspaces WHERE user_id = auth.uid())
-    OR user_id = auth.uid()
+    user_id = auth.uid()
+    OR public.user_owns_workspace(workspace_id)
 );
 
--- Workspace owners can remove members
-CREATE POLICY "Workspace owners can remove members"
+CREATE POLICY "Users can update workspace members"
+ON public.workspace_members
+FOR UPDATE
+USING (
+    user_id = auth.uid()
+    OR email = auth.email()
+    OR public.user_owns_workspace(workspace_id)
+)
+WITH CHECK (
+    user_id = auth.uid()
+    OR email = auth.email()
+    OR public.user_owns_workspace(workspace_id)
+);
+
+CREATE POLICY "Users can delete workspace members"
 ON public.workspace_members
 FOR DELETE
 USING (
-    workspace_id IN (SELECT id FROM public.workspaces WHERE user_id = auth.uid())
-    OR user_id = auth.uid()
+    user_id = auth.uid()
+    OR public.user_owns_workspace(workspace_id)
 );
-
--- Update policies for members to accept invites
-CREATE POLICY "Users can accept their own invites"
-ON public.workspace_members
-FOR UPDATE
-USING (user_id = auth.uid())
-WITH CHECK (user_id = auth.uid());
 
 -- Update workspaces RLS to allow members to view
 DROP POLICY IF EXISTS "Users can view their own workspaces" ON public.workspaces;
 CREATE POLICY "Users can view owned or member workspaces"
 ON public.workspaces
 FOR SELECT
-USING (
-    user_id = auth.uid() 
-    OR id IN (SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid() AND accepted_at IS NOT NULL)
-);
+USING (public.user_has_workspace_access(id));
 
 -- Update notes RLS to allow workspace members to access
 DROP POLICY IF EXISTS "Users can view their own notes" ON public.notes;

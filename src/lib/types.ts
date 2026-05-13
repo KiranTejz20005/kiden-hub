@@ -1,16 +1,10 @@
 export type ActiveView =
-  | 'command'
-  | 'analytics'
-  | 'tasks'
-  | 'projects'
-  | 'notebook'
-  | 'ideas'
-  | 'journal'
+  | 'dashboard'
+  | 'files'
   | 'chat'
-  | 'habits'
-  | 'books'
-  | 'leetcode'
-  | 'focus'
+  | 'notes'
+  | 'boards'
+  | 'team'
   | 'settings';
 
 export interface Profile {

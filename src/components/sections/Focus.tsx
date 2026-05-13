@@ -31,7 +31,7 @@ const Focus = () => {
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
 
           {/* Card 1: Flowcus */}
-          <div className="animate-on-scroll opacity-0 rounded-[2.5rem] bg-card/50 backdrop-blur-sm border border-white/5 overflow-hidden group hover:border-emerald-500/20 transition-all duration-500">
+          <div className="animate-on-scroll opacity-0 rounded-[2.5rem] bg-card/50 backdrop-blur-sm border border-emerald-500/20 overflow-hidden group hover:border-emerald-500/40 transition-all duration-500">
             <div className="p-8 md:p-10">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-emerald-500/10 rounded-lg">
@@ -48,7 +48,7 @@ const Focus = () => {
             {/* Timer Visual */}
             <div className="relative h-[350px] overflow-hidden bg-[#050505] border-t border-white/5">
               {/* Noise overlay */}
-              <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
+              <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-10 pointer-events-none" />
 
               {/* The Glowing Timer Widget */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -85,10 +85,10 @@ const Focus = () => {
           <div className="animate-on-scroll opacity-0 rounded-[2.5rem] bg-card/50 backdrop-blur-sm border border-white/5 overflow-hidden group hover:border-white/10 transition-all duration-500">
             <div className="p-8 md:p-10">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-indigo-500/10 rounded-lg">
-                  <CheckCircle2 className="w-5 h-5 text-indigo-400" />
+                <div className="p-2 bg-emerald-500/10 rounded-lg">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                 </div>
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400/80">Smart Selection</span>
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400/80">Smart Selection</span>
               </div>
               <h3 className="text-3xl font-bold text-white mb-4">Focus Mode</h3>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mb-8">
@@ -135,7 +135,7 @@ const Focus = () => {
                 </div>
 
                 {/* Floating tooltips/elements to make it busy but focused */}
-                <div className="absolute -right-4 top-24 w-40 p-3 bg-indigo-600 rounded-xl shadow-2xl border border-white/20 animate-float">
+                <div className="absolute -right-4 top-24 w-40 p-3 bg-emerald-600 rounded-xl shadow-2xl border border-white/20 animate-float">
                   <p className="text-[10px] font-bold text-white uppercase tracking-widest mb-1">In State of Flow</p>
                   <div className="flex items-center gap-1">
                     <div className="h-1 flex-1 bg-white/40 rounded-full overflow-hidden">

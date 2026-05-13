@@ -3,13 +3,7 @@ DROP POLICY IF EXISTS "Users can view own workspaces" ON public.workspaces;
 CREATE POLICY "Users can view accessible workspaces" 
 ON public.workspaces 
 FOR SELECT 
-USING (
-  auth.uid() = user_id 
-  OR id IN (
-    SELECT workspace_id FROM workspace_members 
-    WHERE user_id = auth.uid() AND accepted_at IS NOT NULL
-  )
-);
+USING (public.user_has_workspace_access(id));
 
 -- Update collections policy to allow workspace members to view collections
 DROP POLICY IF EXISTS "Users can view own collections" ON public.collections;

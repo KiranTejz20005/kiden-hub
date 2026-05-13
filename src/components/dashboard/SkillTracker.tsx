@@ -18,7 +18,7 @@ export const SkillTracker = ({ stats }: { stats: SkillStats }) => {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5 }}
-            className="bg-[#161B22] p-6 rounded-2xl border border-white/5 flex flex-col justify-between h-full min-h-[220px]"
+            className="bg-[#161B22] p-4 sm:p-6 rounded-2xl border border-white/5 flex flex-col justify-between h-full min-h-[200px] sm:min-h-[260px]"
         >
             <div className="flex justify-between items-start mb-6">
                 <div>

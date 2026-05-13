@@ -83,8 +83,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInAsGuest = async () => {
-    // Create a deterministic guest ID based on local storage or random if not present
-    const guestId = `guest-${Math.random().toString(36).substr(2, 9)}`;
+    // Create a valid UUID for the guest user to avoid DB type mismatches
+    const guestId = crypto.randomUUID?.() || '00000000-0000-0000-0000-000000000000';
     const guestUser = {
       id: guestId,
       app_metadata: { provider: 'guest' },

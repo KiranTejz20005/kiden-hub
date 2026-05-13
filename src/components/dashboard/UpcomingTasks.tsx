@@ -25,7 +25,7 @@ export const UpcomingTasks = ({ tasks, onToggle }: UpcomingTasksProps) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-[#161B22] rounded-2xl border border-white/5 flex flex-col h-full overflow-hidden"
+            className="bg-[#161B22] p-4 sm:p-6 rounded-2xl border border-white/5 flex flex-col h-full overflow-hidden"
         >
             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#161B22] z-10 shrink-0">
                 <div className="flex items-center gap-2">

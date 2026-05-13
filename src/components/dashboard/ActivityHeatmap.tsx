@@ -63,8 +63,8 @@ export const ActivityHeatmap = ({ data }: ActivityHeatmapProps) => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-hidden flex items-center justify-center">
-                <div className="grid grid-flow-col grid-rows-7 gap-1.5">
+            <div className="flex-1 overflow-auto flex items-start justify-start">
+                <div className="grid grid-flow-col grid-rows-7 gap-1 sm:gap-1.5">
                     {/* Render cells. Order depends on flex dir or grid flow. 
                         grid-flow-col fills columns first (top-down), then moves right. 
                         This matches Date order perfectly if we map correctly.
