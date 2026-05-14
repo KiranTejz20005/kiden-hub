@@ -83,8 +83,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInAsGuest = async () => {
-    // Create a valid UUID for the guest user to avoid DB type mismatches
-    const guestId = crypto.randomUUID?.() || '00000000-0000-0000-0000-000000000000';
+    // Create a unique UUID for the guest user
+    // Using crypto.randomUUID with proper fallback implementation
+    const guestId = (() => {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+      // Fallback UUID v4 implementation if crypto.randomUUID is unavailable
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    })();
+
     const guestUser = {
       id: guestId,
       app_metadata: { provider: 'guest' },

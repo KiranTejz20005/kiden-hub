@@ -86,3 +86,21 @@ async function getMaxPosition(userId: string) {
     .limit(1);
   return data?.[0]?.position ?? 0;
 }
+
+// Toggle favorite status
+export async function toggleFavorite(videoId: string, isFavorite: boolean) {
+  const { data, error } = await supabase
+    .from('user_study_videos')
+    .update({ is_favorite: isFavorite })
+    .eq('id', videoId);
+  return { data, error };
+}
+
+// Update personal notes
+export async function updateNotes(videoId: string, notes: string) {
+  const { data, error } = await supabase
+    .from('user_study_videos')
+    .update({ personal_notes: notes })
+    .eq('id', videoId);
+  return { data, error };
+}

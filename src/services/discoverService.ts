@@ -1,7 +1,29 @@
 import axios from 'axios';
 import { supabase } from '@/integrations/supabase/client';
 
-const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+/**
+ * Secure YouTube API Proxy via Supabase Edge Functions
+ * This hides the API keys from the browser.
+ */
+async function ytRequest(action: string, params: any): Promise<any> {
+  const { data, error } = await supabase.functions.invoke('youtube-discovery', {
+    body: { action, params }
+  });
+
+  if (error) {
+    console.error(`Edge Function Error [${action}]:`, error);
+    // FALLBACK: If Edge Function fails/not deployed, try direct call only in DEV
+    if (import.meta.env.DEV) {
+      const key = import.meta.env.VITE_YOUTUBE_API_KEY;
+      if (!key) throw new Error('No Edge Function and No Local API Key');
+      const url = `https://www.googleapis.com/youtube/v3/${action}`;
+      return await axios.get(url, { params: { ...params, key } });
+    }
+    throw error;
+  }
+
+  return { data };
+}
 
 // ── PREMIUM CHANNELS (50+ across 10 categories) ─────────────────────────────
 export const PREMIUM_CHANNELS: Record<string, Array<{ name: string; id: string }>> = {
@@ -195,10 +217,11 @@ async function scrapeChannel(
     // 1. Get channel info (use pre-fetched if available to save quota)
     let channelData = preFetchedChannelData;
     if (!channelData) {
-      const channelRes = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
-        params: { part: 'snippet,statistics', id: channel.id, key: YOUTUBE_API_KEY },
+      const channelRes = await ytRequest('channels', { 
+        part: 'snippet,statistics', 
+        id: channel.id 
       });
-      channelData = channelRes.data.items?.[0];
+      channelData = channelRes?.data?.items?.[0];
     }
     
     if (!channelData) return 0;
@@ -211,13 +234,10 @@ async function scrapeChannel(
     
     let videoIds = '';
     try {
-      const playlistRes = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
-        params: {
-          part: 'snippet',
-          playlistId: uploadsPlaylistId,
-          maxResults: 15,
-          key: YOUTUBE_API_KEY,
-        },
+      const playlistRes = await ytRequest('playlistItems', {
+        part: 'snippet',
+        playlistId: uploadsPlaylistId,
+        maxResults: 15,
       });
 
       videoIds = playlistRes.data.items
@@ -229,15 +249,12 @@ async function scrapeChannel(
         throw new Error('YouTube API Quota Exceeded. Please try again tomorrow.');
       }
       // Fallback to search if playlistItems fails (some channels don't follow the UU pattern)
-      const searchRes = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-        params: {
-          part: 'snippet',
-          channelId: channel.id,
-          type: 'video',
-          order: 'date',
-          maxResults: 10,
-          key: YOUTUBE_API_KEY,
-        },
+      const searchRes = await ytRequest('search', {
+        part: 'snippet',
+        channelId: channel.id,
+        type: 'video',
+        order: 'date',
+        maxResults: 10,
       });
       videoIds = searchRes.data.items?.map((i: any) => i.id.videoId).filter((id: string) => id && !seenVideoIds.has(id)).join(',');
     }
@@ -245,8 +262,9 @@ async function scrapeChannel(
     if (!videoIds) return 0;
 
     // 3. Get video details
-    const detailsRes = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
-      params: { part: 'statistics,contentDetails,snippet', id: videoIds, key: YOUTUBE_API_KEY },
+    const detailsRes = await ytRequest('videos', { 
+      part: 'statistics,contentDetails,snippet', 
+      id: videoIds 
     });
 
     const contentToInsert: any[] = [];
@@ -332,8 +350,8 @@ async function scrapeChannel(
 export async function scrapeAllPremiumChannels(
   onProgress?: (msg: string) => void
 ): Promise<{ totalAdded: number; byCategory: Record<string, number> }> {
-  if (!YOUTUBE_API_KEY) {
-    throw new Error('VITE_YOUTUBE_API_KEY not configured');
+  if (YOUTUBE_KEYS.length === 0) {
+    throw new Error('YouTube API Keys not configured in .env');
   }
 
   const seenVideoIds = new Set<string>();
@@ -348,8 +366,9 @@ export async function scrapeAllPremiumChannels(
     try {
       // BATCH CHANNEL LOOKUP: Fetch all channels in this category at once to save quota
       const channelIds = channels.map(c => c.id).join(',');
-      const channelsRes = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
-        params: { part: 'snippet,statistics', id: channelIds, key: YOUTUBE_API_KEY },
+      const channelsRes = await ytRequest('channels', { 
+        part: 'snippet,statistics', 
+        id: channelIds 
       });
       
       const channelMap = new Map();
@@ -420,39 +439,64 @@ export interface Creator {
 
 // Normalized view of a video (backward compat with existing VideoPlayerModal)
 export function normalizeContentPiece(cp: any): any {
-  // If it's already normalized or from user_study_videos
-  if (cp.video_id && !cp.external_id) return cp;
+  if (!cp) return { title: 'Unknown', channel_name: 'Unknown', published_at: new Date().toISOString() };
+  
+  try {
+    // If it's already normalized or from user_study_videos
+    if (cp.video_id && !cp.external_id) return cp;
 
-  const meta = typeof cp.content_metadata === 'string'
-    ? JSON.parse(cp.content_metadata)
-    : cp.content_metadata || {};
+    // Safe JSON parsing with fallback
+    let meta = {};
+    if (cp.content_metadata) {
+      try {
+        meta = typeof cp.content_metadata === 'string'
+          ? JSON.parse(cp.content_metadata)
+          : cp.content_metadata;
+      } catch (e) {
+        console.warn('Failed to parse content_metadata:', e);
+        meta = {};
+      }
+    }
 
-  return {
-    // New schema fields
-    id: cp.id,
-    content_type: cp.content_type || 'video',
-    category: cp.category || 'All',
-    quality_score: cp.quality_score || 0,
-    virality_score: cp.virality_score || 0,
-    engagement_rate: cp.engagement_rate || 0,
-    // Backward compat with premium_trending_videos schema
-    video_id: cp.external_id || cp.video_id,
-    title: cp.title,
-    description: cp.description,
-    video_url: meta.video_url || cp.video_url || `https://www.youtube.com/watch?v=${cp.external_id || cp.video_id}`,
-    thumbnail_url: cp.thumbnail_url,
-    high_res_thumbnail: meta.high_res_thumbnail || cp.thumbnail_url,
-    channel_name: meta.channel_name || cp.channel_name || cp.creator?.name || 'Unknown',
-    channel_id: meta.channel_id || cp.channel_id || '',
-    channel_avatar: meta.channel_avatar || cp.channel_avatar || cp.creator?.profile_image_url ||
-      `https://api.dicebear.com/7.x/avataaars/svg?seed=${meta.channel_id || cp.creator_id || 'unknown'}`,
-    duration_seconds: meta.duration_seconds || cp.duration || 0,
-    view_count: meta.view_count || cp.view_count || 0,
-    like_count: meta.like_count || 0,
-    comment_count: meta.comment_count || 0,
-    published_at: meta.published_at || cp.created_at,
-    subscriber_count: meta.subscriber_count || 0,
-  };
+    // Safe date handling
+    const publishedAt = cp.published_at || meta.published_at || cp.created_at || new Date().toISOString();
+    const validDate = typeof publishedAt === 'string' ? publishedAt : new Date().toISOString();
+
+    return {
+      // New schema fields
+      id: cp.id || 'unknown',
+      content_type: cp.content_type || 'video',
+      category: cp.category || 'All',
+      quality_score: Number(cp.quality_score) || 0,
+      virality_score: Number(cp.virality_score) || 0,
+      engagement_rate: Number(cp.engagement_rate) || 0,
+      // Backward compat with premium_trending_videos schema
+      video_id: cp.external_id || cp.video_id || 'unknown',
+      title: String(cp.title || 'Untitled'),
+      description: String(cp.description || ''),
+      video_url: meta.video_url || cp.video_url || `https://www.youtube.com/watch?v=${cp.external_id || cp.video_id || 'unknown'}`,
+      thumbnail_url: String(cp.thumbnail_url || ''),
+      high_res_thumbnail: String(meta.high_res_thumbnail || cp.thumbnail_url || ''),
+      channel_name: String(meta.channel_name || cp.channel_name || cp.creator?.name || 'Unknown Channel'),
+      channel_id: String(meta.channel_id || cp.channel_id || ''),
+      channel_avatar: String(meta.channel_avatar || cp.channel_avatar || cp.creator?.profile_image_url ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${meta.channel_id || cp.creator_id || 'unknown'}`),
+      duration_seconds: Number(meta.duration_seconds || cp.duration || 0),
+      view_count: Number(meta.view_count || cp.view_count || 0),
+      like_count: Number(meta.like_count || 0),
+      comment_count: Number(meta.comment_count || 0),
+      published_at: validDate,
+      subscriber_count: Number(meta.subscriber_count || 0),
+    };
+  } catch (error) {
+    console.error('Error normalizing content piece:', error);
+    return { 
+      title: 'Untitled', 
+      channel_name: 'Unknown', 
+      published_at: new Date().toISOString(),
+      id: 'error',
+    };
+  }
 }
 
 // Category → DB mapping
@@ -506,7 +550,7 @@ export async function fetchContentByCategory(
     return { items: [] };
   }
 
-  const items = (data || []) as ContentPiece[];
+  const items = (data || []).filter(i => !!i) as ContentPiece[];
   
   // DIVERSITY RE-RANKING: Prevent one creator from dominating the top of the feed (Only for first page)
   let processedItems = items;
@@ -597,35 +641,44 @@ export async function searchContent(
   // LIVE FALLBACK: If no results found in DB, fetch directly from YouTube
   if (results.length === 0 && searchQuery.length > 2) {
     try {
-      const searchRes = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-        params: {
-          part: 'snippet',
-          q: searchQuery,
-          type: 'video',
-          maxResults: 15,
-          key: YOUTUBE_API_KEY,
-        },
+      const searchRes = await ytRequest('search', {
+        part: 'snippet',
+        q: searchQuery,
+        type: 'video',
+        maxResults: 15,
       });
 
       const ytResults = searchRes.data.items?.map((i: any) => ({
-        id: i.id.videoId,
+        content_type: 'video',
         external_id: i.id.videoId,
+        source_platform: 'youtube',
         title: i.snippet.title,
-        description: i.snippet.description,
+        description: i.snippet.description?.slice(0, 500),
+        content_url: `https://www.youtube.com/watch?v=${i.id.videoId}`,
         thumbnail_url: i.snippet.thumbnails?.high?.url || i.snippet.thumbnails?.default?.url,
-        category: category || 'Coding',
-        quality_score: 80, // Default for live search
+        category: category && category !== 'All' ? category : 'Coding',
+        quality_score: 70, 
         virality_score: 50,
-        content_metadata: JSON.stringify({
+        content_metadata: {
           channel_name: i.snippet.channelTitle,
           channel_id: i.snippet.channelId,
           published_at: i.snippet.publishedAt,
-        })
+          high_res_thumbnail: i.snippet.thumbnails?.high?.url
+        }
       })) || [];
       
+      // BACKGROUND UPSERT: Save to DB so we don't have to fetch again
+      if (ytResults.length > 0) {
+        supabase.from('content_pieces').upsert(ytResults, { onConflict: 'external_id' })
+          .then(({ error }) => { if (error) console.error('Cache upsert failed:', error); });
+      }
+
       return ytResults;
-    } catch (err) {
-      console.error('YouTube live search failed:', err);
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        console.error('YouTube API Quota Exceeded');
+      }
+      return [];
     }
   }
 
