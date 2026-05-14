@@ -9,6 +9,8 @@ import { PageLayout } from '@/components/ui/PageLayout';
 import { motion } from 'framer-motion';
 import { Users, Settings as SettingsIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useVisibility } from '@/components/providers/VisibilityManager';
+import { useAppCache } from '@/components/providers/CacheProvider';
 
 import DashboardHome from '@/components/features/dashboard/DashboardHome';
 import FileStorage from '@/components/features/files/FileStorage';
@@ -51,6 +53,9 @@ const Dashboard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [boards, setBoards] = useState<any[]>([]);
   const [selectedBoard, setSelectedBoard] = useState<any | null>(null);
+  const { isStale } = useVisibility();
+  const { get, set, invalidate } = useAppCache();
+  const [activeNote, setActiveNote] = useState<any | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -61,18 +66,30 @@ const Dashboard = () => {
 
   const fetchBoards = useCallback(async () => {
     if (!user) return;
+    
+    // Layer 4: Check cache
+    const cacheKey = `boards:${user.id}`;
+    const cached = get<any[]>(cacheKey);
+    if (cached) {
+      setBoards(cached);
+      if (cached.length > 0 && !selectedBoard) setSelectedBoard(cached[0]);
+      return;
+    }
+
     const { data } = await supabase
       .from('research_boards' as any)
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
+    
     if (data) {
       setBoards(data);
+      set(cacheKey, data); // 5m TTL
       if (data.length > 0 && !selectedBoard) {
         setSelectedBoard(data[0]);
       }
     }
-  }, [user, selectedBoard]);
+  }, [user, selectedBoard, get, set]);
 
   useEffect(() => {
     fetchBoards();
@@ -117,10 +134,25 @@ const Dashboard = () => {
     navigate(path);
   };
 
-  const initializeData = useCallback(async () => {
+   const initializeData = useCallback(async () => {
     if (!user) return;
-    setIsInitialLoading(true);
     
+    // Layer 4: Check cache first
+    const profileCacheKey = `profile:${user.id}`;
+    const boardsCacheKey = `boards:${user.id}`;
+    
+    const cachedProfile = get<Profile>(profileCacheKey);
+    const cachedBoards = get<any[]>(boardsCacheKey);
+
+    if (cachedProfile && cachedBoards) {
+      setProfile(cachedProfile);
+      setBoards(cachedBoards);
+      if (cachedBoards.length > 0 && !selectedBoard) setSelectedBoard(cachedBoards[0]);
+      setIsInitialLoading(false);
+      return;
+    }
+
+    setIsInitialLoading(true);
     try {
       const [profileRes, boardsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle(),
@@ -128,22 +160,17 @@ const Dashboard = () => {
       ]);
 
       if (profileRes.data) {
-        setProfile(profileRes.data as unknown as Profile);
+        const profileData = profileRes.data as unknown as Profile;
+        setProfile(profileData);
+        set(profileCacheKey, profileData, 30 * 60 * 1000); // 30m TTL for profile
         if (!profileRes.data.onboarding_completed) {
           navigate('/onboarding');
         }
-      } else {
-        // Create default profile if missing (fallback logic)
-        const { data: newProfile } = await supabase.from('profiles').insert([{ 
-          user_id: user.id, 
-          display_name: user.email?.split('@')[0],
-          onboarding_completed: false 
-        }]).select().single();
-        if (newProfile) setProfile(newProfile as unknown as Profile);
       }
 
       if (boardsRes.data) {
         setBoards(boardsRes.data);
+        set(boardsCacheKey, boardsRes.data); // Default 5m TTL
         if (boardsRes.data.length > 0 && !selectedBoard) {
           setSelectedBoard(boardsRes.data[0]);
         }
@@ -155,22 +182,21 @@ const Dashboard = () => {
     } finally {
       setIsInitialLoading(false);
     }
-  }, [user, navigate, selectedBoard]);
+  }, [user, navigate, selectedBoard, get, set]);
 
   useEffect(() => {
     if (user) initializeData();
   }, [user]);
   
-  // Re-sync visibility
+  // Layer 1: Centralized Visibility-based revalidation
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && Date.now() - lastFetchTimeRef.current > FETCH_COOLDOWN) {
-        initializeData();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [initializeData]);
+    if (isStale) {
+      console.log('[Dashboard] Revalidating stale data on tab return...');
+      // Only invalidate the board items, profile is longer TTL
+      invalidate(`boards:${user?.id}`);
+      initializeData();
+    }
+  }, [isStale, user?.id, invalidate, initializeData]);
 
   if (isInitialLoading) {
     return (

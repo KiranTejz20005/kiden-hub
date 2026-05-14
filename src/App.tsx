@@ -8,6 +8,9 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
+import { VisibilityManager } from "@/components/providers/VisibilityManager";
+import { CacheProvider } from "@/components/providers/CacheProvider";
+
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -18,9 +21,11 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000, // Layer 2: 5 minutes global staleTime
       retry: 1,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: false, // Layer 2: Disable refetch on tab return
+      refetchOnReconnect: false,   // Layer 2: Disable refetch on reconnect
+      gcTime: 10 * 60 * 1000,      // Keep in cache for 10 minutes
     },
   },
 });
@@ -42,41 +47,45 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <Toaster position="bottom-right" />
-          <Sonner />
-          <BrowserRouter>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/sign-in" element={<Auth />} />
-                <Route path="/sign-up" element={<Auth />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route
-                  path="/dashboard/*"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/onboarding"
-                  element={
-                    <ProtectedRoute>
-                      <Onboarding />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
+      <VisibilityManager>
+        <CacheProvider>
+          <ThemeProvider>
+            <TooltipProvider>
+              <Toaster position="bottom-right" />
+              <Sonner />
+              <BrowserRouter>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/sign-in" element={<Auth />} />
+                    <Route path="/sign-up" element={<Auth />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route
+                      path="/dashboard/*"
+                      element={
+                        <ProtectedRoute>
+                          <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/onboarding"
+                      element={
+                        <ProtectedRoute>
+                          <Onboarding />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
+            </TooltipProvider>
+          </ThemeProvider>
+        </CacheProvider>
+      </VisibilityManager>
     </QueryClientProvider>
   </ErrorBoundary>
 );
 
-export default App;
+export default App;

@@ -7,9 +7,12 @@ import {
   ChevronDown, Settings, CreditCard, LogOut, 
   ExternalLink, MoreHorizontal, Link as LinkIcon, 
   FileText, MessageSquare, Upload, TrendingUp, 
-  Sparkles, LayoutTemplate, Trash2 
+  Sparkles, LayoutTemplate, Trash2,
+  Video, Image as ImageIcon, File, Paperclip,
+  ArrowRight
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import * as ContextMenu from '@radix-ui/react-context-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +20,19 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { formatDistanceToNow } from 'date-fns';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useDropzone } from 'react-dropzone';
+import axios from 'axios';
+import PDFThumbnail from './PDFThumbnail';
+import { useAppCache } from "@/components/providers/CacheProvider";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import { X } from 'lucide-react';
+
+
 
 interface Board {
   id: string;
@@ -55,6 +70,7 @@ const MyBoards = ({
   resetCounter?: number;
 }) => {
   const { user } = useAuth();
+  const { get, set, invalidate } = useAppCache();
   const [items, setItems] = useState<BoardItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,6 +84,10 @@ const MyBoards = ({
   const [linkUrl, setLinkUrl] = useState('');
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+  const [activeNote, setActiveNote] = useState<BoardItem | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [paneItem, setPaneItem] = useState<BoardItem | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
 
   const TEMPLATES = [
     { title: 'Deep Learning Study', emoji: '🧠', items: [
@@ -86,6 +106,15 @@ const MyBoards = ({
 
   const fetchItems = useCallback(async () => {
     if (!selectedBoard || !user) return;
+    
+    // Layer 4: Check cache first
+    const cacheKey = `board-items:${selectedBoard.id}`;
+    const cachedData = get<BoardItem[]>(cacheKey);
+    if (cachedData) {
+      setItems(cachedData);
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -96,12 +125,14 @@ const MyBoards = ({
       
       if (error) throw error;
       setItems(data || []);
+      // Layer 4: Update cache with 5m TTL
+      set(cacheKey, data || []);
     } catch (error) {
       console.error('Error fetching items:', error);
     } finally {
       setLoading(false);
     }
-  }, [selectedBoard, user]);
+  }, [selectedBoard, user, get, set]);
 
   const sortedItems = useMemo(() => {
     let result = [...items];
@@ -124,29 +155,167 @@ const MyBoards = ({
     if (!user || !selectedBoard) return;
     setIsAddingItem(true);
     try {
+      // If it's a link, try to fetch metadata
+      let itemData = { ...data };
+      if (type === 'link' && data.url) {
+        const isYoutube = data.url.includes('youtube.com') || data.url.includes('youtu.be');
+        if (isYoutube) {
+          const videoId = data.url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1];
+          if (videoId) {
+            itemData.type = 'video';
+            itemData.thumbnail_url = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+            if (!itemData.title || itemData.title === 'New Link' || itemData.title === 'Pasted Link') {
+              itemData.title = `YouTube Video (${videoId})`;
+            }
+          }
+        }
+      }
+
       const { error } = await supabase
         .from('research_board_items')
         .insert([{
           board_id: selectedBoard.id,
           user_id: user.id,
-          type,
-          title: data.title || 'Untitled Item',
-          content: data.content || {},
-          url: data.url,
-          thumbnail_url: data.thumbnail_url
+          type: itemData.type || type,
+          title: itemData.title || 'Untitled Item',
+          content: itemData.content || {},
+          url: itemData.url,
+          thumbnail_url: itemData.thumbnail_url
         }]);
 
       if (error) throw error;
-      toast.success('Item added to board');
-      fetchItems();
-    } catch (error) {
-      toast.error('Failed to add item');
+       
+       // Layer 4: Invalidate cache
+       invalidate(`board-items:${selectedBoard.id}`);
+       
+       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added to board`);
+       fetchItems();
+    } catch (error: any) {
+      console.error('Board Add Error:', error);
+      toast.error(`Failed to add item: ${error.message || 'Unknown error'}`);
     } finally {
       setIsAddingItem(false);
       setShowLinkModal(false);
       setLinkUrl('');
     }
   };
+
+  const renderItemPreview = (item: BoardItem) => {
+    if (item.thumbnail_url) {
+      return <img src={item.thumbnail_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={item.title} />;
+    }
+
+    if (item.type === 'note') {
+      return (
+        <div className="w-full h-full bg-white p-6 flex flex-col gap-3 overflow-hidden select-none">
+          <div className="h-4 w-3/4 bg-black/10 rounded-full" />
+          <div className="h-2 w-full bg-black/5 rounded-full" />
+          <div className="h-2 w-5/6 bg-black/5 rounded-full" />
+          <div className="mt-4 space-y-2">
+            <div className="h-1.5 w-full bg-black/[0.03] rounded-full" />
+            <div className="h-1.5 w-full bg-black/[0.03] rounded-full" />
+            <div className="h-1.5 w-2/3 bg-black/[0.03] rounded-full" />
+          </div>
+          <div className="mt-auto pt-4 border-t border-black/5">
+             <div className="h-2 w-1/4 bg-primary/20 rounded-full" />
+          </div>
+        </div>
+      );
+    }
+    if (item.type === 'file') {
+      const isPdf = item.title.toLowerCase().endsWith('.pdf');
+      if (isPdf && item.url) {
+        return <PDFThumbnail url={item.url} />;
+      }
+      return (
+        <div className="w-full h-full bg-[#f8f9fa] p-8 flex flex-col items-center justify-center gap-4 group-hover:bg-white transition-colors">
+          <div className="w-16 h-20 bg-white border border-black/10 rounded-md shadow-sm relative flex flex-col p-2 gap-1.5 overflow-hidden">
+            <div className="h-1 w-full bg-black/5 rounded-full" />
+            <div className="h-1 w-2/3 bg-black/5 rounded-full" />
+            <div className="mt-2 space-y-1">
+              <div className="h-0.5 w-full bg-black/[0.02] rounded-full" />
+              <div className="h-0.5 w-full bg-black/[0.02] rounded-full" />
+            </div>
+            <div className={cn(
+              "absolute bottom-0 right-0 left-0 h-5 flex items-center justify-center text-[8px] font-black tracking-tighter uppercase",
+              isPdf ? "bg-rose-500 text-white" : "bg-primary text-white"
+            )}>
+              {isPdf ? 'PDF' : 'DOC'}
+            </div>
+          </div>
+          <div className="text-center">
+            <span className="text-[10px] font-bold text-black/40 truncate max-w-[120px] block">{item.title}</span>
+          </div>
+        </div>
+      );
+    }
+
+
+    return (
+      <div className="w-full h-full flex items-center justify-center text-white/5 group-hover:text-white/20 transition-colors">
+        {item.type === 'link' && <LinkIcon className="w-16 h-16" />}
+        {item.type === 'chat' && <MessageSquare className="w-16 h-16" />}
+        {item.type === 'idea' && <Sparkles className="w-16 h-16" />}
+      </div>
+    );
+  };
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+
+    if (!user || !selectedBoard) return;
+    setIsUploading(true);
+    
+    for (const file of acceptedFiles) {
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${user.id}/${selectedBoard.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('workspace-assets')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (uploadError) throw uploadError;
+
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('workspace-assets')
+          .getPublicUrl(filePath);
+
+        await handleAddItem('file', {
+          title: file.name,
+          url: publicUrl,
+          content: { size: file.size, type: file.type }
+        });
+      } catch (error) {
+        console.error('Upload error:', error);
+        toast.error(`Failed to upload ${file.name}`);
+      }
+    }
+    setIsUploading(false);
+  }, [user, selectedBoard, handleAddItem]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+    onDrop,
+    noClick: true,
+    noKeyboard: true
+  });
+
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const text = e.clipboardData?.getData('text');
+      if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+        handleAddItem('link', { url: text, title: 'Pasted Link' });
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handleAddItem]);
+
 
   const handleDeleteItem = async (id: string) => {
     try {
@@ -266,59 +435,120 @@ const MyBoards = ({
 
 
   return (
-    <div className="h-full flex min-h-0 overflow-hidden bg-background text-foreground">
-      <main className="flex-1 min-w-0 flex flex-col bg-[#050505] overflow-hidden">
+    <div className="h-full flex min-h-0 overflow-hidden bg-background text-foreground w-full">
+      <ResizablePanelGroup 
+        direction="horizontal" 
+        className="flex-1"
+        onDragging={(dragging) => setIsResizing(dragging)}
+      >
+        <ResizablePanel defaultSize={paneItem ? 60 : 100} minSize={30}>
+          <main 
+            {...getRootProps()}
+            className="h-full flex flex-col bg-[#050505] overflow-hidden relative"
+          >
+            <input {...getInputProps()} />
+
+        
+        {/* Drag Overlay */}
+        <AnimatePresence>
+          {isDragActive && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-sm border-4 border-dashed border-primary/40 flex flex-col items-center justify-center gap-6"
+            >
+              <div className="w-24 h-24 rounded-[2.5rem] bg-primary flex items-center justify-center text-white shadow-2xl shadow-primary/40 animate-bounce">
+                <Upload className="w-10 h-10" />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl font-bold text-white tracking-tight">Drop files to upload</h3>
+                <p className="text-white/40 text-sm font-medium">Images, PDFs, or any research assets</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Uploading indicator */}
+        {(isUploading || isAddingItem) && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 bg-primary/20 backdrop-blur-md border border-primary/20 rounded-full flex items-center gap-3 shadow-2xl animate-in fade-in slide-in-from-top-4">
+            <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
+              {isUploading ? 'Ingesting assets...' : 'Processing link...'}
+            </span>
+          </div>
+        )}
+
         {selectedBoard ? (
           <div className="flex-1 flex flex-col min-h-0">
             {/* Board Header */}
-            <div className="h-14 flex items-center justify-between px-8 border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-10">
-              <div className="flex items-center gap-6 flex-1 min-w-0">
-                <div className="relative group max-w-md w-full">
-                  <Search className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white/40 transition-colors" />
+            <div className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-10 gap-4">
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="flex items-center gap-3 min-w-0 mr-4">
+                  <h2 className={cn(
+                    "font-black text-white truncate uppercase tracking-tighter transition-all duration-500",
+                    paneItem ? "text-lg" : "text-2xl"
+                  )}>
+                    {selectedBoard.title}
+                  </h2>
+                  <button onClick={openCreateModal} className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/20 hover:text-white transition-all shrink-0">
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="relative group max-w-[240px] flex-1 hidden md:block">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/10 group-focus-within:text-primary transition-colors" />
                   <input 
-                    placeholder="Search this board"
+                    placeholder="Search..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-transparent border-none focus:outline-none pl-7 text-[13px] text-white placeholder:text-white/20 transition-all"
+                    className="w-full bg-white/[0.03] border border-white/5 rounded-xl py-2 pl-9 pr-4 text-[12px] text-white placeholder:text-white/10 focus:outline-none focus:border-primary/30 transition-all focus:bg-white/[0.05]"
                   />
-                </div>
-                <div className="flex items-center gap-2 min-w-0">
-                  <h2 className="text-xl font-bold text-white truncate uppercase tracking-tight">{selectedBoard.title}</h2>
-                  <button onClick={openCreateModal} className="p-1 rounded-md hover:bg-white/5 text-white/20 hover:text-white transition-all">
-                    <Plus className="w-5 h-5" />
-                  </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3 md:gap-5 shrink-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="text-[10px] font-bold tracking-[0.2em] text-white/30 hover:text-white transition-colors uppercase">
-                      SORT: {sortOrder}
+                    <button className="text-[9px] font-black tracking-[0.2em] text-white/30 hover:text-white transition-colors uppercase py-2 px-3 hover:bg-white/5 rounded-lg flex items-center gap-2">
+                      <TrendingUp className="w-3 h-3" />
+                      {!paneItem && <span>SORT</span>}
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-[#161616] border-white/10 rounded-xl p-1">
-                    <DropdownMenuItem onClick={() => setSortOrder('newest')} className="text-xs font-bold text-white hover:bg-white/5 rounded-lg">NEWEST</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortOrder('oldest')} className="text-xs font-bold text-white hover:bg-white/5 rounded-lg">OLDEST</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortOrder('alphabetical')} className="text-xs font-bold text-white hover:bg-white/5 rounded-lg">A-Z</DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="bg-[#161616] border-white/10 rounded-xl p-1 shadow-2xl">
+                    <DropdownMenuItem onClick={() => setSortOrder('newest')} className="text-[10px] font-black text-white/60 hover:text-white hover:bg-white/5 rounded-lg cursor-pointer py-2 px-3">NEWEST</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortOrder('oldest')} className="text-[10px] font-black text-white/60 hover:text-white hover:bg-white/5 rounded-lg cursor-pointer py-2 px-3">OLDEST</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortOrder('alphabetical')} className="text-[10px] font-black text-white/60 hover:text-white hover:bg-white/5 rounded-lg cursor-pointer py-2 px-3">A-Z</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <button onClick={handleChatWithBoard} className="text-[10px] font-bold tracking-[0.2em] text-white/30 hover:text-white transition-colors">
-                  CHAT
+                <button 
+                  onClick={handleChatWithBoard} 
+                  className="text-[9px] font-black tracking-[0.2em] text-white/30 hover:text-white transition-colors uppercase py-2 px-3 hover:bg-white/5 rounded-lg flex items-center gap-2"
+                  title="Chat with board"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  {!paneItem && <span>CHAT</span>}
                 </button>
-                <button onClick={handleShareBoard} className="text-[10px] font-bold tracking-[0.2em] text-white/30 hover:text-white transition-colors">
-                  SHARE
+                
+                <button 
+                  onClick={handleShareBoard} 
+                  className="text-[9px] font-black tracking-[0.2em] text-white/30 hover:text-white transition-colors uppercase py-2 px-3 hover:bg-white/5 rounded-lg flex items-center gap-2"
+                  title="Share board"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  {!paneItem && <span>SHARE</span>}
                 </button>
 
-                <div className="w-px h-4 bg-white/10" />
+                <div className="w-px h-4 bg-white/5 hidden sm:block" />
+                
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="text-white/30 hover:text-white transition-colors">
-                      <MoreHorizontal className="w-5 h-5" />
+                    <button className="p-2.5 rounded-xl hover:bg-white/5 text-white/20 hover:text-white transition-all">
+                      <MoreHorizontal className="w-4 h-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-[#161616] border-white/10 rounded-xl p-1">
+                  <DropdownMenuContent align="end" className="bg-[#161616] border-white/10 rounded-xl p-1 shadow-2xl min-w-[160px]">
                     <DropdownMenuItem 
                       onClick={handleDeleteBoard}
                       className="text-rose-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer text-xs font-bold gap-2"
@@ -334,52 +564,109 @@ const MyBoards = ({
             <ScrollArea className="flex-1">
               {items.length > 0 ? (
                 <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  <button 
-                    onClick={() => setShowLinkModal(true)}
-                    className="aspect-[4/3] rounded-[2.5rem] border-2 border-dashed border-white/5 bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/10 transition-all flex flex-col items-center justify-center gap-4 group"
-                  >
-                    <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-white/10 group-hover:text-white group-hover:bg-white/10 transition-all">
-                      <Plus className="w-7 h-7" />
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 group-hover:text-white transition-all">Add New Item</span>
-                  </button>
 
-                  {sortedItems.map((item) => (
-                    <motion.div
-                      layout
-                      key={item.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="aspect-[4/3] rounded-[2.5rem] bg-white/[0.03] border border-white/5 p-8 hover:bg-white/[0.05] hover:border-white/10 transition-all group flex flex-col shadow-sm"
-                    >
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/30 group-hover:text-white transition-colors">
-                          {item.type === 'link' && <LinkIcon className="w-5 h-5" />}
-                          {item.type === 'note' && <FileText className="w-5 h-5" />}
-                          {item.type === 'chat' && <MessageSquare className="w-5 h-5" />}
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-xl transition-all">
-                              <MoreHorizontal className="w-4 h-4 text-white/20" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-[#161616] border-white/10 rounded-xl p-1">
-                            <DropdownMenuItem 
-                              onClick={() => handleDeleteItem(item.id)}
-                              className="text-rose-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer text-xs font-bold gap-2"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" /> Delete Item
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      <h4 className="text-[14px] font-bold text-white mb-2 line-clamp-2 leading-snug">{item.title}</h4>
-                      <div className="mt-auto flex items-center justify-between text-[8px] font-black uppercase tracking-[0.2em] text-white/10">
-                        <span>{item.type}</span>
-                        <span>{formatDistanceToNow(new Date(item.created_at))} ago</span>
-                      </div>
-                    </motion.div>
+                   {sortedItems.map((item) => (
+                    <ContextMenu.Root key={item.id}>
+                      <ContextMenu.Trigger>
+                        <motion.div 
+                          layout
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="aspect-square rounded-[2rem] bg-white/[0.02] border border-white/5 overflow-hidden hover:bg-white/[0.04] hover:border-white/10 transition-all group flex flex-col shadow-2xl relative"
+                        >
+                          {/* Media Preview */}
+                          <div 
+                            className="flex-1 bg-black/40 relative overflow-hidden group-hover:bg-black/20 transition-all cursor-pointer" 
+                            onClick={() => setPaneItem(item)}
+                          >
+                            {renderItemPreview(item)}
+
+                            {/* Overlay Actions */}
+                            <div className="absolute top-5 right-5 flex gap-2">
+                               <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="opacity-0 group-hover:opacity-100 p-2.5 bg-black/60 backdrop-blur-md hover:bg-black/80 rounded-2xl transition-all border border-white/10 shadow-xl">
+                                    <MoreHorizontal className="w-4 h-4 text-white/60" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-[#161616] border-white/10 rounded-xl p-1 shadow-2xl">
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDeleteItem(item.id)}
+                                    className="text-rose-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer text-xs font-bold gap-2"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" /> Delete Item
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+
+                          {/* Content Info */}
+                          <div className="p-6 pt-0 mt-5 space-y-2">
+                            <div className="flex items-center gap-2.5 mb-1.5">
+                              <div className={cn("w-2 h-2 rounded-full", 
+                                item.type === 'video' ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.4)]' : 
+                                item.type === 'note' ? 'bg-primary shadow-[0_0_10px_rgba(5,77,68,0.4)]' : 
+                                item.type === 'file' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.4)]' : 'bg-emerald-500/40'
+                              )} />
+                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">{item.type}</span>
+                            </div>
+                            <h4 className="text-[14px] font-bold text-white/80 line-clamp-2 leading-relaxed group-hover:text-white transition-colors">{item.title}</h4>
+                            <p className="text-[11px] text-white/20 font-bold">
+                              {formatDistanceToNow(new Date(item.created_at))} ago
+                            </p>
+                          </div>
+                        </motion.div>
+                      </ContextMenu.Trigger>
+                      
+                      <ContextMenu.Portal>
+                        <ContextMenu.Content className="min-w-[220px] bg-[#161616]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] animate-in fade-in zoom-in-95 duration-150">
+                          <ContextMenu.Item 
+                            onClick={() => setPaneItem(item)}
+                            className="flex items-center justify-between px-3 py-2.5 text-[11px] font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl outline-none cursor-pointer transition-all gap-8"
+                          >
+
+                            <div className="flex items-center gap-3">
+                              <ExternalLink className="w-3.5 h-3.5" /> Open in Pane
+                            </div>
+                            <span className="text-[9px] text-white/20 tracking-widest font-black uppercase">Alt ↵</span>
+                          </ContextMenu.Item>
+                          <ContextMenu.Item className="flex items-center gap-3 px-3 py-2.5 text-[11px] font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl outline-none cursor-pointer transition-all">
+                            <MessageSquare className="w-3.5 h-3.5" /> Chat with
+                          </ContextMenu.Item>
+                          <ContextMenu.Item 
+                            onClick={() => item.url && window.open(item.url, '_blank')}
+                            className="flex items-center gap-3 px-3 py-2.5 text-[11px] font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl outline-none cursor-pointer transition-all"
+                          >
+                            <Upload className="w-3.5 h-3.5 rotate-180" /> Download
+                          </ContextMenu.Item>
+                          
+                          <ContextMenu.Separator className="h-px bg-white/5 my-1.5" />
+                          
+                          <ContextMenu.Item className="flex items-center gap-3 px-3 py-2.5 text-[11px] font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl outline-none cursor-pointer transition-all">
+                            <FileText className="w-3.5 h-3.5" /> Rename
+                          </ContextMenu.Item>
+                          <ContextMenu.Item className="flex items-center gap-3 px-3 py-2.5 text-[11px] font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl outline-none cursor-pointer transition-all">
+                            <PlusCircle className="w-3.5 h-3.5" /> Duplicate to Board
+                          </ContextMenu.Item>
+                          <ContextMenu.Item className="flex items-center gap-3 px-3 py-2.5 text-[11px] font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl outline-none cursor-pointer transition-all">
+                            <ArrowRight className="w-3.5 h-3.5" /> Move to Board
+                          </ContextMenu.Item>
+
+                          <ContextMenu.Separator className="h-px bg-white/5 my-1.5" />
+                          
+                          <ContextMenu.Item 
+                            onClick={() => handleDeleteItem(item.id)}
+                            className="flex items-center justify-between px-3 py-2.5 text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 rounded-xl outline-none cursor-pointer transition-all"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Trash2 className="w-3.5 h-3.5" /> Delete
+                            </div>
+                            <span className="opacity-40">⌫</span>
+                          </ContextMenu.Item>
+                        </ContextMenu.Content>
+                      </ContextMenu.Portal>
+                    </ContextMenu.Root>
                   ))}
                 </div>
               ) : (
@@ -454,7 +741,81 @@ const MyBoards = ({
             </div>
           </div>
         )}
-      </main>
+       </main>
+     </ResizablePanel>
+
+     {paneItem && (
+       <>
+         <ResizableHandle withHandle className="bg-white/5 hover:bg-primary/20 transition-colors duration-300">
+            <div className="w-[2px] h-8 bg-primary/40 rounded-full animate-pulse" />
+         </ResizableHandle>
+         <ResizablePanel defaultSize={40} minSize={20} className="bg-[#0a0a0a] z-50">
+           <div className="h-full flex flex-col relative">
+             {isResizing && (
+               <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-[60] flex items-center justify-center">
+                 <Loader2 className="w-6 h-6 animate-spin text-primary/40" />
+               </div>
+             )}
+             <div className="h-14 flex items-center justify-between px-6 border-b border-white/5 bg-black/40 backdrop-blur-md">
+               <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-white/40">
+                   {paneItem.type === 'video' && <Video className="w-4 h-4" />}
+                   {paneItem.type === 'file' && <File className="w-4 h-4" />}
+                   {paneItem.type === 'note' && <FileText className="w-4 h-4" />}
+                 </div>
+                 <span className="text-xs font-bold text-white/60 truncate max-w-[200px]">{paneItem.title}</span>
+               </div>
+               <div className="flex items-center gap-2">
+                 <Button variant="ghost" size="icon" onClick={() => window.open(paneItem.url!, '_blank')} className="w-8 h-8 rounded-lg text-white/20 hover:text-white">
+                   <ExternalLink className="w-4 h-4" />
+                 </Button>
+                 <Button variant="ghost" size="icon" onClick={() => setPaneItem(null)} className="w-8 h-8 rounded-lg text-white/20 hover:text-rose-400">
+                   <X className="w-4 h-4" />
+                 </Button>
+               </div>
+             </div>
+             <div className="flex-1 overflow-hidden p-6">
+               {paneItem.type === 'video' ? (
+                 <div className="aspect-video w-full rounded-2xl bg-black border border-white/5 overflow-hidden">
+                   <iframe 
+                     src={`https://www.youtube.com/embed/${paneItem.url?.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1]}`}
+                     className="w-full h-full border-0"
+                     allowFullScreen
+                   />
+                 </div>
+               ) : paneItem.type === 'file' && paneItem.url?.toLowerCase().endsWith('.pdf') ? (
+                 <iframe 
+                   src={`${paneItem.url}#toolbar=0`}
+                   className="w-full h-full border-0 rounded-2xl bg-white"
+                 />
+               ) : paneItem.type === 'note' ? (
+                 <ScrollArea className="h-full">
+                   <div className="prose prose-invert max-w-none">
+                     <h1 className="text-2xl font-bold mb-4">{paneItem.title}</h1>
+                     <div className="text-white/60 leading-relaxed">
+                       {typeof paneItem.content === 'string' ? paneItem.content : 'No content available.'}
+                     </div>
+                   </div>
+                 </ScrollArea>
+               ) : paneItem.thumbnail_url ? (
+                 <img src={paneItem.thumbnail_url} className="w-full rounded-2xl border border-white/5" alt={paneItem.title} />
+               ) : (
+                 <div className="h-full flex flex-col items-center justify-center text-white/5 gap-4">
+                   <File className="w-16 h-16" />
+                   <span className="text-[10px] font-black uppercase tracking-widest">Preview unavailable</span>
+                   {paneItem.url && (
+                     <Button variant="outline" onClick={() => window.open(paneItem.url!, '_blank')} className="border-white/5 bg-white/5">
+                       Download Asset
+                     </Button>
+                   )}
+                 </div>
+               )}
+             </div>
+           </div>
+         </ResizablePanel>
+       </>
+     )}
+   </ResizablePanelGroup>
 
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
         <DialogContent className="max-w-md rounded-3xl border-white/10 bg-[#0a0a0a] p-6">
@@ -540,6 +901,45 @@ const MyBoards = ({
           </div>
         </DialogContent>
       </Dialog>
+      {/* Note Editor Canvas Overlay */}
+      <AnimatePresence>
+        {activeNote && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xl flex items-center justify-center p-8"
+          >
+            <div className="w-full h-full max-w-6xl bg-[#080808] border border-white/10 rounded-[3rem] shadow-2xl flex flex-col overflow-hidden">
+              <div className="h-20 flex items-center justify-between px-10 border-b border-white/5">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white tracking-tight">{activeNote.title}</h2>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setActiveNote(null)}
+                  className="rounded-2xl hover:bg-white/5 text-white/40"
+                >
+                  <Plus className="w-5 h-5 rotate-45" /> Close Canvas
+                </Button>
+              </div>
+              <div className="flex-1 overflow-hidden p-10">
+                <ScrollArea className="h-full">
+                  <div className="max-w-3xl mx-auto prose prose-invert">
+                    <h1 className="text-4xl font-bold mb-8">{activeNote.title}</h1>
+                    <div className="text-white/60 leading-relaxed space-y-4">
+                      {typeof activeNote.content === 'string' ? activeNote.content : 'Start documenting your research findings here...'}
+                    </div>
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

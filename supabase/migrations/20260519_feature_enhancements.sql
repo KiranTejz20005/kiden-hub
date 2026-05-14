@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS workspace_collaborators (
 
 -- RLS for workspace_collaborators
 ALTER TABLE workspace_collaborators ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "collaborators_isolation" ON workspace_collaborators;
 CREATE POLICY "collaborators_isolation" ON workspace_collaborators FOR ALL USING (auth.uid() = user_id OR status = 'pending');
 
 -- 4. User Preferences Storage
