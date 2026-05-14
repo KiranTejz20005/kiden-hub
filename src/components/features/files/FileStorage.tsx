@@ -14,7 +14,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { YouTubeSearchLibrary } from './YouTubeSearchLibrary';
-import { TrendingFeed } from './TrendingFeed';
+import { DiscoverFeed } from './DiscoverFeed';
+import { logActivity } from '@/services/activityService';
 
 const FILE_SIZE_LIMIT = 50 * 1024 * 1024; // 50MB
 
@@ -175,6 +176,10 @@ const FileStorage = () => {
           type: ext, mime_type: file.type, storage_path: path, public_url: publicUrl
         }]);
         if (dbErr) throw dbErr;
+        
+        // Log Activity
+        logActivity(user.id, 'upload', file.name, 'file');
+        
         toast.success(`${file.name} uploaded`);
       } catch (e: any) { toast.error(`Upload failed: ${e.message}`); }
     }
@@ -187,6 +192,10 @@ const FileStorage = () => {
   const deleteFile = async (file: any) => {
     await supabase.storage.from('kiden-files').remove([file.storage_path]);
     await supabase.from('files').delete().eq('id', file.id);
+    
+    // Log Activity
+    logActivity(user.id, 'delete_file', file.name, 'file');
+    
     setFiles(prev => prev.filter(f => f.id !== file.id));
     toast.success('File deleted');
   };
@@ -301,7 +310,7 @@ const FileStorage = () => {
           ) : tab === 'YouTube' ? (
             <YouTubeSearchLibrary />
           ) : tab === 'Trending' ? (
-            <TrendingFeed />
+            <DiscoverFeed />
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
               <div className="w-14 h-14 rounded-2xl bg-secondary/30 border border-border/40 flex items-center justify-center">
