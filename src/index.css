@@ -30,6 +30,10 @@
     --gradient-primary: linear-gradient(135deg, hsl(142, 70%, 50%) 0%, hsl(160, 80%, 40%) 100%);
     --gradient-hero: linear-gradient(180deg, hsl(0, 0%, 4%) 0%, hsl(160, 30%, 8%) 100%);
     --shadow-glow: 0 0 80px hsl(160, 84%, 39%, 0.25);
+    /* Sidebar/nav active state — always tracks --primary */
+    --sidebar-active-bg: hsl(var(--primary) / 0.12);
+    --sidebar-active-text: hsl(var(--primary));
+    --sidebar-active-border: hsl(var(--primary) / 0.3);
   }
 
   /* Sapphire Blue */
@@ -91,6 +95,10 @@
 @layer base {
   * {
     @apply border-border;
+    /* Smooth theme transitions — no lag or flash */
+    transition-property: color, background-color, border-color, box-shadow;
+    transition-timing-function: ease;
+    transition-duration: 150ms;
   }
 
   html.lenis,
@@ -208,6 +216,37 @@
 
   .glass-premium {
     @apply bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl;
+  }
+
+  /* Theme-aware sidebar active state */
+  .sidebar-active {
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-active-text);
+    border-color: var(--sidebar-active-border);
+  }
+
+  /* Theme-aware accent button */
+  .btn-accent {
+    background-color: hsl(var(--primary));
+    color: white;
+    box-shadow: 0 4px 24px hsl(var(--primary) / 0.3);
+  }
+  .btn-accent:hover {
+    opacity: 0.9;
+  }
+
+  /* Discovery feed card active border */
+  .card-active-border {
+    border-color: hsl(var(--primary) / 0.3);
+  }
+
+  /* Scrollbar hide utility */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 

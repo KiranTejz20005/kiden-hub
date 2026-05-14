@@ -17,6 +17,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { useTheme, ThemeType } from '@/components/providers/ThemeProvider';
+import { logActivity } from '@/services/activityService';
 
 const THEMES: { id: ThemeType; name: string; label: string; color: string; preview: string }[] = [
   { id: 'emerald', name: 'Emerald Dark', label: 'Primary Brand', color: 'bg-emerald-500', preview: 'bg-emerald-500/10' },
@@ -84,6 +85,7 @@ const Preferences = ({ onProfileUpdate }: { onProfileUpdate?: () => void }) => {
         .eq('user_id', user.id);
       
       if (!fullUpdateError) {
+        logActivity(user.id, 'update_profile', displayName || 'Profile', 'settings');
         toast.success('Profile updated');
         if (onProfileUpdate) onProfileUpdate();
         return;
@@ -118,6 +120,7 @@ const Preferences = ({ onProfileUpdate }: { onProfileUpdate?: () => void }) => {
         .update({ name: workspaceName })
         .eq('id', activeWorkspace.id);
       if (error) throw error;
+      logActivity(user.id, 'update_settings', workspaceName, 'workspace');
       toast.success('Workspace updated');
       refreshWorkspaces();
     } catch (error) {

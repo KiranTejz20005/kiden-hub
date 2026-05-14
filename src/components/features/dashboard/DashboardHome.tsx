@@ -12,7 +12,9 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ActiveView } from '@/lib/types';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
+import { fetchRecentActivities, ActivityLog } from '@/services/activityService';
+import { X } from 'lucide-react';
 
 const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => void }) => {
   const { user } = useAuth();
@@ -23,7 +25,9 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
     storage: 0, 
     storageText: '0 MB'
   });
+  const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -35,11 +39,12 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
 
     const fetchStats = async () => {
       try {
-        const [filesCount, chatsCount, boardsCount, storageSum] = await Promise.all([
+        const [filesCount, chatsCount, boardsCount, storageSum, recentLogs] = await Promise.all([
           supabase.from('files').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
           supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
           supabase.from('research_boards').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-          supabase.from('files').select('size').eq('user_id', user.id)
+          supabase.from('files').select('size').eq('user_id', user.id),
+          fetchRecentActivities(user.id, 5)
         ]);
 
         const totalSize = storageSum.data?.reduce((acc, curr) => acc + curr.size, 0) || 0;
@@ -54,12 +59,24 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
           storage: totalSize,
           storageText: formattedStorage
         });
+        
+        setActivities(recentLogs);
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
       }
     };
 
     fetchStats();
+    
+    // Subscribe to changes
+    const channel = supabase.channel('activity-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_logs', filter: `user_id=eq.${user.id}` }, 
+        (payload) => {
+          setActivities(prev => [payload.new as ActivityLog, ...prev].slice(0, 5));
+        }
+      ).subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const quickActions = [
@@ -89,6 +106,119 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+  };
+
+  const ActivityHistoryModal = () => {
+    const [allActivities, setAllActivities] = useState<ActivityLog[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(true);
+
+    useEffect(() => {
+      const loadHistory = async () => {
+        if (!user) return;
+        const data = await fetchRecentActivities(user.id, 50);
+        setAllActivities(data);
+        setLoadingHistory(false);
+      };
+      loadHistory();
+    }, []);
+
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:p-10"
+        onClick={() => setShowHistory(false)}
+      >
+        <motion.div 
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          className="bg-[#050505] border border-white/10 rounded-[2.5rem] w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="p-8 border-b border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                <Activity className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">Activity History</h2>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mt-0.5">Chronological Workspace Logs</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowHistory(false)}
+              className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-500 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-2 custom-scrollbar">
+            {loadingHistory ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Clock className="w-10 h-10 text-primary/20 animate-spin" />
+                <p className="text-xs text-gray-600 font-bold uppercase tracking-[0.2em]">Retrieving logs...</p>
+              </div>
+            ) : allActivities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Activity className="w-10 h-10 text-white/5" />
+                <p className="text-xs text-gray-600 font-bold uppercase tracking-[0.2em]">No activity found</p>
+              </div>
+            ) : (
+              allActivities.map((item, i) => {
+                const ActionIcon = 
+                  item.action_type === 'upload' ? Upload :
+                  item.action_type === 'update_profile' ? Users :
+                  item.action_type === 'add_to_library' ? Plus :
+                  item.action_type === 'follow_creator' ? Users :
+                  item.action_type === 'delete_file' ? Database : Activity;
+
+                const actionVerb = 
+                  item.action_type === 'upload' ? 'uploaded' :
+                  item.action_type === 'update_profile' ? 'updated' :
+                  item.action_type === 'add_to_library' ? 'added' :
+                  item.action_type === 'follow_creator' ? 'followed' :
+                  item.action_type === 'update_settings' ? 'updated settings in' :
+                  item.action_type === 'delete_file' ? 'deleted' : 'performed';
+
+                return (
+                  <div 
+                    key={item.id} 
+                    className="flex items-center gap-5 p-4 rounded-3xl hover:bg-white/[0.03] transition-colors group border border-transparent hover:border-white/5"
+                  >
+                    <div className="w-11 h-11 rounded-2xl bg-secondary/50 flex items-center justify-center shrink-0 border border-white/5">
+                      <ActionIcon className="w-4 h-4 text-gray-500 group-hover:text-primary transition-colors" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-300">
+                        <span className="font-bold text-white">You</span> {actionVerb} <span className="font-bold text-white">{item.target_name}</span>
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-gray-600 font-black uppercase tracking-widest">
+                          {format(new Date(item.created_at), 'MMM d, HH:mm')}
+                        </span>
+                        <span className="w-1 h-1 rounded-full bg-gray-800" />
+                        <span className="text-[10px] text-primary/60 font-bold uppercase tracking-widest">
+                          {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          
+          <div className="p-6 bg-white/[0.01] border-t border-white/5 text-center">
+            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">
+              End of recent history · {allActivities.length} logs retrieved
+            </p>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
   };
 
   return (
@@ -224,31 +354,57 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
                   </div>
                   <h2 className="text-xl font-bold text-white tracking-tight">Recent Activity</h2>
                 </div>
-                <button className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">View History</button>
+                <button 
+                  onClick={() => setShowHistory(true)}
+                  className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest"
+                >
+                  View History
+                </button>
               </div>
 
               <div className="space-y-1">
-                {[
-                  { user: 'Kiran', action: 'updated', target: 'DBMS Notes', time: '2m ago', icon: FileText },
-                  { user: 'AI Assistant', action: 'summarized', target: 'Research Paper.pdf', time: '15m ago', icon: Sparkles },
-                  { user: 'System', action: 'synced', target: 'Cloud Storage', time: '1h ago', icon: Database },
-                ].map((item, i) => (
-                  <motion.div 
-                    key={i} 
-                    variants={itemVariants}
-                    className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/[0.02] transition-colors group border border-transparent hover:border-white/5"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-secondary/50 flex items-center justify-center shrink-0">
-                      <item.icon className="w-3.5 h-3.5 text-gray-500 group-hover:text-primary transition-colors" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] text-gray-300 truncate">
-                        <span className="font-bold text-white">{item.user}</span> {item.action} <span className="font-bold text-white">{item.target}</span>
-                      </p>
-                      <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">{item.time}</p>
-                    </div>
-                  </motion.div>
-                ))}
+                {activities.length === 0 ? (
+                  <p className="text-center py-6 text-gray-600 text-xs italic">No recent activity detected.</p>
+                ) : (
+                  activities.map((item, i) => {
+                    const ActionIcon = 
+                      item.action_type === 'upload' ? Upload :
+                      item.action_type === 'update_profile' ? Users :
+                      item.action_type === 'add_to_library' ? Plus :
+                      item.action_type === 'follow_creator' ? Users :
+                      item.action_type === 'delete_file' ? Database : Activity;
+
+                    const actionVerb = 
+                      item.action_type === 'upload' ? 'uploaded' :
+                      item.action_type === 'update_profile' ? 'updated' :
+                      item.action_type === 'add_to_library' ? 'added' :
+                      item.action_type === 'follow_creator' ? 'followed' :
+                      item.action_type === 'update_settings' ? 'updated settings in' :
+                      item.action_type === 'delete_file' ? 'deleted' : 'performed';
+
+                    return (
+                      <motion.div 
+                        key={item.id} 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/[0.02] transition-colors group border border-transparent hover:border-white/5"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-secondary/50 flex items-center justify-center shrink-0">
+                          <ActionIcon className="w-3.5 h-3.5 text-gray-500 group-hover:text-primary transition-colors" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] text-gray-300 truncate">
+                            <span className="font-bold text-white">You</span> {actionVerb} <span className="font-bold text-white">{item.target_name}</span>
+                          </p>
+                          <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">
+                            {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </motion.div>
@@ -296,6 +452,10 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
           </motion.div>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {showHistory && <ActivityHistoryModal />}
+      </AnimatePresence>
     </div>
   );
 };

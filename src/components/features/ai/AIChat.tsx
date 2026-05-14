@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { extractPdfText } from '@/lib/pdf-extractor';
+import { logActivity } from '@/services/activityService';
 
 // --- Typing Animation Dots ---
 // --- Thinking Animation with Timer ---
@@ -350,6 +351,11 @@ const AIChat = () => {
 
             return { filename: file.name, content: extractedContent, mimeType: file.mime_type, size: file.size };
           }));
+          
+          // Log Activity for analysis
+          fileData.forEach(file => {
+            logActivity(user.id, 'summarize_file', file.name, 'file');
+          });
         }
       }
 
