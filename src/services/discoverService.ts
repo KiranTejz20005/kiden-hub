@@ -447,43 +447,51 @@ export function normalizeCategoryForDB(uiCategory: string): string {
   return CAT_MAP[uiCategory] || uiCategory;
 }
 
+/**
+ * FETCH CONTENT WITH CURSOR PAGINATION (High Performance)
+ */
 export async function fetchContentByCategory(
   category: string,
-  limit = 40,
-  offset = 0,
+  limit = 24,
+  cursor?: { lastValue: any; lastId: string },
   sortBy: 'trending' | 'recent' | 'popular' = 'trending'
-): Promise<ContentPiece[]> {
+): Promise<{ items: ContentPiece[]; nextCursor?: { lastValue: any; lastId: string } }> {
   let query = supabase
     .from('content_pieces')
     .select('*')
-    .gte('quality_score', 20); // Relaxed threshold to show content
+    .gte('quality_score', 15); // Slightly more relaxed for more variety
 
   if (category !== 'All') {
     query = query.eq('category', normalizeCategoryForDB(category));
   }
 
-  // Sort strategy
-  if (sortBy === 'trending') {
-    query = query.order('virality_score', { ascending: false });
-  } else if (sortBy === 'recent') {
-    query = query.order('created_at', { ascending: false });
-  } else {
-    query = query.order('quality_score', { ascending: false });
+  // Determine sort column
+  const sortCol = sortBy === 'trending' ? 'virality_score' : 
+                  sortBy === 'recent' ? 'created_at' : 'quality_score';
+
+  // Apply Cursor Filter
+  if (cursor) {
+    const operator = 'lt'; 
+    query = query.or(`${sortCol}.${operator}.${cursor.lastValue},and(${sortCol}.eq.${cursor.lastValue},id.lt.${cursor.lastId})`);
   }
 
-  const { data, error } = await query.range(offset, offset + limit - 1);
+  // Apply Ordering
+  query = query.order(sortCol, { ascending: false }).order('id', { ascending: false });
+
+  const { data, error } = await query.limit(limit);
+  
   if (error) {
     console.error('fetchContentByCategory error:', error);
-    return [];
+    return { items: [] };
   }
 
   const items = (data || []) as ContentPiece[];
   
-  // DIVERSITY RE-RANKING: Prevent one creator from dominating the top of the feed
-  if (offset === 0 && items.length > 0) {
+  // DIVERSITY RE-RANKING: Prevent one creator from dominating the top of the feed (Only for first page)
+  let processedItems = items;
+  if (!cursor && items.length > 0) {
     const grouped: Record<string, ContentPiece[]> = {};
     items.forEach(item => {
-      // Use channel_id from metadata as a fallback for creator_id
       const meta = typeof item.content_metadata === 'string' ? JSON.parse(item.content_metadata) : item.content_metadata;
       const creatorKey = item.creator_id || meta?.channel_id || 'unknown';
       if (!grouped[creatorKey]) grouped[creatorKey] = [];
@@ -492,31 +500,63 @@ export async function fetchContentByCategory(
 
     const result: ContentPiece[] = [];
     const creatorKeys = Object.keys(grouped);
-    let hasMore = true;
+    let hasMoreInGroups = true;
     let round = 0;
 
-    while (hasMore && result.length < limit) {
-      hasMore = false;
+    while (hasMoreInGroups && result.length < limit) {
+      hasMoreInGroups = false;
       for (const key of creatorKeys) {
         if (grouped[key][round]) {
           result.push(grouped[key][round]);
-          hasMore = true;
+          hasMoreInGroups = true;
         }
       }
       round++;
     }
-    return result;
+    processedItems = result;
   }
 
-  return items;
+  // Prepare next cursor
+  let nextCursor;
+  if (items.length === limit) {
+    const lastItem = items[items.length - 1];
+    nextCursor = {
+      lastValue: lastItem[sortCol as keyof ContentPiece],
+      lastId: lastItem.id
+    };
+  }
+
+  return { items: processedItems, nextCursor };
 }
 
+/**
+ * HYBRID SEMANTIC SEARCH (Keyword + Vector)
+ */
 export async function searchContent(
   searchQuery: string,
   category?: string,
-  limit = 30
+  limit = 30,
+  embedding?: number[]
 ): Promise<ContentPiece[]> {
-  // Supabase full-text search using ilike as fallback (no tsvector needed)
+  // If embedding is provided, use Hybrid Search via RPC
+  if (embedding) {
+    const { data, error } = await supabase.rpc('hybrid_search', {
+      query_text: searchQuery,
+      query_embedding: embedding,
+      match_threshold: 0.5,
+      match_count: limit,
+      category_filter: category && category !== 'All' ? normalizeCategoryForDB(category) : null
+    });
+
+    if (error) {
+      console.error('Hybrid search error:', error);
+      // Fallback to keyword search handled below
+    } else {
+      return (data || []) as ContentPiece[];
+    }
+  }
+
+  // Fallback: Keyword-only search
   let query = supabase
     .from('content_pieces')
     .select('*')
@@ -561,3 +601,4 @@ export async function getCategoryStats(): Promise<Record<string, number>> {
   }
   return counts;
 }
+

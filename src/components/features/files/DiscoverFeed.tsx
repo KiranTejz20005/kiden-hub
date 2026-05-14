@@ -14,9 +14,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   fetchContentByCategory, scrapeAllPremiumChannels,
-  normalizeContentPiece
+  normalizeContentPiece, searchContent
 } from '@/services/discoverService';
-import { addVideoToLibrary, getUserVideos, updateVideoPosition, deleteVideo } from '@/services/videoService';
+import { 
+  addVideoToLibrary, getUserVideos, updateVideoPosition, 
+  deleteVideo, batchUpdatePositions 
+} from '@/services/videoService';
 import { 
   getPlaylists, createPlaylist, deletePlaylist, addVideoToPlaylist, 
   getPlaylistVideos, removeVideoFromPlaylist, updatePlaylist, Playlist 
@@ -80,39 +83,53 @@ const VideoCard = ({ item, onAdd, onFollow, isFollowing, onClick, playlists, onA
       </div>
 
       {/* Footer */}
-      <div className="px-4 pb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3 text-muted-foreground text-[12px]">
-          <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5"/> {fmt(v.view_count)}</span>
-          <span className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 text-[10px] font-black">
-            {item.virality_score.toFixed(1)}x
-          </span>
-          <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-bold uppercase">{item.category}</span>
-        </div>
-        <div className="flex gap-1">
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <button className="p-1.5 rounded-xl hover:bg-white/5 transition-all outline-none">
-                <Plus className="w-4 h-4 text-muted-foreground"/>
-              </button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content className="bg-card border border-border/50 rounded-2xl p-2 min-w-[180px] shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
-                <DropdownMenu.Item onSelect={() => onAdd(item)} className="p-2 rounded-xl text-xs font-bold hover:bg-primary/10 hover:text-primary transition-all cursor-pointer outline-none flex items-center gap-2">
-                  <Award className="w-3.5 h-3.5"/> Add to Library
-                </DropdownMenu.Item>
-                {playlists.length > 0 && <DropdownMenu.Separator className="h-px bg-white/5 my-1" />}
-                {playlists.map((p: any) => (
-                  <DropdownMenu.Item key={p.id} onSelect={() => onAddToPlaylist(p.id, item)} className="p-2 rounded-xl text-[11px] hover:bg-white/5 transition-all cursor-pointer outline-none flex items-center gap-2">
-                    <List className="w-3.5 h-3.5 opacity-50"/> {p.name}
+      <div className="px-4 pb-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between text-muted-foreground text-[12px]">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5"/> {fmt(v.view_count)}</span>
+            <span className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 text-[10px] font-black" title="Virality Score">
+              {item.virality_score.toFixed(1)}x
+            </span>
+            {item.outlier_score > 1.5 && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black animate-pulse" title="Outlier Score: Performing significantly better than creator average">
+                🔥 {item.outlier_score.toFixed(1)}x Signal
+              </span>
+            )}
+            <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-bold uppercase">{item.category}</span>
+          </div>
+          
+          <div className="flex gap-1">
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button className="p-1.5 rounded-xl hover:bg-white/5 transition-all outline-none">
+                  <Plus className="w-4 h-4 text-muted-foreground"/>
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content className="bg-card border border-border/50 rounded-2xl p-2 min-w-[180px] shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
+                  <DropdownMenu.Item onSelect={() => onAdd(item)} className="p-2 rounded-xl text-xs font-bold hover:bg-primary/10 hover:text-primary transition-all cursor-pointer outline-none flex items-center gap-2">
+                    <Award className="w-3.5 h-3.5"/> Add to Library
                   </DropdownMenu.Item>
-                ))}
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
-          <button onClick={() => onClick(item)} className="p-1.5 rounded-xl hover:bg-white/5 transition-all">
-            <ExternalLink className="w-4 h-4 text-muted-foreground"/>
-          </button>
+                  {playlists.length > 0 && <DropdownMenu.Separator className="h-px bg-white/5 my-1" />}
+                  {playlists.map((p: any) => (
+                    <DropdownMenu.Item key={p.id} onSelect={() => onAddToPlaylist(p.id, item)} className="p-2 rounded-xl text-[11px] hover:bg-white/5 transition-all cursor-pointer outline-none flex items-center gap-2">
+                      <List className="w-3.5 h-3.5 opacity-50"/> {p.name}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+            <button onClick={() => onClick(item)} className="p-1.5 rounded-xl hover:bg-white/5 transition-all">
+              <ExternalLink className="w-4 h-4 text-muted-foreground"/>
+            </button>
+          </div>
         </div>
+        
+        {item.ai_summary && (
+          <div className="p-2 rounded-xl bg-primary/5 border border-primary/10">
+            <p className="text-[10px] text-primary/80 italic line-clamp-2">“{item.ai_summary}”</p>
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -131,14 +148,16 @@ export const DiscoverFeed = () => {
   const [scraping, setScraping] = useState(false);
   const [progress, setProgress] = useState('');
   const [selected, setSelected] = useState<any>(null);
-  const [offset, setOffset] = useState(0);
-  const offsetRef = useRef(0);
+  const [cursor, setCursor] = useState<{ lastValue: any; lastId: string } | undefined>();
+  const cursorRef = useRef<{ lastValue: any; lastId: string } | undefined>();
   const [hasMore, setHasMore] = useState(true);
   const [loadingMyList, setLoadingMyList] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [activePlaylist, setActivePlaylist] = useState<string | 'all'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
 
   const fetchMyList = useCallback(async () => {
@@ -185,24 +204,22 @@ export const DiscoverFeed = () => {
     setLoading(true);
     
     try {
-      const off = reset ? 0 : offsetRef.current;
-      const data = await fetchContentByCategory(category, 24, off, sort);
+      const currentCursor = reset ? undefined : cursorRef.current;
+      const { items: data, nextCursor } = await fetchContentByCategory(category, 24, currentCursor, sort);
       
       if (reset) { 
         setItems(data); 
-        offsetRef.current = 24;
-        setOffset(24);
       } else { 
         setItems(prev => {
           const existingIds = new Set(prev.map(i => i.id));
           const uniqueNew = data.filter(i => !existingIds.has(i.id));
           return [...prev, ...uniqueNew];
         }); 
-        offsetRef.current += 24;
-        setOffset(offsetRef.current);
       }
       
-      setHasMore(data.length === 24);
+      cursorRef.current = nextCursor;
+      setCursor(nextCursor);
+      setHasMore(!!nextCursor);
     } catch (err) {
       console.error('Load items failed:', err);
     } finally {
@@ -211,6 +228,35 @@ export const DiscoverFeed = () => {
   }, [category, sort]);
 
   useEffect(() => { loadItems(true); }, [category, sort]);
+
+  // Search logic
+  useEffect(() => {
+    if (tab !== 'Discover') return;
+    
+    const handler = setTimeout(async () => {
+      if (!searchQuery.trim()) {
+        if (isSearching) {
+          setIsSearching(false);
+          loadItems(true);
+        }
+        return;
+      }
+
+      setIsSearching(true);
+      setLoading(true);
+      try {
+        const results = await searchContent(searchQuery, category);
+        setItems(results);
+        setHasMore(false); // Search results are usually single-page for now
+      } catch (err) {
+        console.error('Search failed:', err);
+      } finally {
+        setLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchQuery, category, tab]);
 
   useEffect(() => {
     if (!user) return;
@@ -242,16 +288,34 @@ export const DiscoverFeed = () => {
   const handleAdd = async (item: any) => {
     if (!user) return;
     const v = normalizeContentPiece(item);
-    const { error } = await addVideoToLibrary(user.id, {
+    
+    // 1. Add to Library
+    const { data: libData, error: libError } = await addVideoToLibrary(user.id, {
       id: v.video_id, title: item.title, channel: v.channel_name,
       thumbnail: v.high_res_thumbnail || v.thumbnail_url,
       url: v.video_url, duration: v.duration_seconds, views: v.view_count
     });
-    if (error) {
+
+    // 2. If in a specific playlist, add to that too
+    if (activePlaylist !== 'all') {
+      // Find the ID in library (either from libData or existing)
+      let dbId = libData?.id;
+      if (!dbId) {
+        const { data: existing } = await supabase.from('user_study_videos')
+          .select('id').eq('user_id', user.id).eq('video_id', v.video_id).maybeSingle();
+        dbId = existing?.id;
+      }
+      
+      if (dbId) {
+        await addVideoToPlaylist(activePlaylist, dbId);
+      }
+    }
+
+    if (libError && activePlaylist === 'all') {
       toast.error('Already in library');
     } else {
       logActivity(user.id, 'add_to_library', item.title, 'video');
-      toast.success('Added to library ✓');
+      toast.success('Saved to list ✓');
       fetchMyList();
     }
   };
@@ -337,10 +401,8 @@ export const DiscoverFeed = () => {
 
   const handleReorder = async (newOrder: any[]) => {
     setMyList(newOrder);
-    // Update positions in DB (batch update is better but we'll do sequentially for simplicity or just the ones that changed)
-    newOrder.forEach((item, idx) => {
-      updateVideoPosition(item.id, idx);
-    });
+    const updates = newOrder.map((item, idx) => ({ id: item.id, position: idx }));
+    await batchUpdatePositions(updates);
   };
 
   const handleFollow = async (item: any) => {
@@ -361,14 +423,38 @@ export const DiscoverFeed = () => {
 
   return (
     <div className="flex flex-col gap-5 py-4 h-full overflow-y-auto scrollbar-hide pr-1">
-      {/* Tabs + Refresh */}
-      <div className="flex items-center gap-6">
-        {(['Discover','My Lists'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={cn('text-2xl font-bold pb-1 transition-all', tab===t ? 'text-foreground border-b-2 border-primary' : 'text-muted-foreground/40 hover:text-muted-foreground')}>
-            {t}
-          </button>
-        ))}
+      {/* Tabs + Search + Refresh */}
+      <div className="flex flex-col md:flex-row md:items-center gap-6">
+        <div className="flex items-center gap-6">
+          {(['Discover','My Lists'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={cn('text-2xl font-bold pb-1 transition-all', tab===t ? 'text-foreground border-b-2 border-primary' : 'text-muted-foreground/40 hover:text-muted-foreground')}>
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'Discover' && (
+          <div className="flex-1 max-w-md relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <input 
+              type="text"
+              placeholder="Search concepts, topics, or creators..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-card border border-border/50 rounded-2xl pl-11 pr-10 py-2.5 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-white/5 text-muted-foreground"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="ml-auto flex items-center gap-2">
           {/* Sort */}
           <select value={sort} onChange={e => setSort(e.target.value as any)}
