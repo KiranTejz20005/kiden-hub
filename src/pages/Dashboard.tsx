@@ -167,6 +167,7 @@ const Dashboard = () => {
               setSelectedBoard(board);
               handleViewChange('boards');
             }}
+            onBoardsUpdate={fetchBoards}
           />
         </div>
 

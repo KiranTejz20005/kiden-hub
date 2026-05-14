@@ -132,32 +132,30 @@ const EmptyState = React.memo(({ onNewChat, onSuggestion }: { onNewChat: () => v
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
-    className="flex-1 flex flex-col items-center justify-center p-8 gap-10"
+    className="flex-1 flex flex-col items-center justify-center p-12 gap-12"
   >
-    <div className="text-center space-y-4">
-      <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto">
-        <Bot className="w-8 h-8 text-white/40" />
+    <div className="text-center space-y-6">
+      <div className="w-20 h-20 rounded-3xl bg-white/[0.03] border border-white/10 flex items-center justify-center mx-auto shadow-2xl">
+        <Bot className="w-10 h-10 text-white/30" />
       </div>
-      <div>
-        <h2 className="text-xl font-bold text-white tracking-tight">Kiden Intelligence</h2>
-        <p className="text-white/30 text-[11px] font-medium mt-1 max-w-xs mx-auto uppercase tracking-widest leading-relaxed">
-          Minimalist workspace assistant. Built for clarity and speed.
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold text-white tracking-tighter">Kiden Intelligence</h2>
+        <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.3em] leading-loose max-w-[280px] mx-auto">
+          Minimalist assistant. Built for clarity and speed.
         </p>
       </div>
     </div>
 
-    <div className="w-full max-w-md">
-      <div className="grid grid-cols-2 gap-3">
+    <div className="w-full max-w-sm">
+      <div className="grid grid-cols-2 gap-4">
         {SUGGESTIONS.slice(0, 4).map(s => (
           <button
             key={s.text}
             onClick={() => onSuggestion(s.prompt)}
-            className="flex flex-col gap-2 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-all text-left group"
+            className="flex flex-col gap-3 p-5 rounded-3xl bg-white/[0.01] border border-white/5 hover:bg-white/[0.03] hover:border-white/10 transition-all text-left group shadow-sm"
           >
-            <span className="text-base grayscale opacity-40 group-hover:opacity-100 transition-opacity">{s.emoji}</span>
-            <div>
-              <p className="text-[11px] font-bold text-white/60 group-hover:text-white transition-colors">{s.text}</p>
-            </div>
+            <span className="text-xl grayscale opacity-20 group-hover:opacity-100 transition-all duration-500">{s.emoji}</span>
+            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest group-hover:text-white transition-colors">{s.text}</p>
           </button>
         ))}
       </div>
@@ -165,7 +163,7 @@ const EmptyState = React.memo(({ onNewChat, onSuggestion }: { onNewChat: () => v
 
     <button 
       onClick={onNewChat} 
-      className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/90 transition-all active:scale-95 shadow-xl shadow-white/5"
+      className="flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-white text-black font-black text-[10px] uppercase tracking-[0.25em] hover:bg-white/90 transition-all active:scale-95 shadow-2xl shadow-white/5 mt-4"
     >
       <Plus className="w-4 h-4" /> New Session
     </button>
@@ -643,64 +641,42 @@ const AIChat = () => {
 
       {/* ── Right Sidebar: Chat History ── */}
       <div className="w-72 border-l border-white/5 bg-[#050505] flex flex-col shrink-0">
-        <div className="p-6 border-b border-white/5">
-          <button 
-            onClick={handleNewChat}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/90 active:scale-[0.98] transition-all shadow-xl shadow-white/5"
-          >
-            <Plus className="w-4 h-4" />
-            New Chat
-          </button>
+        <div className="px-6 py-8 flex items-center justify-between">
+          <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">History</p>
         </div>
 
-        <ScrollArea className="flex-1">
-          <div className="p-3 space-y-1">
-            <p className="px-4 py-2 text-[9px] font-black text-white/30 uppercase tracking-[0.25em]">Recent History</p>
+        <ScrollArea className="flex-1 px-3">
+          <div className="space-y-1">
             {conversations.map((conv) => (
               <button
                 key={conv.id}
                 onClick={() => setActiveConv(conv)}
                 className={cn(
-                  "w-full group flex flex-col gap-1.5 p-4 rounded-2xl transition-all border text-left",
+                  "w-full group flex flex-col gap-1 p-3 rounded-xl transition-all border text-left",
                   activeConv?.id === conv.id 
-                    ? "bg-white/[0.05] border-white/10 shadow-lg" 
-                    : "bg-transparent border-transparent hover:bg-white/[0.03]"
+                    ? "bg-white/[0.04] border-white/10" 
+                    : "bg-transparent border-transparent hover:bg-white/[0.02]"
                 )}
               >
                 <div className="flex items-center justify-between w-full">
                   <span className={cn(
-                    "text-[13px] font-bold truncate flex-1",
-                    activeConv?.id === conv.id ? "text-white" : "text-white/60"
+                    "text-[12px] font-bold truncate flex-1",
+                    activeConv?.id === conv.id ? "text-white" : "text-white/40"
                   )}>
                     {conv.title}
                   </span>
                   <div className={cn(
-                    "w-1.5 h-1.5 rounded-full transition-all",
-                    activeConv?.id === conv.id ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-white/10"
+                    "w-1 h-1 rounded-full transition-all",
+                    activeConv?.id === conv.id ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.3)]" : "bg-white/5"
                   )} />
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">
-                    {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })}
-                  </span>
-                </div>
+                <span className="text-[8px] font-black text-white/10 uppercase tracking-widest">
+                  {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })}
+                </span>
               </button>
             ))}
           </div>
         </ScrollArea>
-
-        <div className="p-4 border-t border-white/5">
-          <div className="bg-white/5 rounded-2xl p-4 space-y-3">
-             <div className="flex items-center gap-2">
-               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-               <span className="text-[10px] font-black text-white/80 uppercase tracking-widest">Usage Limit</span>
-             </div>
-             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full w-2/3 bg-emerald-500 rounded-full" />
-             </div>
-             <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">650 / 1000 Queries</p>
-          </div>
-        </div>
       </div>
     </div>
   );

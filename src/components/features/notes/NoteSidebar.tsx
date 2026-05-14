@@ -140,7 +140,7 @@ const NoteSidebar = ({
       animate={{ opacity: 1, x: 0 }}
       className={cn(
         "group relative flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition-all",
-        activeNoteId === note.id ? "bg-primary/10 border border-primary/20 shadow-sm" : "hover:bg-white/5"
+        activeNoteId === note.id ? "bg-white/5 border border-white/10 shadow-lg" : "hover:bg-white/[0.02]"
       )}
       onClick={() => onNoteSelect(note)}
     >
@@ -148,7 +148,7 @@ const NoteSidebar = ({
         {note.icon || '📝'}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={cn("text-xs font-semibold truncate", activeNoteId === note.id ? "text-primary" : "text-foreground")}>
+        <p className={cn("text-xs font-bold truncate", activeNoteId === note.id ? "text-white" : "text-white/40 group-hover:text-white/60")}>
           {note.title || 'Untitled'}
         </p>
         <p className="text-[10px] text-muted-foreground/80 mt-0.5 font-medium">
@@ -158,7 +158,7 @@ const NoteSidebar = ({
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button 
           onClick={(e) => { e.stopPropagation(); onToggleFavorite(note); }}
-          className={cn("p-1 rounded-md hover:bg-white/10 transition-colors", note.is_favorite ? "text-amber-400" : "text-muted-foreground")}
+          className={cn("p-1 rounded-md hover:bg-white/10 transition-colors", note.is_favorite ? "text-white" : "text-white/20")}
         >
           <Star className="w-3 h-3" fill={note.is_favorite ? "currentColor" : "none"} />
         </button>
@@ -197,8 +197,8 @@ const NoteSidebar = ({
             {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0" onClick={() => toggleFolder(folder.id)}>
-            {isCollapsed ? <Folder className="w-4 h-4 text-primary/70" /> : <FolderOpen className="w-4 h-4 text-primary/70" />}
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground truncate">{folder.name}</span>
+            {isCollapsed ? <Folder className="w-4 h-4 text-white/40" /> : <FolderOpen className="w-4 h-4 text-white/40" />}
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 group-hover:text-white/60 truncate">{folder.name}</span>
           </div>
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <button onClick={() => onNewNote(folder.id)} className="p-1 rounded-md hover:bg-white/10 text-muted-foreground"><Plus className="w-3 h-3" /></button>
@@ -239,12 +239,14 @@ const NoteSidebar = ({
     >
       <div className="p-5 border-b border-border/30 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Notes Base</h2>
-          <div className="flex items-center gap-2">
-            <button onClick={() => onNewNote()} className="w-7 h-7 flex items-center justify-center rounded-lg bg-primary text-white shadow-lg shadow-primary/20 hover:opacity-90 active:scale-90 transition-all">
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
+          <h2 className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Notes Base</h2>
+          <button 
+            onClick={() => onNewNote()} 
+            className="p-2 rounded-lg bg-white/5 border border-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+            title="New Note"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
         </div>
         
         <div className="relative">
@@ -264,8 +266,8 @@ const NoteSidebar = ({
           {favorites.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center gap-2 px-2 py-1 mb-1">
-                <Star className="w-3.5 h-3.5 text-amber-400" fill="currentColor" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Pinned Notes</span>
+                <Star className="w-3.5 h-3.5 text-white/40" fill="none" />
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Pinned</span>
               </div>
               {favorites.map(renderNoteItem)}
             </div>

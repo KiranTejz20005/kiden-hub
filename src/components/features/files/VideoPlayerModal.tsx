@@ -5,7 +5,7 @@ import {
   MessageSquare, Heart, Bookmark, 
   TrendingUp, FileText, ChevronRight, Play,
   Download, ListPlus, Flame, Eye, Sparkles, Youtube,
-  Loader2, Save, Trash2, ArrowLeft, Send
+  Loader2, Save, Trash2, ArrowLeft, Send, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';

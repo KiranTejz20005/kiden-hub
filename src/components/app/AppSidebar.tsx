@@ -18,7 +18,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
-  CreditCard
+  ExternalLink,
+  CreditCard,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -47,6 +49,7 @@ interface AppSidebarProps {
   boards: any[];
   selectedBoard: any | null;
   onBoardSelect: (board: any) => void;
+  onBoardsUpdate?: () => void;
 }
 
 const mainNavItems = [
@@ -66,12 +69,26 @@ const AppSidebar = ({
   setIsCollapsed,
   boards,
   selectedBoard,
-  onBoardSelect
+  onBoardSelect,
+  onBoardsUpdate
 }: AppSidebarProps) => {
   const { user, signOut } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [isBoardsExpanded, setIsBoardsExpanded] = useState(true);
+
+  const handleDeleteBoard = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm('Delete this board?')) return;
+    try {
+      const { error } = await supabase.from('research_boards' as any).delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Board removed');
+      if (onBoardsUpdate) onBoardsUpdate();
+    } catch (err) {
+      toast.error('Failed to delete board');
+    }
+  };
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -237,7 +254,13 @@ const AppSidebar = ({
                                 <span className="text-xs transition-transform group-hover:scale-125">
                                   {board.emoji || '📁'}
                                 </span>
-                                <span className="text-[12px] truncate">{board.title}</span>
+                                <span className="text-[12px] truncate flex-1">{board.title}</span>
+                                <button 
+                                  onClick={(e) => handleDeleteBoard(e, board.id)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-rose-500/20 text-white/20 hover:text-rose-400 rounded-md transition-all"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
                               </motion.button>
                             ))}
                           </motion.div>

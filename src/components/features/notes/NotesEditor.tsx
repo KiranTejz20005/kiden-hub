@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import NoteSidebar from './NoteSidebar';
 import NoteHeader from './NoteHeader';
 import BlockEditor from './BlockEditor';
-import { Loader2 } from 'lucide-react';
+import { Loader2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -47,7 +47,14 @@ const NotesEditor = () => {
         if (data) {
           setProfile(data);
         } else {
-          console.warn('No profile found for user:', user.id);
+          console.warn('No profile found, creating default for user:', user.id);
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([{ id: user.id, user_id: user.id, display_name: user.email?.split('@')[0] }])
+            .select('display_name, avatar_url, bio, focus_settings')
+            .maybeSingle();
+          if (newProfile) setProfile(newProfile);
+          if (createError) console.error('Failed to auto-create profile:', createError);
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -80,20 +87,20 @@ const NotesEditor = () => {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Supabase update error (trying stringify fallback):', error);
+        console.error('Initial save failed, trying minimal payload:', error);
         
-        // Fallback: If 400, try stringifying the content
-        if (error.code === '400' || error.message?.includes('400')) {
-          const { error: retryError } = await supabase
-            .from('notes')
-            .update({ ...updatePayload, content: JSON.stringify(noteToSave.content) })
-            .eq('id', noteToSave.id)
-            .eq('user_id', user.id);
-          
-          if (retryError) throw retryError;
-        } else {
-          throw error;
-        }
+        // Final fallback: Send only core fields
+        const { error: finalError } = await supabase
+          .from('notes')
+          .update({
+            title: noteToSave.title || 'Untitled Note',
+            content: noteToSave.content,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', noteToSave.id)
+          .eq('user_id', user.id);
+        
+        if (finalError) throw finalError;
       }
     } catch (err: any) {
       console.error('Failed to save note:', err);
@@ -224,19 +231,23 @@ const NotesEditor = () => {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-12 gap-6">
-            <div className="w-24 h-24 rounded-[2.5rem] bg-primary/5 border border-primary/10 flex items-center justify-center shadow-inner">
-              <div className="w-16 h-16 rounded-[1.8rem] bg-primary/10 flex items-center justify-center text-primary shadow-2xl">
-                <Loader2 className="w-8 h-8 animate-pulse" />
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-12 gap-12">
+            <div className="space-y-6">
+              <div className="w-20 h-20 rounded-3xl bg-white/[0.03] border border-white/10 flex items-center justify-center mx-auto shadow-2xl">
+                <FileText className="w-10 h-10 text-white/30" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-white tracking-tighter">Notes Hub</h2>
+                <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.3em] leading-loose max-w-[280px] mx-auto">
+                  Select a note to begin or create a new one.
+                </p>
               </div>
             </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-white tracking-tight">Notes Hub</h2>
-              <p className="text-muted-foreground text-sm max-w-xs mx-auto leading-relaxed">
-                Select a note to begin or create a new one.
-              </p>
-            </div>
-            <Button onClick={() => handleCreateNote()} className="h-11 px-8 rounded-xl bg-white text-black hover:bg-white/90 font-bold uppercase tracking-wider text-xs shadow-xl active:scale-95 transition-all">
+            
+            <Button 
+              onClick={() => handleCreateNote()} 
+              className="h-14 px-10 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-[0.25em] text-[10px] shadow-2xl shadow-white/5 active:scale-95 transition-all"
+            >
               Initialize New Node
             </Button>
           </div>

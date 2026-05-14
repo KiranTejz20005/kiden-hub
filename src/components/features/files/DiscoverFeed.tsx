@@ -388,7 +388,7 @@ export const DiscoverFeed = () => {
   // ── Effects ──────────────────────────────────────────────────────────────
 
   const gridComponents = useMemo(() => ({
-    List: React.forwardRef(({ style, children, ...props }: any, ref) => (
+    List: React.forwardRef(({ style, children, footer, ...props }: any, ref) => (
       <div 
         ref={ref} 
         {...props} 
@@ -401,6 +401,7 @@ export const DiscoverFeed = () => {
         }}
       >
         {children}
+        {footer}
       </div>
     )),
     Item: ({ children, ...props }: any) => (

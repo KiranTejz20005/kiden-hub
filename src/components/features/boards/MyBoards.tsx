@@ -7,8 +7,9 @@ import {
   ChevronDown, Settings, CreditCard, LogOut, 
   ExternalLink, MoreHorizontal, Link as LinkIcon, 
   FileText, MessageSquare, Upload, TrendingUp, 
-  Sparkles, LayoutTemplate 
+  Sparkles, LayoutTemplate, Trash2 
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { formatDistanceToNow } from 'date-fns';
+import { motion } from 'framer-motion';
 
 interface Board {
   id: string;
@@ -114,6 +116,35 @@ const MyBoards = ({
       setShowLinkModal(false);
       setLinkUrl('');
     }
+  const handleDeleteItem = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('research_board_items')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      toast.success('Item removed');
+      fetchItems();
+    } catch (error) {
+      toast.error('Failed to remove item');
+    }
+  const handleDeleteBoard = async () => {
+    if (!selectedBoard || !user) return;
+    if (!confirm('Are you sure you want to delete this board and all its items?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('research_boards' as any)
+        .delete()
+        .eq('id', selectedBoard.id);
+      
+      if (error) throw error;
+      toast.success('Board deleted');
+      onBoardsUpdate();
+    } catch (error) {
+      toast.error('Failed to delete board');
+    }
   };
 
   const openCreateModal = () => {
@@ -183,9 +214,21 @@ const MyBoards = ({
                   </button>
                 ))}
                 <div className="w-px h-4 bg-white/10" />
-                <button className="text-white/30 hover:text-white transition-colors">
-                  <MoreHorizontal className="w-5 h-5" />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="text-white/30 hover:text-white transition-colors">
+                      <MoreHorizontal className="w-5 h-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-[#161616] border-white/10 rounded-xl p-1">
+                    <DropdownMenuItem 
+                      onClick={handleDeleteBoard}
+                      className="text-rose-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer text-xs font-bold gap-2"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Delete Board
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
@@ -195,12 +238,12 @@ const MyBoards = ({
                 <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   <button 
                     onClick={() => setShowLinkModal(true)}
-                    className="aspect-[4/3] rounded-[2rem] border-2 border-dashed border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10 transition-all flex flex-col items-center justify-center gap-3 group"
+                    className="aspect-[4/3] rounded-[2.5rem] border-2 border-dashed border-white/5 bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/10 transition-all flex flex-col items-center justify-center gap-4 group"
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 group-hover:text-emerald-400 group-hover:bg-emerald-400/10 transition-all">
-                      <Plus className="w-6 h-6" />
+                    <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-white/10 group-hover:text-white group-hover:bg-white/10 transition-all">
+                      <Plus className="w-7 h-7" />
                     </div>
-                    <span className="text-xs font-bold uppercase tracking-widest text-white/20 group-hover:text-white">Add New Item</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 group-hover:text-white transition-all">Add New Item</span>
                   </button>
 
                   {items.filter(item => 
@@ -209,22 +252,34 @@ const MyBoards = ({
                     <motion.div
                       layout
                       key={item.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
+                      initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="aspect-[4/3] rounded-[2rem] bg-white/[0.03] border border-white/5 p-6 hover:bg-white/[0.05] hover:border-white/10 transition-all group flex flex-col"
+                      className="aspect-[4/3] rounded-[2.5rem] bg-white/[0.03] border border-white/5 p-8 hover:bg-white/[0.05] hover:border-white/10 transition-all group flex flex-col shadow-sm"
                     >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/30 group-hover:text-white transition-colors">
                           {item.type === 'link' && <LinkIcon className="w-5 h-5" />}
                           {item.type === 'note' && <FileText className="w-5 h-5" />}
                           {item.type === 'chat' && <MessageSquare className="w-5 h-5" />}
                         </div>
-                        <button className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/5 rounded-lg transition-all">
-                          <MoreHorizontal className="w-4 h-4 text-white/20" />
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-xl transition-all">
+                              <MoreHorizontal className="w-4 h-4 text-white/20" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-[#161616] border-white/10 rounded-xl p-1">
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteItem(item.id)}
+                              className="text-rose-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer text-xs font-bold gap-2"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Delete Item
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                      <h4 className="text-[15px] font-bold text-white mb-2 line-clamp-2">{item.title}</h4>
-                      <div className="mt-auto flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-white/20">
+                      <h4 className="text-[14px] font-bold text-white mb-2 line-clamp-2 leading-snug">{item.title}</h4>
+                      <div className="mt-auto flex items-center justify-between text-[8px] font-black uppercase tracking-[0.2em] text-white/10">
                         <span>{item.type}</span>
                         <span>{formatDistanceToNow(new Date(item.created_at))} ago</span>
                       </div>
@@ -237,17 +292,17 @@ const MyBoards = ({
                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent opacity-0 group-hover/board:opacity-100 transition-opacity duration-700" />
                     
                     <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-8">
-                        <div>
-                          <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/30">Add to this board</h3>
-                          <p className="mt-2 text-sm text-white/40 leading-relaxed font-medium">New items will land here in a tidy grid.</p>
+                      <div className="flex items-center justify-between mb-10">
+                        <div className="space-y-1">
+                          <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Board Canvas</h3>
+                          <p className="text-xs text-white/40 leading-relaxed max-w-[240px]">New items will land here in a tidy grid.</p>
                         </div>
                         <Button 
                           variant="ghost" 
                           onClick={() => setShowLinkModal(true)}
-                          className="h-10 rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-4 text-[10px] font-bold uppercase tracking-widest text-emerald-400 hover:bg-emerald-400/10 transition-all shadow-lg shadow-emerald-400/5"
+                          className="h-12 rounded-2xl border border-white/10 bg-white/5 px-5 text-[9px] font-black uppercase tracking-[0.2em] text-white/60 hover:bg-white/10 transition-all shadow-xl"
                         >
-                          <LayoutTemplate className="w-4 h-4 mr-2" /> Browse Templates
+                          <LayoutTemplate className="w-4 h-4 mr-2" /> Templates
                         </Button>
                       </div>
 
@@ -263,20 +318,15 @@ const MyBoards = ({
                           <button 
                             key={item.label}
                             onClick={item.action}
-                            className="w-full flex items-center justify-between group/btn px-4 py-3.5 rounded-2xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all text-left"
+                            className="w-full flex items-center justify-between group/btn px-4 py-4 rounded-[1.5rem] hover:bg-white/[0.03] border border-transparent hover:border-white/5 transition-all text-left"
                           >
-                            <div className="flex items-center gap-4">
-                              <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-white/40 group-hover/btn:text-emerald-400 group-hover/btn:bg-emerald-400/10 group-hover/btn:border-emerald-400/20 transition-all">
+                            <div className="flex items-center gap-5">
+                              <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-white/20 group-hover/btn:text-white group-hover/btn:bg-white/10 group-hover/btn:border-white/10 transition-all">
                                 <item.icon className="w-4 h-4" />
                               </div>
-                              <span className="text-[13px] font-bold text-white/60 group-hover/btn:text-white transition-colors">{item.label}</span>
+                              <span className="text-[13px] font-bold text-white/50 group-hover/btn:text-white transition-colors">{item.label}</span>
                             </div>
-                            <div className={cn(
-                              "px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all",
-                              ['link', 'note', 'idea'].includes(item.type) 
-                                ? "bg-white/5 text-white/20 border border-white/5 group-hover/btn:bg-white/10 group-hover/btn:text-white/40"
-                                : "bg-emerald-500/10 text-emerald-500/40 border border-emerald-500/10 group-hover/btn:bg-emerald-500/20 group-hover/btn:text-emerald-400"
-                            )}>
+                            <div className="px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] bg-white/5 text-white/20 border border-white/5 group-hover/btn:bg-white/10 group-hover/btn:text-white/40 transition-all">
                               {item.shortcut}
                             </div>
                           </button>
