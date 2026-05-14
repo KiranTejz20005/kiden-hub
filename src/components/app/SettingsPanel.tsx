@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,10 +13,14 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { 
   Settings, Camera, User, Wifi, WifiOff, Moon, 
-  Loader2, Check, X
+  Loader2, Check, X, Shield, Palette, Bell, Users,
+  Globe, Layout, Mail, UserPlus, Trash2, ShieldAlert
 } from 'lucide-react';
+import Preferences from '../features/settings/Preferences';
+import Collaborators from '../features/team/Collaborators';
 
 type UserStatus = 'online' | 'away' | 'dnd' | 'offline';
+type SettingsTab = 'profile' | 'preferences' | 'collaborators' | 'security';
 
 interface SettingsPanelProps {
   profile: Profile | null;
@@ -34,6 +38,8 @@ const statusOptions: { value: UserStatus; label: string; icon: typeof Wifi; colo
 const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelProps) => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
   const [bio, setBio] = useState(profile?.bio || '');
   const [status, setStatus] = useState<UserStatus>((profile as any)?.status || 'online');
@@ -41,53 +47,28 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.display_name || '');
+      setBio(profile.bio || '');
+      setStatus((profile as any)?.status || 'online');
+    }
+  }, [profile]);
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !user) return;
-    if ((user as any)?.app_metadata?.provider === 'guest') {
-      toast.error('Please sign in with a real account before uploading an avatar. Guest mode cannot upload to Supabase.');
-      return;
-    }
-    
     const file = e.target.files[0];
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB');
-      return;
-    }
-
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/avatar.${fileExt}`;
-
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      // Update profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('user_id', user.id);
-
-      if (updateError) throw updateError;
-
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('user_id', user.id);
       toast.success('Avatar updated!');
       onProfileUpdate();
     } catch (error) {
-      console.error('Upload error:', error);
       toast.error('Failed to upload avatar');
     } finally {
       setUploading(false);
@@ -96,46 +77,29 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
 
   const handleSave = async () => {
     if (!user) return;
-
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          display_name: displayName,
-          bio: bio,
-          status: status,
-        })
-        .eq('user_id', user.id);
-
+      const { error } = await supabase.from('profiles').update({
+        display_name: displayName,
+        bio: bio,
+        status: status,
+      }).eq('user_id', user.id);
       if (error) throw error;
-
       toast.success('Profile updated!');
       onProfileUpdate();
-      setIsOpen(false);
     } catch (error) {
-      console.error('Save error:', error);
       toast.error('Failed to save profile');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleStatusChange = async (newStatus: UserStatus) => {
-    if (!user) return;
-    setStatus(newStatus);
-
-    try {
-      await supabase
-        .from('profiles')
-        .update({ status: newStatus })
-        .eq('user_id', user.id);
-      
-      onProfileUpdate();
-    } catch (error) {
-      console.error('Status update error:', error);
-    }
-  };
+  const tabs: { id: SettingsTab; label: string; icon: any }[] = [
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'preferences', label: 'Preferences', icon: Palette },
+    { id: 'collaborators', label: 'Collaborators', icon: Users },
+    { id: 'security', label: 'Security', icon: Shield },
+  ];
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -143,144 +107,189 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-secondary/80 rounded-xl"
+          className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-2xl transition-all active:scale-90"
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="w-5 h-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md overflow-auto">
-        <SheetHeader className="pb-6">
-          <SheetTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
-            Profile Settings
-          </SheetTitle>
+      <SheetContent side="right" className="w-full sm:max-w-2xl bg-[#050505] border-l border-white/5 p-0 flex flex-col shadow-2xl">
+        <SheetHeader className="p-8 pb-4 border-b border-white/5">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+              <Settings className="w-4 h-4" />
+            </div>
+            <SheetTitle className="text-xl font-black uppercase tracking-widest text-white">Workspace Settings</SheetTitle>
+          </div>
+          <p className="text-xs text-muted-foreground font-medium">Manage your personal profile, workspace preferences, and collaborators.</p>
         </SheetHeader>
 
-        <div className="space-y-6">
-          {/* Avatar Section */}
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative">
+        {/* Tab Navigation */}
+        <div className="flex gap-2 p-6 pb-2">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                activeTab === tab.id 
+                  ? "bg-white text-black shadow-lg" 
+                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              )}
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-8 py-6 scrollbar-hide">
+          <AnimatePresence mode="wait">
+            {activeTab === 'profile' && (
               <motion.div 
-                whileHover={{ scale: 1.05 }}
-                className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/40 to-accent/40 flex items-center justify-center ring-4 ring-primary/20 shadow-xl overflow-hidden"
+                key="profile" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+                className="space-y-8"
               >
-                {profile?.avatar_url ? (
-                  <img 
-                    src={profile.avatar_url} 
-                    alt="Avatar" 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-2xl font-bold text-primary">
-                    {displayName?.[0]?.toUpperCase() || '?'}
-                  </span>
-                )}
-                
-                {uploading && (
-                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                {/* Avatar Section */}
+                <div className="flex flex-col items-center gap-6 p-8 rounded-[2rem] bg-white/5 border border-white/5 shadow-inner">
+                  <div className="relative group">
+                    <motion.div 
+                      whileHover={{ scale: 1.05 }}
+                      className="w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-primary/40 to-accent/40 flex items-center justify-center ring-4 ring-white/5 shadow-2xl overflow-hidden relative"
+                    >
+                      {profile?.avatar_url ? (
+                        <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-4xl font-black text-primary">{displayName?.[0]?.toUpperCase() || '?'}</span>
+                      )}
+                      
+                      {uploading && (
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        </div>
+                      )}
+                    </motion.div>
+                    
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-white text-black shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-4 border-[#050505]"
+                      disabled={uploading}
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                    
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
                   </div>
-                )}
+                  <div className="text-center">
+                    <h3 className="font-black text-white">{displayName || 'Anonymous Explorer'}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Personal Identity</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-6">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Display Name</Label>
+                    <Input
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="How should we call you?"
+                      className="h-12 bg-white/5 border-white/5 rounded-2xl text-sm font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">About You (Bio)</Label>
+                    <Input
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="Your expertise, mission, or status..."
+                      className="h-12 bg-white/5 border-white/5 rounded-2xl text-sm font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-4 pt-4">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Current Status</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {statusOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setStatus(option.value)}
+                          className={cn(
+                            "flex items-center gap-3 p-4 rounded-2xl border transition-all text-left",
+                            status === option.value 
+                              ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/5" 
+                              : "border-white/5 bg-white/5 text-muted-foreground hover:bg-white/10"
+                          )}
+                        >
+                          <div className={cn("w-2.5 h-2.5 rounded-full", option.color)} />
+                          <span className="text-[11px] font-black uppercase tracking-widest">{option.label}</span>
+                          {status === option.value && <Check className="w-4 h-4 ml-auto" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleSave} 
+                  className="w-full h-14 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-[0.2em] shadow-xl transition-all active:scale-[0.98]"
+                  disabled={saving}
+                >
+                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Profile Changes'}
+                </Button>
               </motion.div>
-              
-              <Button
-                size="icon"
-                variant="secondary"
-                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full shadow-lg"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                <Camera className="w-4 h-4" />
-              </Button>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">Click camera to upload photo</p>
-          </div>
-
-          <Separator />
-
-          {/* Display Name */}
-          <div className="space-y-2">
-            <Label htmlFor="displayName">Display Name</Label>
-            <Input
-              id="displayName"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Enter your name"
-              className="bg-secondary/50"
-            />
-          </div>
-
-          {/* Bio */}
-          <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Input
-              id="bio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell us about yourself"
-              className="bg-secondary/50"
-            />
-          </div>
-
-          <Separator />
-
-          {/* Status */}
-          <div className="space-y-3">
-            <Label>Status</Label>
-            <RadioGroup value={status} onValueChange={(v) => handleStatusChange(v as UserStatus)}>
-              <div className="grid grid-cols-2 gap-2">
-                {statusOptions.map((option) => (
-                  <motion.label
-                    key={option.value}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all",
-                      status === option.value 
-                        ? "border-primary bg-primary/10" 
-                        : "border-border bg-secondary/30 hover:bg-secondary/50"
-                    )}
-                  >
-                    <RadioGroupItem value={option.value} id={option.value} className="sr-only" />
-                    <div className={cn("w-3 h-3 rounded-full", option.color)} />
-                    <span className="text-sm font-medium">{option.label}</span>
-                    {status === option.value && (
-                      <Check className="w-4 h-4 text-primary ml-auto" />
-                    )}
-                  </motion.label>
-                ))}
-              </div>
-            </RadioGroup>
-          </div>
-
-          <Separator />
-
-          {/* Save Button */}
-          <Button 
-            onClick={handleSave} 
-            className="w-full gap-2"
-            disabled={saving}
-          >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                Save Changes
-              </>
             )}
-          </Button>
+
+            {activeTab === 'preferences' && (
+              <motion.div 
+                key="preferences" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+              >
+                <Preferences isEmbedded={true} />
+              </motion.div>
+            )}
+
+            {activeTab === 'collaborators' && (
+              <motion.div 
+                key="collaborators" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+              >
+                <Collaborators isEmbedded={true} />
+              </motion.div>
+            )}
+
+            {activeTab === 'security' && (
+              <motion.div 
+                key="security" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+                className="space-y-8"
+              >
+                <div className="p-8 rounded-[2.5rem] bg-red-500/5 border border-red-500/10 space-y-6">
+                  <div className="flex items-center gap-4 text-red-500">
+                    <ShieldAlert className="w-6 h-6" />
+                    <h3 className="font-black uppercase tracking-widest">Account Security</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Manage your authentication methods and session security. Kiden Intelligence ensures your research data is protected with enterprise-grade encryption.
+                  </p>
+                  <Button variant="outline" className="w-full h-12 rounded-xl border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase tracking-widest text-[10px]">
+                    Change Security Credentials
+                  </Button>
+                </div>
+                
+                <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 space-y-6">
+                  <h3 className="font-black uppercase tracking-widest text-white flex items-center gap-3">
+                    <Mail className="w-4 h-4" /> Connected Accounts
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
+                      <div className="flex items-center gap-3">
+                        <Globe className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-bold text-white">Google Cloud</span>
+                      </div>
+                      <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full">Connected</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </SheetContent>
     </Sheet>

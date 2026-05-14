@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import {
   FileText, Image as ImageIcon, Video, Download, Trash2, Search,
   Upload, Loader2, File, ExternalLink, FolderOpen, Grid3X3, List,
-  HardDrive, X, MoreVertical
+  HardDrive, X, MoreVertical, Youtube, Sparkles
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -149,16 +149,42 @@ const FileStorage = () => {
   const [tab, setTab]             = useState('All');
   const [view, setView]           = useState<'grid'|'list'>('grid');
   const [preview, setPreview]     = useState<any>(null);
+  
+  // Prevent tab refresh refetch spam
+  const fetchInProgressRef = useRef(false);
+  const lastFetchTimeRef = useRef(0);
+  const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 
   const fetchFiles = useCallback(async () => {
+    if (fetchInProgressRef.current) return;
+    const now = Date.now();
+    if (now - lastFetchTimeRef.current < FETCH_COOLDOWN) return;
+    
     if (!user) return;
-    setLoading(true);
-    const { data } = await supabase.from('files').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-    setFiles(data ?? []);
-    setLoading(false);
+    fetchInProgressRef.current = true;
+    try {
+      setLoading(true);
+      const { data } = await supabase.from('files').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+      setFiles(data ?? []);
+      lastFetchTimeRef.current = now;
+    } finally {
+      setLoading(false);
+      fetchInProgressRef.current = false;
+    }
   }, [user]);
 
-  useEffect(() => { fetchFiles(); }, [fetchFiles]);
+  useEffect(() => {
+    if (user && files.length === 0) fetchFiles();
+  }, [user]);
+  
+  // Refetch only on tab visibility change
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchFiles();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user]);
 
   const onDrop = useCallback(async (accepted: File[]) => {
     if (!user) return;
@@ -238,39 +264,46 @@ const FileStorage = () => {
         </AnimatePresence>
 
         {/* ── Top Bar ── */}
-        {(tab !== 'YouTube' && tab !== 'Trending') && (
-          <div className="flex items-center gap-4 px-6 py-3.5 border-b border-border/40 bg-card/20 shrink-0">
+        <div className="flex items-center gap-4 px-6 py-3.5 border-b border-border/40 bg-card/20 shrink-0">
           <div className="min-w-0">
-            <h1 className="text-lg font-bold leading-tight">Files</h1>
-            <p className="text-[11px] text-muted-foreground">{files.length} files · {fmtSize(totalSize)}</p>
+            <h1 className="text-lg font-bold leading-tight capitalize">{tab === 'All' ? 'Files' : tab}</h1>
+            <p className="text-[11px] text-muted-foreground">
+              {tab === 'YouTube' ? 'Search and manage study videos' : 
+               tab === 'Trending' ? 'Discover educational content' : 
+               `${files.length} files · ${fmtSize(totalSize)}`}
+            </p>
           </div>
 
-          {/* Storage bar */}
-          <div className="flex items-center gap-2 w-40">
-            <HardDrive className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <div className="flex-1 h-1.5 bg-secondary/50 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full" style={{ width: `${usagePct}%` }} />
+          {/* Storage bar - Hide if on discovery tabs to save space if needed, or keep for consistency */}
+          {(tab !== 'YouTube' && tab !== 'Trending') && (
+            <div className="flex items-center gap-2 w-40">
+              <HardDrive className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <div className="flex-1 h-1.5 bg-secondary/50 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full" style={{ width: `${usagePct}%` }} />
+              </div>
+              <span className="text-[10px] text-muted-foreground">{usagePct.toFixed(1)}%</span>
             </div>
-            <span className="text-[10px] text-muted-foreground">{usagePct.toFixed(1)}%</span>
-          </div>
+          )}
 
           <div className="flex items-center gap-2 ml-auto">
-            {tab !== 'YouTube' && (
+            {(tab !== 'YouTube' && tab !== 'Trending') && (
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input placeholder="Search files…" className="pl-9 h-9 w-48 bg-secondary/30 border-border/40 text-sm" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
             )}
 
-            <div className="flex items-center bg-secondary/40 rounded-lg p-0.5 border border-border/40">
-              {(['grid','list'] as const).map(m => (
-                <button key={m} onClick={() => setView(m)} className={cn('p-1.5 rounded-md transition-all', view === m ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
-                  {m === 'grid' ? <Grid3X3 className="w-3.5 h-3.5" /> : <List className="w-3.5 h-3.5" />}
-                </button>
-              ))}
-            </div>
+            {(tab !== 'YouTube' && tab !== 'Trending') && (
+              <div className="flex items-center bg-secondary/40 rounded-lg p-0.5 border border-border/40">
+                {(['grid','list'] as const).map(m => (
+                  <button key={m} onClick={() => setView(m)} className={cn('p-1.5 rounded-md transition-all', view === m ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                    {m === 'grid' ? <Grid3X3 className="w-3.5 h-3.5" /> : <List className="w-3.5 h-3.5" />}
+                  </button>
+                ))}
+              </div>
+            )}
 
-            {tab !== 'YouTube' && (
+            {(tab !== 'YouTube' && tab !== 'Trending') && (
               <button
                 onClick={open}
                 disabled={uploading}
@@ -280,9 +313,20 @@ const FileStorage = () => {
                 {uploading ? 'Uploading…' : 'Upload'}
               </button>
             )}
+            
+            {tab === 'YouTube' && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest">
+                <Youtube className="w-3.5 h-3.5" /> Study Library
+              </div>
+            )}
+            
+            {tab === 'Trending' && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest">
+                <Sparkles className="w-3.5 h-3.5" /> Discovery Mode
+              </div>
+            )}
           </div>
         </div>
-        )}
 
         {/* ── Filter Tabs ── */}
         <div className="flex items-center gap-1 px-6 py-2 border-b border-border/30 shrink-0">
@@ -307,104 +351,112 @@ const FileStorage = () => {
             <div className="flex items-center justify-center py-20 gap-3 text-muted-foreground">
               <Loader2 className="w-6 h-6 animate-spin" /> Loading files…
             </div>
-          ) : tab === 'YouTube' ? (
-            <YouTubeSearchLibrary />
-          ) : tab === 'Trending' ? (
-            <DiscoverFeed />
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-secondary/30 border border-border/40 flex items-center justify-center">
-                <FolderOpen className="w-7 h-7 text-muted-foreground/50" />
-              </div>
-              <p className="text-sm text-muted-foreground">{search ? 'No files match your search' : 'No files yet — upload something!'}</p>
-            </div>
-          ) : view === 'grid' ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-              <AnimatePresence>
-                {filtered.map(file => {
-                  const cfg = getCfg(file.type);
-                  const isImg = IS_IMAGE(file.type);
-                  return (
-                    <motion.div key={file.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-                      className="group relative bg-card border border-border/50 rounded-2xl overflow-hidden hover:border-emerald-500/30 hover:shadow-lg hover:shadow-black/10 transition-all cursor-pointer"
-                      onClick={() => setPreview(file)}
-                    >
-                      <div className={cn('h-32 flex items-center justify-center', isImg ? 'bg-black/20' : cfg.bg)}>
-                        {isImg
-                          ? <img src={file.public_url} alt={file.name} className="w-full h-full object-cover" loading="lazy" />
-                          : <div className={cn('w-12 h-12 rounded-xl border flex items-center justify-center', cfg.bg)}><span className={cfg.color}>{cfg.icon}</span></div>
-                        }
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5" onClick={e => e.stopPropagation()}>
-                          <button onClick={e => { e.stopPropagation(); setPreview(file); }} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </button>
-                          <a href={file.public_url} download={file.name} onClick={e => e.stopPropagation()} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
-                            <Download className="w-3.5 h-3.5" />
-                          </a>
-                          <button onClick={e => { e.stopPropagation(); deleteFile(file); }} className="w-8 h-8 rounded-lg bg-red-500/30 hover:bg-red-500/50 flex items-center justify-center text-red-300">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="p-2.5">
-                        <p className="text-xs font-semibold truncate">{file.name}</p>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-[10px] text-muted-foreground">{fmtSize(file.size)}</span>
-                          <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase', cfg.bg, cfg.color)}>{file.type}</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
           ) : (
-            <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
-              <div className="grid grid-cols-12 px-4 py-2.5 border-b border-border/40 bg-muted/20 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                <div className="col-span-5">Name</div>
-                <div className="col-span-2">Size</div>
-                <div className="col-span-2">Type</div>
-                <div className="col-span-2">Modified</div>
-                <div className="col-span-1 text-right">···</div>
+            <>
+              <div className={cn("h-full", tab !== 'YouTube' && "hidden")}>
+                <YouTubeSearchLibrary />
               </div>
-              <AnimatePresence>
-                {filtered.map(file => {
-                  const cfg = getCfg(file.type);
-                  return (
-                    <motion.div key={file.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="grid grid-cols-12 px-4 py-3 items-center border-b border-border/30 last:border-0 hover:bg-secondary/20 transition-colors group cursor-pointer"
-                      onClick={() => setPreview(file)}
-                    >
-                      <div className="col-span-5 flex items-center gap-3 min-w-0">
-                        <div className={cn('w-8 h-8 rounded-lg border flex items-center justify-center shrink-0', cfg.bg)}>
-                          <span className={cfg.color}>{cfg.icon}</span>
-                        </div>
-                        <p className="text-sm font-semibold truncate">{file.name}</p>
-                      </div>
-                      <div className="col-span-2 text-xs text-muted-foreground">{fmtSize(file.size)}</div>
-                      <div className="col-span-2">
-                        <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase', cfg.bg, cfg.color)}>{file.type}</span>
-                      </div>
-                      <div className="col-span-2 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(file.created_at), { addSuffix: true })}</div>
-                      <div className="col-span-1 flex justify-end" onClick={e => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-secondary/60 text-muted-foreground transition-all">
-                              <MoreVertical className="w-3.5 h-3.5" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setPreview(file)}><ExternalLink className="w-4 h-4 mr-2" />Preview</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => window.open(file.public_url, '_blank')}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => deleteFile(file)}><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
+              <div className={cn("h-full", tab !== 'Trending' && "hidden")}>
+                <DiscoverFeed />
+              </div>
+              <div className={cn("h-full", (tab === 'YouTube' || tab === 'Trending') && "hidden")}>
+                {filtered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-secondary/30 border border-border/40 flex items-center justify-center">
+                      <FolderOpen className="w-7 h-7 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{search ? 'No files match your search' : 'No files yet — upload something!'}</p>
+                  </div>
+                ) : view === 'grid' ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                    <AnimatePresence>
+                      {filtered.map(file => {
+                        const cfg = getCfg(file.type);
+                        const isImg = IS_IMAGE(file.type);
+                        return (
+                          <motion.div key={file.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                            className="group relative bg-card border border-border/50 rounded-2xl overflow-hidden hover:border-emerald-500/30 hover:shadow-lg hover:shadow-black/10 transition-all cursor-pointer"
+                            onClick={() => setPreview(file)}
+                          >
+                            <div className={cn('h-32 flex items-center justify-center', isImg ? 'bg-black/20' : cfg.bg)}>
+                              {isImg
+                                ? <img src={file.public_url} alt={file.name} className="w-full h-full object-cover" loading="lazy" />
+                                : <div className={cn('w-12 h-12 rounded-xl border flex items-center justify-center', cfg.bg)}><span className={cfg.color}>{cfg.icon}</span></div>
+                              }
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5" onClick={e => e.stopPropagation()}>
+                                <button onClick={e => { e.stopPropagation(); setPreview(file); }} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </button>
+                                <a href={file.public_url} download={file.name} onClick={e => e.stopPropagation()} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
+                                  <Download className="w-3.5 h-3.5" />
+                                </a>
+                                <button onClick={e => { e.stopPropagation(); deleteFile(file); }} className="w-8 h-8 rounded-lg bg-red-500/30 hover:bg-red-500/50 flex items-center justify-center text-red-300">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="p-2.5">
+                              <p className="text-xs font-semibold truncate">{file.name}</p>
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-[10px] text-muted-foreground">{fmtSize(file.size)}</span>
+                                <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase', cfg.bg, cfg.color)}>{file.type}</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
+                    <div className="grid grid-cols-12 px-4 py-2.5 border-b border-border/40 bg-muted/20 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      <div className="col-span-5">Name</div>
+                      <div className="col-span-2">Size</div>
+                      <div className="col-span-2">Type</div>
+                      <div className="col-span-2">Modified</div>
+                      <div className="col-span-1 text-right">···</div>
+                    </div>
+                    <AnimatePresence>
+                      {filtered.map(file => {
+                        const cfg = getCfg(file.type);
+                        return (
+                          <motion.div key={file.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="grid grid-cols-12 px-4 py-3 items-center border-b border-border/30 last:border-0 hover:bg-secondary/20 transition-colors group cursor-pointer"
+                            onClick={() => setPreview(file)}
+                          >
+                            <div className="col-span-5 flex items-center gap-3 min-w-0">
+                              <div className={cn('w-8 h-8 rounded-lg border flex items-center justify-center shrink-0', cfg.bg)}>
+                                <span className={cfg.color}>{cfg.icon}</span>
+                              </div>
+                              <p className="text-sm font-semibold truncate">{file.name}</p>
+                            </div>
+                            <div className="col-span-2 text-xs text-muted-foreground">{fmtSize(file.size)}</div>
+                            <div className="col-span-2">
+                              <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase', cfg.bg, cfg.color)}>{file.type}</span>
+                            </div>
+                            <div className="col-span-2 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(file.created_at), { addSuffix: true })}</div>
+                            <div className="col-span-1 flex justify-end" onClick={e => e.stopPropagation()}>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-secondary/60 text-muted-foreground transition-all">
+                                    <MoreVertical className="w-3.5 h-3.5" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setPreview(file)}><ExternalLink className="w-4 h-4 mr-2" />Preview</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => window.open(file.public_url, '_blank')}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
+                                  <DropdownMenuItem className="text-destructive" onClick={() => deleteFile(file)}><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

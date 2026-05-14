@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useEffect as useEffectCleanup } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { nvidiaService } from '@/services/nvidia-service';
@@ -30,7 +30,7 @@ import { logActivity } from '@/services/activityService';
 
 // --- Typing Animation Dots ---
 // --- Thinking Animation with Timer ---
-const ThinkingIndicator = ({ seconds }: { seconds: number }) => (
+const ThinkingIndicator = React.memo(({ seconds }: { seconds: number }) => (
   <div className="flex items-center gap-4 py-1">
     <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
       {[0, 1, 2].map((i) => (
@@ -38,9 +38,8 @@ const ThinkingIndicator = ({ seconds }: { seconds: number }) => (
           key={i}
           className="w-1.5 h-1.5 rounded-full bg-emerald-500"
           animate={{ 
-            scale: [1, 1.5, 1], 
+            scale: [1, 1.2, 1], 
             opacity: [0.4, 1, 0.4],
-            backgroundColor: ['#10b981', '#34d399', '#10b981']
           }}
           transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
         />
@@ -51,7 +50,9 @@ const ThinkingIndicator = ({ seconds }: { seconds: number }) => (
       <span className="text-[9px] font-mono text-muted-foreground">{seconds.toFixed(1)}s elapsed</span>
     </div>
   </div>
-);
+));
+
+ThinkingIndicator.displayName = 'ThinkingIndicator';
 
 // --- Copy Button for Messages ---
 const CopyButton = ({ text }: { text: string }) => {
@@ -72,7 +73,7 @@ const CopyButton = ({ text }: { text: string }) => {
 };
 
 // --- Message Bubble ---
-const MessageBubble = ({ msg, isLast }: { msg: any; isLast: boolean }) => {
+const MessageBubble = React.memo(({ msg, isLast }: { msg: any; isLast: boolean }) => {
   const isUser = msg.role === 'user';
   return (
     <motion.div
@@ -81,17 +82,13 @@ const MessageBubble = ({ msg, isLast }: { msg: any; isLast: boolean }) => {
       transition={{ duration: 0.25, ease: 'easeOut' }}
       className={cn('flex gap-3 group', isUser ? 'flex-row-reverse' : '')}
     >
-      {/* Avatar */}
       <div className={cn(
         'w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-1',
-        isUser
-          ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20'
-          : 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20'
+        'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20'
       )}>
         {isUser ? <UserIcon className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
       </div>
 
-      {/* Content */}
       <div className={cn('flex flex-col gap-1 max-w-[80%]', isUser ? 'items-end' : 'items-start')}>
         <div className={cn(
           'relative px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm',
@@ -107,7 +104,6 @@ const MessageBubble = ({ msg, isLast }: { msg: any; isLast: boolean }) => {
             </div>
           )}
         </div>
-        {/* Actions */}
         <div className={cn('flex items-center gap-1.5', isUser ? 'flex-row-reverse' : '')}>
           <span className="text-[10px] text-muted-foreground/60">
             {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -117,7 +113,9 @@ const MessageBubble = ({ msg, isLast }: { msg: any; isLast: boolean }) => {
       </div>
     </motion.div>
   );
-};
+});
+
+MessageBubble.displayName = 'MessageBubble';
 
 // --- Empty State ---
 const SUGGESTIONS = [
@@ -129,13 +127,12 @@ const SUGGESTIONS = [
   { emoji: '🧠', text: 'Brainstorm ideas', prompt: 'Let\'s brainstorm ideas together. What topic or problem are you working on?' },
 ];
 
-const EmptyState = ({ onNewChat, onSuggestion }: { onNewChat: () => void; onSuggestion: (prompt: string) => void }) => (
+const EmptyState = React.memo(({ onNewChat, onSuggestion }: { onNewChat: () => void; onSuggestion: (prompt: string) => void }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     className="flex-1 flex flex-col items-center justify-center p-8 gap-8"
   >
-    {/* Hero */}
     <div className="text-center">
       <div className="relative inline-flex mb-5">
         <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-600/20 border border-emerald-500/20 flex items-center justify-center shadow-xl shadow-emerald-500/10">
@@ -149,7 +146,6 @@ const EmptyState = ({ onNewChat, onSuggestion }: { onNewChat: () => void; onSugg
       <p className="text-muted-foreground text-sm mt-1.5 max-w-xs">Your intelligent workspace assistant. Analyze documents, draft content, and get answers instantly.</p>
     </div>
 
-    {/* Suggestions */}
     <div className="w-full max-w-lg">
       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 text-center">Try asking…</p>
       <div className="grid grid-cols-2 gap-2">
@@ -173,7 +169,9 @@ const EmptyState = ({ onNewChat, onSuggestion }: { onNewChat: () => void; onSugg
       <Plus className="w-4 h-4" /> Start New Chat
     </button>
   </motion.div>
-);
+));
+
+EmptyState.displayName = 'EmptyState';
 
 const AIChat = () => {
   const { user } = useAuth();
@@ -192,17 +190,45 @@ const AIChat = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Prevent tab refresh refetch spam
+  const fetchInProgressRef = useRef(false);
+  const lastFetchTimeRef = useRef(0);
+  const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+
   const fetchConversations = useCallback(async () => {
+    if (fetchInProgressRef.current) return;
+    const now = Date.now();
+    if (now - lastFetchTimeRef.current < FETCH_COOLDOWN) return;
+    
     if (!user) return;
-    const { data } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('last_message_at', { ascending: false });
-    if (data) setConversations(data);
+    fetchInProgressRef.current = true;
+    try {
+      const { data } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('last_message_at', { ascending: false });
+      if (data) {
+        setConversations(data);
+        lastFetchTimeRef.current = now;
+      }
+    } finally {
+      fetchInProgressRef.current = false;
+    }
   }, [user]);
 
-  useEffect(() => { fetchConversations(); }, [fetchConversations]);
+  useEffect(() => {
+    if (user && conversations.length === 0) fetchConversations();
+  }, [user]);
+  
+  // Refetch only on tab visibility change
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchConversations();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchConversations]);
 
   useEffect(() => {
     if (!user) return;
@@ -211,13 +237,35 @@ const AIChat = () => {
       .then(({ data }) => { if (data) setAvailableFiles(data); });
   }, [user]);
 
+  // Load messages for active conversation
   useEffect(() => {
-    if (!activeConv) { setMessages([]); return; }
+    if (!activeConv) { 
+      setMessages([]); 
+      return; 
+    }
+    
+    // Fetch existing messages
     supabase.from('messages').select('*')
       .eq('conversation_id', activeConv.id)
       .order('created_at', { ascending: true })
       .then(({ data }) => { if (data) setMessages(data); });
-  }, [activeConv]);
+    
+    // Subscribe to real-time message updates
+    const channel = supabase
+      .channel(`chat-messages-${activeConv.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${activeConv.id}` },
+        (payload) => {
+          setMessages(prev => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeConv?.id]);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     if (scrollRef.current) {
@@ -359,9 +407,43 @@ const AIChat = () => {
         }
       }
 
-      // History
-      const { data: history } = await supabase.from('messages').select('role, content')
+      // OPTIMIZATION: Fetch history and RAG knowledge in parallel (not sequential)
+      const historyPromise = supabase.from('messages').select('role, content')
         .eq('conversation_id', activeConv.id).order('created_at', { ascending: true }).limit(12);
+      
+      const embeddingPromise = nvidiaService.generateEmbedding(userMessage)
+        .catch((err) => {
+          console.warn('Embedding generation failed:', err);
+          return null;
+        });
+
+      // Wait for both in parallel
+      const [historyResult, queryEmbedding] = await Promise.all([historyPromise, embeddingPromise]);
+      const history = historyResult.data;
+
+      // RAG: Semantic Knowledge Retrieval (only if embedding succeeded)
+      let knowledgeContext: any[] = [];
+      if (queryEmbedding) {
+        try {
+          const { data: knowledge } = await supabase.rpc('match_knowledge', {
+            query_embedding: queryEmbedding,
+            match_threshold: 0.5,
+            match_count: 5,
+            p_user_id: user.id
+          });
+          
+          if (knowledge && knowledge.length > 0) {
+            knowledgeContext = knowledge.map((k: any) => ({
+              filename: k.title,
+              content: k.content,
+              mimeType: k.source_type,
+              size: 0
+            }));
+          }
+        } catch (err) {
+          console.warn('RAG Retrieval failed:', err);
+        }
+      }
 
       // Show a streaming placeholder immediately
       const placeholderId = `streaming-${Date.now()}`;
@@ -369,7 +451,7 @@ const AIChat = () => {
 
       const aiResponse = await nvidiaService.chat(
         userMessage,
-        documentContext.length > 0 ? documentContext : undefined,
+        [...documentContext, ...knowledgeContext].length > 0 ? [...documentContext, ...knowledgeContext] : undefined,
         history?.map(m => ({ role: m.role as any, content: m.content }))
       );
 

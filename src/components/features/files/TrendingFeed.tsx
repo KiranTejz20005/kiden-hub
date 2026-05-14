@@ -201,7 +201,7 @@ export const TrendingFeed = () => {
       if (error) throw error;
       
       // Transform to match discovery card format
-      setMyList(data?.map(v => ({
+      setMyList(data?.filter(v => !!v).map(v => ({
         ...v,
         video_id: v.video_id,
         thumbnail_url: v.thumbnail_url,

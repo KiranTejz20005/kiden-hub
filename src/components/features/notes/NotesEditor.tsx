@@ -30,17 +30,72 @@ const NotesEditor = () => {
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Prevent tab refresh refetch spam
+  const fetchInProgressRef = useRef(false);
+  const lastFetchTimeRef = useRef(0);
+  const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+  
   const fetchNotes = useCallback(async () => {
+    if (fetchInProgressRef.current) return;
+    const now = Date.now();
+    if (now - lastFetchTimeRef.current < FETCH_COOLDOWN) return;
+    
     if (!user) return;
-    const { data } = await supabase
-      .from('notes')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
-    if (data) setNotes(data);
+    fetchInProgressRef.current = true;
+    try {
+      const { data } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+      if (data) {
+        setNotes(data);
+        lastFetchTimeRef.current = now;
+      }
+    } finally {
+      fetchInProgressRef.current = false;
+    }
   }, [user]);
 
-  useEffect(() => { fetchNotes(); }, [fetchNotes]);
+  useEffect(() => {
+    if (user && notes.length === 0) fetchNotes();
+  }, [user]);
+  
+  // Refetch only on tab visibility change
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchNotes();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user]);
+  
+  // Real-time sync: Subscribe to note updates
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`notes-updates-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notes', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          setNotes(prev => prev.map(n => n.id === payload.new.id ? payload.new : n));
+          if (activeNote?.id === payload.new.id) setActiveNote(payload.new);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notes', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          setNotes(prev => [payload.new, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, activeNote?.id]);
 
   useEffect(() => {
     if (activeNote) {
@@ -167,20 +222,6 @@ const NotesEditor = () => {
     });
   };
 
-  // Insert markdown syntax around selection
-  const insertFormat = (prefix: string, suffix = '') => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const selected = content.substring(start, end);
-    const newContent = content.substring(0, start) + prefix + selected + suffix + content.substring(end);
-    setContent(newContent);
-    setTimeout(() => {
-      ta.focus();
-      ta.setSelectionRange(start + prefix.length, end + prefix.length);
-    }, 0);
-  };
 
   const filteredNotes = notes.filter(n =>
     n.title?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -271,7 +312,7 @@ const NotesEditor = () => {
               <FileText className="w-10 h-10 text-primary" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold mb-1 text-gradient">Your Notes</h2>
+              <h2 className="text-2xl font-bold mb-1 text-gradient">Notes Taking</h2>
               <p className="text-muted-foreground text-sm max-w-xs">Select a note to start editing, or create a new one.</p>
             </div>
             <button onClick={handleCreateNote} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-primary text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20 active:scale-95">
@@ -285,7 +326,7 @@ const NotesEditor = () => {
             <div className="h-11 border-b border-border/30 flex items-center justify-between px-4 bg-background/50 backdrop-blur-md shrink-0">
               {/* Breadcrumbs */}
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium overflow-hidden">
-                <span className="hover:text-foreground cursor-pointer transition-colors shrink-0">Smart Notes</span>
+                <span className="hover:text-foreground cursor-pointer transition-colors shrink-0">Notes Taking</span>
                 <ChevronRight className="w-3 h-3 shrink-0 opacity-40" />
                 <div className="flex items-center gap-1.5 hover:bg-secondary/50 px-1.5 py-0.5 rounded transition-colors cursor-pointer min-w-0">
                   <Lock className="w-3 h-3 shrink-0 text-amber-500/70" />

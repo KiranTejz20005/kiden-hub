@@ -38,10 +38,8 @@ const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'files', label: 'Asset Library', icon: Folder },
   { id: 'chat', label: 'AI Assistant', icon: MessageSquare },
-  { id: 'notes', label: 'Smart Notes', icon: FileText },
-  { id: 'boards', label: 'Research Boards', icon: Columns },
-  { id: 'team', label: 'Collaborators', icon: Users },
-  { id: 'settings', label: 'Preferences', icon: Settings },
+  { id: 'notes', label: 'Notes Taking', icon: FileText },
+  { id: 'boards', label: 'My Boards', icon: Columns },
 ] as const;
 
 const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate, isCollapsed, setIsCollapsed }: AppSidebarProps) => {

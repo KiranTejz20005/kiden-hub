@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { WorkspaceProvider } from '@/hooks/useWorkspace';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,12 +8,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { PageLayout } from '@/components/ui/PageLayout';
 import { motion } from 'framer-motion';
 import { Users, Settings as SettingsIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 import DashboardHome from '@/components/features/dashboard/DashboardHome';
 import FileStorage from '@/components/features/files/FileStorage';
 import AIChat from '@/components/features/ai/AIChat';
 import NotesEditor from '@/components/features/notes/NotesEditor';
-import ResearchBoards from '@/components/features/boards/ResearchBoards';
+import MyBoards from '@/components/features/boards/MyBoards';
 import Collaborators from '@/components/features/team/Collaborators';
 import Preferences from '@/components/features/settings/Preferences';
 
@@ -53,6 +54,11 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Track fetch to prevent duplicate requests when tab regains focus
+  const fetchInProgressRef = useRef(false);
+  const lastFetchTimeRef = useRef(0);
+  const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutes - don't refetch if done recently
 
   // 1. Sync URL -> State
   useEffect(() => {
@@ -80,35 +86,52 @@ const Dashboard = () => {
   };
 
   const fetchProfile = async () => {
+    // Prevent duplicate requests
+    if (fetchInProgressRef.current) return;
+    
+    // Don't refetch if we just fetched recently (tab was just in focus)
+    const now = Date.now();
+    if (now - lastFetchTimeRef.current < FETCH_COOLDOWN) return;
+
     if (!user) return;
-    const { data } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
-    if (data) {
+    
+    fetchInProgressRef.current = true;
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
+      if (data) {
         setProfile(data as unknown as Profile);
+        lastFetchTimeRef.current = now;
         // Guard for onboarding
         if (!data.onboarding_completed) {
           navigate('/onboarding');
         }
+      }
+    } finally {
+      fetchInProgressRef.current = false;
     }
   };
 
   useEffect(() => {
-    fetchProfile();
-  }, [user, navigate]);
-
-  // View Switching Logic
-  const CurrentView = useMemo(() => {
-    const views: Record<ActiveView, JSX.Element> = {
-      dashboard: <DashboardHome onViewChange={handleViewChange} />,
-      files: <FileStorage />,
-      chat: <AIChat />,
-      notes: <NotesEditor />,
-      boards: <ResearchBoards />,
-      team: <Collaborators />,
-      settings: <Preferences onProfileUpdate={fetchProfile} />,
+    // Only fetch if user just logged in (initial mount)
+    if (user && !profile) {
+      fetchProfile();
+    }
+  }, [user]);
+  
+  // Refetch profile only on explicit visibility change (tab regains focus)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Tab is now visible - but use cooldown to avoid rapid refetches
+        fetchProfile();
+      }
     };
 
-    return views[activeView] || <div className="p-8 text-white">View Not Found</div>;
-  }, [activeView, fetchProfile]);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user]);
 
   return (
     <WorkspaceProvider>
@@ -125,7 +148,21 @@ const Dashboard = () => {
         </div>
 
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-0">
-          {CurrentView}
+          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'dashboard' && "hidden")}>
+            <DashboardHome onViewChange={handleViewChange} />
+          </div>
+          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'files' && "hidden")}>
+            <FileStorage />
+          </div>
+          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'chat' && "hidden")}>
+            <AIChat />
+          </div>
+          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'notes' && "hidden")}>
+            <NotesEditor />
+          </div>
+          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'boards' && "hidden")}>
+            <MyBoards />
+          </div>
         </main>
       </div>
     </WorkspaceProvider>
