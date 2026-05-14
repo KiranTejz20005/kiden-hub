@@ -118,9 +118,9 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
             <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
               <Settings className="w-4 h-4" />
             </div>
-            <SheetTitle className="text-xl font-black uppercase tracking-widest text-white">Workspace Settings</SheetTitle>
+            <SheetTitle className="text-xl font-bold uppercase tracking-wider text-white">Workspace Settings</SheetTitle>
           </div>
-          <p className="text-xs text-muted-foreground font-medium">Manage your personal profile, workspace preferences, and collaborators.</p>
+          <p className="text-[11px] text-muted-foreground font-medium">Manage your personal profile, workspace preferences, and collaborators.</p>
         </SheetHeader>
 
         {/* Tab Navigation */}
@@ -130,7 +130,7 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
                 activeTab === tab.id 
                   ? "bg-white text-black shadow-lg" 
                   : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
@@ -180,14 +180,14 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
                   </div>
                   <div className="text-center">
-                    <h3 className="font-black text-white">{displayName || 'Anonymous Explorer'}</h3>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Personal Identity</p>
+                    <h3 className="font-bold text-white">{displayName || 'Anonymous Explorer'}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Personal Identity</p>
                   </div>
                 </div>
 
                 <div className="grid gap-6">
                   <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Display Name</Label>
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Display Name</Label>
                     <Input
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
@@ -197,7 +197,7 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">About You (Bio)</Label>
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">About You (Bio)</Label>
                     <Input
                       value={bio}
                       onChange={(e) => setBio(e.target.value)}
@@ -207,7 +207,7 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
                   </div>
 
                   <div className="space-y-4 pt-4">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Current Status</Label>
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Current Status</Label>
                     <div className="grid grid-cols-2 gap-3">
                       {statusOptions.map((option) => (
                         <button
@@ -221,7 +221,7 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
                           )}
                         >
                           <div className={cn("w-2.5 h-2.5 rounded-full", option.color)} />
-                          <span className="text-[11px] font-black uppercase tracking-widest">{option.label}</span>
+                          <span className="text-[11px] font-bold uppercase tracking-wider">{option.label}</span>
                           {status === option.value && <Check className="w-4 h-4 ml-auto" />}
                         </button>
                       ))}
@@ -231,7 +231,7 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
 
                 <Button 
                   onClick={handleSave} 
-                  className="w-full h-14 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-[0.2em] shadow-xl transition-all active:scale-[0.98]"
+                  className="w-full h-14 rounded-2xl bg-white text-black hover:bg-white/90 font-bold uppercase tracking-wider shadow-xl transition-all active:scale-[0.98]"
                   disabled={saving}
                 >
                   {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Profile Changes'}

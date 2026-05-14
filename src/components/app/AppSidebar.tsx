@@ -134,8 +134,8 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate, isColl
                   exit={{ opacity: 0, width: 0 }}
                   className="flex flex-col"
                 >
-                  <span className="font-black text-xl tracking-tight text-white leading-tight">Kiden Hub</span>
-                  <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] leading-none mt-1">Intelligence V1.0</span>
+                  <span className="font-bold text-lg tracking-tight text-white leading-tight">Kiden Hub</span>
+                  <span className="text-[9px] font-bold text-primary uppercase tracking-wider leading-none mt-1">Intelligence V1.0</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -187,7 +187,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate, isColl
 
                       {(!isCollapsed || isMobile) && (
                         <span className={cn(
-                          "font-bold text-sm tracking-tight transition-all duration-300",
+                          "font-semibold text-sm tracking-tight transition-all duration-300",
                           isActive ? "translate-x-1" : "group-hover:translate-x-1"
                         )}>
                           {item.label}
@@ -204,7 +204,7 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate, isColl
                     </Button>
                   </TooltipTrigger>
                   {isCollapsed && !isMobile && (
-                    <TooltipContent side="right" className="font-bold bg-[#161B22] text-white border-white/10 px-4 py-2 rounded-xl">
+                    <TooltipContent side="right" className="font-semibold bg-[#161B22] text-white border-white/10 px-4 py-2 rounded-xl">
                       {item.label}
                     </TooltipContent>
                   )}
@@ -218,11 +218,11 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate, isColl
         <div className="p-6 border-t border-white/5 bg-white/[0.02]">
           <div className={cn("flex items-center gap-4", isCollapsed && !isMobile ? "justify-center" : "")}>
             <div className="relative shrink-0">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-primary flex items-center justify-center text-white font-black border-2 border-white/10 shadow-2xl overflow-hidden ring-4 ring-black/20">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-primary flex items-center justify-center text-white font-bold border-2 border-white/10 shadow-2xl overflow-hidden ring-4 ring-black/20">
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-lg">{profile?.display_name?.[0]?.toUpperCase() || 'U'}</span>
+                  <span className="text-base">{profile?.display_name?.[0]?.toUpperCase() || 'U'}</span>
                 )}
               </div>
               <div className={cn(
@@ -234,10 +234,17 @@ const AppSidebar = ({ activeView, onViewChange, profile, onProfileUpdate, isColl
 
             {(!isCollapsed || isMobile) && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-white truncate leading-none mb-1">{profile?.display_name || 'User'}</p>
+                <p className="text-sm font-bold text-white truncate leading-none mb-1.5">{profile?.display_name || 'User'}</p>
                 <div className="flex items-center gap-1.5">
-                   <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none">Active</p>
+                   <div className={cn(
+                     "w-1.5 h-1.5 rounded-full",
+                     profile?.status === 'online' || !profile?.status ? "bg-primary" :
+                     profile?.status === 'away' ? "bg-amber-500" :
+                     profile?.status === 'dnd' ? "bg-red-500" : "bg-gray-500"
+                   )} />
+                   <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider leading-none">
+                     {profile?.status || 'Online'}
+                   </p>
                 </div>
               </div>
             )}

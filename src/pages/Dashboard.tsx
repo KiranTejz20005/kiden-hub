@@ -70,8 +70,14 @@ const Dashboard = () => {
     }
   }, [location.pathname]);
 
+  const [resetCounter, setResetCounter] = useState(0);
+
   // 2. Sync State -> URL + Auto-Collapse Logic
   const handleViewChange = (view: ActiveView) => {
+    if (view === activeView) {
+      setResetCounter(prev => prev + 1);
+    }
+    
     setActiveView(view);
     
     // Auto-collapse for focus-heavy views
@@ -85,13 +91,13 @@ const Dashboard = () => {
     navigate(path);
   };
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (force = false) => {
     // Prevent duplicate requests
     if (fetchInProgressRef.current) return;
     
-    // Don't refetch if we just fetched recently (tab was just in focus)
+    // Don't refetch if we just fetched recently (tab was just in focus), unless forced
     const now = Date.now();
-    if (now - lastFetchTimeRef.current < FETCH_COOLDOWN) return;
+    if (!force && (now - lastFetchTimeRef.current < FETCH_COOLDOWN)) return;
 
     if (!user) return;
     
@@ -141,7 +147,7 @@ const Dashboard = () => {
             activeView={activeView}
             onViewChange={handleViewChange}
             profile={profile}
-            onProfileUpdate={fetchProfile}
+            onProfileUpdate={() => fetchProfile(true)}
             isCollapsed={isSidebarCollapsed}
             setIsCollapsed={setIsSidebarCollapsed}
           />
@@ -161,7 +167,7 @@ const Dashboard = () => {
             <NotesEditor />
           </div>
           <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'boards' && "hidden")}>
-            <MyBoards />
+            <MyBoards resetCounter={resetCounter} />
           </div>
         </main>
       </div>

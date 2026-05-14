@@ -69,7 +69,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
     <div className={cn("space-y-10", !isEmbedded && "p-8 max-w-4xl mx-auto")}>
       {!isEmbedded && (
         <div className="mb-8">
-          <h1 className="text-3xl font-black uppercase tracking-tight text-white">Preferences</h1>
+          <h1 className="text-2xl font-bold uppercase tracking-tight text-white">Preferences</h1>
           <p className="text-sm text-muted-foreground mt-1">Customize your Kiden Hub workspace experience</p>
         </div>
       )}
@@ -78,7 +78,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
       <section className="space-y-6">
         <div className="flex items-center gap-3">
           <Palette className="w-5 h-5 text-emerald-400" />
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Visual System</h3>
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-white">Visual System</h3>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -98,8 +98,8 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
                 {theme === t.id && <Check className="w-3.5 h-3.5 text-emerald-400" />}
               </div>
               <div>
-                <p className="text-sm font-black text-white">{t.name}</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">{t.label}</p>
+                <p className="text-sm font-bold text-white">{t.name}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">{t.label}</p>
               </div>
               <div className={cn("absolute -right-4 -bottom-4 w-16 h-16 rounded-full blur-2xl opacity-0 group-hover:opacity-20 transition-opacity", t.color)} />
             </button>
@@ -111,7 +111,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
       <section className="space-y-6">
         <div className="flex items-center gap-3">
           <Layout className="w-5 h-5 text-blue-400" />
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Interface Density</h3>
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-white">Interface Density</h3>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[
@@ -130,7 +130,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
                 <d.icon className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-white">{d.label}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-white">{d.label}</p>
                 <p className="text-[9px] text-muted-foreground mt-1">{d.desc}</p>
               </div>
             </button>
@@ -142,7 +142,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
       <section className="space-y-6">
         <div className="flex items-center gap-3">
           <Bell className="w-5 h-5 text-amber-400" />
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Global Notifications</h3>
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-white">Global Notifications</h3>
         </div>
         <div className="space-y-3">
           {[
@@ -160,7 +160,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
                   <n.icon className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-white">{n.label}</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-white">{n.label}</p>
                   <p className="text-[9px] text-muted-foreground mt-1">{n.desc}</p>
                 </div>
               </div>
@@ -182,7 +182,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
       <section className="space-y-6">
         <div className="flex items-center gap-3">
           <Globe className="w-5 h-5 text-teal-400" />
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Regional Settings</h3>
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-white">Regional Settings</h3>
         </div>
         <div className="flex flex-wrap gap-2">
           {['English', 'Spanish', 'French', 'German', 'Japanese', 'Hindi'].map(lang => (
@@ -190,7 +190,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
               key={lang}
               onClick={() => { const l = lang.slice(0, 2).toLowerCase(); setLanguage(l); handleSave({ language: l }); }}
               className={cn(
-                "px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                "px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all",
                 language === lang.slice(0, 2).toLowerCase()
                   ? "bg-white text-black shadow-xl" 
                   : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"

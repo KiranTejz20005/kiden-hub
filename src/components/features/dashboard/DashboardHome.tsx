@@ -42,7 +42,7 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
         const [filesCount, chatsCount, boardsCount, storageSum, recentLogs] = await Promise.all([
           supabase.from('files').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
           supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-          supabase.from('research_boards').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+          supabase.from('research_boards' as any).select('*', { count: 'exact', head: true }).eq('user_id', user.id),
           supabase.from('files').select('size').eq('user_id', user.id),
           fetchRecentActivities(user.id, 5)
         ]);

@@ -125,13 +125,28 @@ export interface Note {
   id: string;
   user_id: string;
   workspace_id?: string | null;
+  folder_id?: string | null;
   title: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any;
+  content_text?: string;
   is_favorite: boolean;
-  is_archived: boolean;
-  is_template: boolean;
-  icon?: string;
+  is_full_width: boolean;
+  is_deleted: boolean;
+  deleted_at?: string | null;
+  icon?: string | null;
+  cover_image?: string | null;
+  word_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NoteFolder {
+  id: string;
+  user_id: string;
+  parent_id?: string | null;
+  name: string;
+  icon?: string | null;
+  is_collapsed: boolean;
   created_at: string;
   updated_at: string;
 }
