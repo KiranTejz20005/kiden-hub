@@ -14,8 +14,18 @@ export async function addVideoToLibrary(userId: string, videoData: any) {
       duration: videoData.duration,
       view_count: videoData.views,
       position: (await getMaxPosition(userId)) + 1
-    });
+    })
+    .select()
+    .single();
   return { data, error };
+}
+
+// Batch update positions
+export async function batchUpdatePositions(updates: { id: string; position: number }[]) {
+  const { error } = await supabase.rpc('batch_update_video_positions', {
+    updates: updates
+  });
+  return { error };
 }
 
 // Get user's saved videos

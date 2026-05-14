@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { nvidiaService } from '@/services/nvidia-service';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface VideoPlayerModalProps {
   video: any;
@@ -17,12 +20,38 @@ interface VideoPlayerModalProps {
 }
 
 export const VideoPlayerModal = ({ video, isOpen, onClose, onAdd }: VideoPlayerModalProps) => {
+  const [analyzing, setAnalyzing] = useState(false);
+  const [insights, setInsights] = useState<{ summary: string; points: string[] } | null>(null);
+
   if (!video) return null;
 
-  const formatCount = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
+  const handleFetchIntelligence = async () => {
+    setAnalyzing(true);
+    try {
+      const prompt = `Analyze this video content and provide a concise summary and 3 key insights.
+      Title: ${video.title}
+      Description: ${video.description}
+      
+      Format as JSON: { "summary": "...", "points": ["...", "...", "..."] }`;
+
+      const response = await nvidiaService.chat(prompt);
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        setInsights({ summary: data.summary, points: data.points });
+        
+        // Update DB if this is a global content piece
+        if (video.id && !video.user_id) {
+          await supabase.from('content_pieces').update({ ai_summary: data.summary }).eq('id', video.id);
+        }
+        toast.success('AI Analysis Complete');
+      }
+    } catch (err) {
+      console.error('AI Analysis failed:', err);
+      toast.error('AI analysis failed. Check API keys.');
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   return (
@@ -152,17 +181,40 @@ export const VideoPlayerModal = ({ video, isOpen, onClose, onAdd }: VideoPlayerM
                        </button>
                     </div>
                     
-                    <div className="p-6 rounded-[2rem] bg-[#0A0A0A] border border-white/5 flex flex-col items-center justify-center text-center gap-4 py-12">
-                       <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center">
-                          <FileText className="w-6 h-6 text-white/20" />
+                    <div className="p-6 rounded-[2rem] bg-[#0A0A0A] border border-white/5 flex flex-col gap-4">
+                       <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                             <Sparkles className={cn("w-5 h-5 text-primary", analyzing && "animate-spin")} />
+                          </div>
+                          <div>
+                             <p className="text-[13px] font-bold">AI Intelligence</p>
+                             <p className="text-[11px] text-muted-foreground">Deep analysis powered by NVIDIA</p>
+                          </div>
                        </div>
-                       <div>
-                          <p className="text-[13px] font-bold">No transcript yet</p>
-                          <p className="text-[11px] text-muted-foreground mt-1">Fetch one now to pull it from the source.</p>
-                       </div>
-                       <button className="mt-2 px-6 py-2.5 rounded-2xl bg-white text-black text-[11px] font-black hover:scale-105 transition-all">
-                          Fetch transcript
-                       </button>
+                       
+                       {insights ? (
+                         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                           <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
+                             <p className="text-[11px] leading-relaxed italic text-primary/90">"{insights.summary}"</p>
+                           </div>
+                           <ul className="space-y-2">
+                             {insights.points.map((p, i) => (
+                               <li key={i} className="flex gap-2 text-[11px] text-muted-foreground leading-snug">
+                                 <div className="w-1 h-1 rounded-full bg-primary shrink-0 mt-1.5" />
+                                 {p}
+                               </li>
+                             ))}
+                           </ul>
+                         </div>
+                       ) : (
+                         <button 
+                           onClick={handleFetchIntelligence}
+                           disabled={analyzing}
+                           className="w-full py-2.5 rounded-2xl bg-white text-black text-[11px] font-black hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                         >
+                           {analyzing ? 'Analyzing Content...' : 'Generate AI Insights'}
+                         </button>
+                       )}
                     </div>
                   </div>
 
