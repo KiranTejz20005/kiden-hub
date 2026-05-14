@@ -58,7 +58,7 @@ const DiscoveryCard = ({ video, onAdd, isFollowing, onFollow, onClick }: {
           onClick={() => onFollow(video)}
           className={cn(
             "p-2 rounded-xl transition-all",
-            isFollowing ? "text-teal-400 bg-teal-400/10" : "text-muted-foreground hover:bg-white/5"
+            isFollowing ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-white/5"
           )}
         >
           {isFollowing ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
@@ -83,6 +83,13 @@ const DiscoveryCard = ({ video, onAdd, isFollowing, onFollow, onClick }: {
         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
            <Play className="w-10 h-10 text-white opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300" />
         </div>
+        
+        {video.quality_score > 0.75 && (
+          <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-primary text-white text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg shadow-primary/20 backdrop-blur-md">
+            <Award className="w-3 h-3" /> Premium Pick
+          </div>
+        )}
+
         <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/80 text-[10px] font-bold text-white">
            {Math.floor(video.duration_seconds / 60)}:{(video.duration_seconds % 60).toString().padStart(2, '0')}
         </div>
@@ -126,9 +133,9 @@ export const TrendingFeed = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [visibleCategories, setVisibleCategories] = useState(['All', 'Tech', 'Productivity', 'Startups', 'Self-improvement', 'Public speaking']);
+  const [visibleCategories, setVisibleCategories] = useState(['All', 'Tech', 'Productivity', 'Startups', 'Education', 'Science', 'Self-improvement', 'Business', 'Design', 'Philosophy', 'Videography']);
 
-  const ADD_CATEGORIES = ['Philosophy', 'Business', 'Design', 'Graphic design', 'Economics', 'Politics', 'Content creation', 'Videography', 'Spirituality'];
+  const ADD_CATEGORIES = ['Economics', 'Politics', 'Content creation', 'Spirituality', 'Public speaking', 'Health & Fitness'];
 
   useEffect(() => {
     if (activeTab === 'Discover') fetchVideos();
@@ -147,14 +154,42 @@ export const TrendingFeed = () => {
   const fetchVideos = async () => {
     setIsLoading(true);
     try {
+      // Order by quality_score but with a limit that allows for variety
       let query = supabase.from('premium_trending_videos').select('*').order('quality_score', { ascending: false });
+      
       if (selectedCategory !== 'All') {
-        const catMap: Record<string,string> = { 'Tech': 'Technology', 'Productivity': 'Productivity', 'Self-improvement': 'Self-Improvement' };
+        const catMap: Record<string,string> = { 
+          'Tech': 'Technology', 
+          'Productivity': 'Productivity', 
+          'Self-improvement': 'Self-Improvement',
+          'Education': 'Education',
+          'Science': 'Science',
+          'Business': 'Business',
+          'Design': 'Design',
+          'Philosophy': 'Philosophy',
+          'Startups': 'Startups',
+          'Content creation': 'Content creation',
+          'Public speaking': 'Public speaking',
+          'Videography': 'Videography',
+          'Economics': 'Economics',
+          'Politics': 'Politics',
+          'Spirituality': 'Spirituality',
+          'Health & Fitness': 'Health & Fitness'
+        };
         query = query.eq('category', catMap[selectedCategory] || selectedCategory);
       }
-      const { data, error } = await query.limit(30);
+      
+      // Increased limit for more diversity
+      const { data, error } = await query.limit(100);
       if (error) throw error;
-      setVideos(data || []);
+      
+      // Shuffle slightly if it's "All" to show different creators on top
+      let results = data || [];
+      if (selectedCategory === 'All') {
+        results = [...results].sort(() => Math.random() - 0.5).slice(0, 40);
+      }
+      
+      setVideos(results);
     } catch (e) { console.error(e); } finally { setIsLoading(false); }
   };
 
@@ -286,7 +321,7 @@ export const TrendingFeed = () => {
                 onClick={() => setSelectedCategory(cat)}
                 className={cn(
                   "px-4 py-1.5 rounded-full text-[12px] font-medium border transition-all",
-                  selectedCategory === cat ? "bg-white text-black border-white" : "bg-[#111111] text-muted-foreground border-white/5 hover:border-white/10"
+                  selectedCategory === cat ? "bg-primary text-white border-primary" : "bg-[#111111] text-muted-foreground border-white/5 hover:border-white/10"
                 )}
               >
                 {cat}
@@ -318,7 +353,7 @@ export const TrendingFeed = () => {
                <TrendingUp className="w-12 h-12 text-white/10 mb-6" />
                <h3 className="text-xl font-bold">Engine ready to sync</h3>
                <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto">Initialize discovery to see the latest premium content.</p>
-               <button onClick={handleRefresh} className="mt-8 px-10 py-3 rounded-full bg-white text-black font-black text-sm hover:scale-105 transition-transform">Initialize Discovery</button>
+               <button onClick={handleRefresh} className="mt-8 px-10 py-3 rounded-full bg-primary text-white font-black text-sm hover:scale-105 transition-transform">Initialize Discovery</button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
@@ -354,7 +389,7 @@ export const TrendingFeed = () => {
                      <p className="text-sm font-bold truncate w-full">{c.channel_name}</p>
                      <button 
                        onClick={() => handleFollow({ channel_id: c.channel_id, channel_name: c.channel_name })}
-                       className="px-4 py-1.5 rounded-full bg-teal-400/10 text-teal-400 text-[11px] font-bold"
+                       className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold"
                      >
                        Following
                      </button>
