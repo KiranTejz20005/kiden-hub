@@ -58,7 +58,7 @@ export const DashboardMusic = () => {
             {/* Ambient Background */}
             {currentTrack?.album?.images?.[0]?.url && (
                 <div
-                    className="absolute inset-0 bg-cover bg-center opacity-30 blur-2xl scale-150 transition-all duration-[2s]"
+                    className="absolute inset-0 bg-cover bg-center opacity-30 blur-2xl scale-150 transition-all duration-[2000ms]"
                     style={{ backgroundImage: `url(${currentTrack.album.images[0].url})` }}
                 />
             )}
@@ -72,7 +72,7 @@ export const DashboardMusic = () => {
                                 <img
                                     src={currentTrack.album.images[0].url}
                                     alt="Album Art"
-                                    className={`w-full h-full object-cover transition-transform duration-[10s] ease-linear ${isPlaying ? 'scale-110' : 'scale-100'}`}
+                                    className={`w-full h-full object-cover transition-transform duration-[10000ms] ease-linear ${isPlaying ? 'scale-110' : 'scale-100'}`}
                                 />
                             ) : (
                                 <div className="w-full h-full bg-[#0D1117] flex items-center justify-center text-gray-600">
