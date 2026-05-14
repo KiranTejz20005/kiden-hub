@@ -27,7 +27,7 @@ import {
 import { logActivity } from '@/services/activityService';
 import { VideoPlayerModal } from './VideoPlayerModal';
 
-const CATEGORIES = ['All','Tech','Productivity','Startups','Education','Science',
+const CATEGORIES = ['All','Tech','Coding','Productivity','Startups','Education','Science',
   'Self-Improvement','Business','Design','Philosophy','Content creation','Videography'];
 
 const SORT_OPTIONS = [

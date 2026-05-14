@@ -81,6 +81,14 @@ export const PREMIUM_CHANNELS: Record<string, Array<{ name: string; id: string }
     { name: 'Think Media', id: 'UCnUYZLuoy1rq1aVMwx4aTzw' },
     { name: 'Cathrin Manning', id: 'UCpZ5x3GHcFIwUfGDdnXXA0A' },
   ],
+  'Coding': [
+    { name: 'freeCodeCamp', id: 'UC8butISFwT-Wl7EV0hUK0BQ' },
+    { name: 'Programming with Mosh', id: 'UCWv7vMbMWH4-V0ZXdmDpPBA' },
+    { name: 'Kevin Powell', id: 'UCjzHeG1KWoonqz7DVPQGn9w' },
+    { name: 'Web Dev Simplified', id: 'UCFbNIlppjAuEX4znoulh0Cw' },
+    { name: 'Hitesh Choudhary', id: 'UCXgGY0wkgOONij8OcS7LcqA' },
+    { name: 'Code with Harry', id: 'UCeVMnSShP_IineV1MqelHPg' },
+  ],
 };
 
 // ── QUALITY THRESHOLDS ───────────────────────────────────────────────────────
@@ -197,24 +205,42 @@ async function scrapeChannel(
 
     const subscriberCount = parseInt(channelData.statistics?.subscriberCount || '0');
 
-    // 2. Get latest videos
-    const searchRes = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-      params: {
-        part: 'snippet',
-        channelId: channel.id,
-        type: 'video',
-        order: 'date',
-        maxResults: 10,
-        publishedAfter: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
-        key: YOUTUBE_API_KEY,
-        videoDuration: 'medium',
-      },
-    });
+    // 2. Get latest videos using playlistItems (1 unit) instead of search (100 units)
+    // The uploads playlist ID is typically the channel ID with 'UU' instead of 'UC'
+    const uploadsPlaylistId = channel.id.replace(/^UC/, 'UU');
+    
+    let videoIds = '';
+    try {
+      const playlistRes = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
+        params: {
+          part: 'snippet',
+          playlistId: uploadsPlaylistId,
+          maxResults: 15,
+          key: YOUTUBE_API_KEY,
+        },
+      });
 
-    const videoIds = searchRes.data.items
-      ?.map((i: any) => i.id.videoId)
-      .filter((id: string) => id && !seenVideoIds.has(id))
-      .join(',');
+      videoIds = playlistRes.data.items
+        ?.map((i: any) => i.snippet.resourceId.videoId)
+        .filter((id: string) => id && !seenVideoIds.has(id))
+        .join(',');
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        throw new Error('YouTube API Quota Exceeded. Please try again tomorrow.');
+      }
+      // Fallback to search if playlistItems fails (some channels don't follow the UU pattern)
+      const searchRes = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+        params: {
+          part: 'snippet',
+          channelId: channel.id,
+          type: 'video',
+          order: 'date',
+          maxResults: 10,
+          key: YOUTUBE_API_KEY,
+        },
+      });
+      videoIds = searchRes.data.items?.map((i: any) => i.id.videoId).filter((id: string) => id && !seenVideoIds.has(id)).join(',');
+    }
 
     if (!videoIds) return 0;
 
@@ -340,13 +366,8 @@ export async function scrapeAllPremiumChannels(
         const count = await scrapeChannel(channel, category, seenVideoIds, true, preFetched);
         categoryCount += count;
 
-        if (count === 0) {
-          const fallbackCount = await scrapeChannel(channel, category, seenVideoIds, false, preFetched);
-          categoryCount += fallbackCount;
-        }
-
-        // Small delay
-        await new Promise(r => setTimeout(r, 100));
+        // Small delay to prevent burst limits
+        await new Promise(r => setTimeout(r, 200));
       }
     } catch (err: any) {
       if (err.response?.status === 403) {
@@ -570,7 +591,45 @@ export async function searchContent(
 
   const { data, error } = await query;
   if (error) { console.error('searchContent error:', error); return []; }
-  return (data || []) as ContentPiece[];
+  
+  const results = (data || []) as ContentPiece[];
+  
+  // LIVE FALLBACK: If no results found in DB, fetch directly from YouTube
+  if (results.length === 0 && searchQuery.length > 2) {
+    try {
+      const searchRes = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+        params: {
+          part: 'snippet',
+          q: searchQuery,
+          type: 'video',
+          maxResults: 15,
+          key: YOUTUBE_API_KEY,
+        },
+      });
+
+      const ytResults = searchRes.data.items?.map((i: any) => ({
+        id: i.id.videoId,
+        external_id: i.id.videoId,
+        title: i.snippet.title,
+        description: i.snippet.description,
+        thumbnail_url: i.snippet.thumbnails?.high?.url || i.snippet.thumbnails?.default?.url,
+        category: category || 'Coding',
+        quality_score: 80, // Default for live search
+        virality_score: 50,
+        content_metadata: JSON.stringify({
+          channel_name: i.snippet.channelTitle,
+          channel_id: i.snippet.channelId,
+          published_at: i.snippet.publishedAt,
+        })
+      })) || [];
+      
+      return ytResults;
+    } catch (err) {
+      console.error('YouTube live search failed:', err);
+    }
+  }
+
+  return results;
 }
 
 export async function recordInteraction(
