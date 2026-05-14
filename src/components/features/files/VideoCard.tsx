@@ -118,7 +118,7 @@ export const VideoCard = React.memo(({
             <Play className="w-10 h-10 text-white opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300"/>
           </div>
           {qualityScore >= 70 && (
-            <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-primary text-white text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg">
+            <div className="absolute top-2 left-2 px-2 py-1 rounded-lg bg-primary text-white text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 shadow-lg">
               <Award className="w-3 h-3"/> Premium
             </div>
           )}
@@ -132,13 +132,14 @@ export const VideoCard = React.memo(({
           <div className="flex items-center justify-between text-muted-foreground text-[12px]">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5"/> {fmt(v.view_count)}</span>
-              <span className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 text-[10px] font-black" title="Virality Score">
+              <span className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 text-[10px] font-bold" title="Virality Score">
                 {viralityScore.toFixed(1)}x
               </span>
               {outlierScore > 1.5 && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black animate-pulse" title="Outlier Score">
+                <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold animate-pulse" title="Outlier Score">
                   🔥 {outlierScore.toFixed(1)}x
                 </span>
+
               )}
             </div>
           

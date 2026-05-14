@@ -26,7 +26,8 @@ CREATE POLICY "collaborators_isolation" ON workspace_collaborators FOR ALL USING
 
 -- 4. User Preferences Storage
 -- Ensure user_profiles has preference fields
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS theme TEXT DEFAULT 'dark';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS theme TEXT DEFAULT 'emerald';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS mode TEXT DEFAULT 'dark';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN DEFAULT TRUE;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS display_density TEXT DEFAULT 'comfortable';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'en';

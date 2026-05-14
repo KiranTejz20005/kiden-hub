@@ -552,10 +552,10 @@ export const DiscoverFeed = () => {
                     key={cat} 
                     onClick={() => setCat(cat)}
                     className={cn(
-                      'px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all',
+                      'px-3.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all',
                       category===cat 
-                        ? 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/20 scale-105' 
-                        : 'bg-secondary/30 text-muted-foreground border-white/5 hover:border-emerald-500/30 hover:text-foreground'
+                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
+                        : 'bg-secondary/10 text-muted-foreground border-border/50 hover:border-primary/30 hover:text-foreground'
                     )}
                   >
                     {cat}
@@ -586,9 +586,9 @@ export const DiscoverFeed = () => {
                   <button 
                     onClick={handleScrape} 
                     disabled={scraping}
-                    className="mt-8 px-10 py-3 rounded-full bg-white text-black font-black text-sm hover:scale-105 active:scale-95 transition-all disabled:opacity-60 flex items-center gap-2 shadow-xl shadow-white/10"
+                    className="mt-8 px-8 py-2.5 rounded-xl bg-primary text-white font-bold text-xs hover:scale-105 active:scale-95 transition-all disabled:opacity-60 flex items-center gap-2 shadow-xl shadow-primary/20"
                   >
-                    {scraping ? <><Loader2 className="w-4 h-4 animate-spin"/> Fetching...</> : 'Initialize Discovery'}
+                    {scraping ? <><Loader2 className="w-4 h-4 animate-spin"/> Syncing...</> : 'Initialize Discovery'}
                   </button>
                 </div>
               ) : (

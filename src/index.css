@@ -5,38 +5,35 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* Background Scale */
+   :root {
+    /* Base Colors (Dark Default) */
     --bg-1: #0a0a0a;
     --bg-2: #111111;
     --bg-3: #161616;
     --bg-4: #1e1e1e;
     --bg-5: #232323;
 
-    /* Text Scale */
     --text-primary: #ebebeb;
     --text-secondary: rgba(255, 255, 255, 0.45);
     --text-tertiary: rgba(255, 255, 255, 0.28);
     --text-disabled: rgba(255, 255, 255, 0.18);
 
-    /* Border Scale */
-    --border-default: 1px solid rgba(255, 255, 255, 0.06);
+    --border-color: rgba(255, 255, 255, 0.06);
+    --border-default: 1px solid var(--border-color);
     --border-emphasized: 1px solid rgba(255, 255, 255, 0.12);
 
-    /* Accent Color */
     --accent: #e8e8e8;
 
-    /* Shadcn Mapping (Unified) */
-    --background: 0 0% 4%; /* #0a0a0a approx */
-    --foreground: 0 0% 92%; /* #ebebeb */
-    --card: 0 0% 9%; /* #161616 approx */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 92%;
+    --card: 0 0% 9%;
     --card-foreground: 0 0% 92%;
     --popover: 0 0% 9%;
     --popover-foreground: 0 0% 92%;
-    --primary: 142 71% 45%; /* #22c55e Emerald */
-    --primary-foreground: 144 100% 98%;
-    --primary-glow: 142 71% 45% / 0.3;
-    --secondary: 0 0% 11%; /* #1c1c1c approx */
+    --primary: 161 94% 30%; /* Rich Emerald Green #054d44 */
+    --primary-foreground: 161 100% 98%;
+    --primary-glow: 161 94% 30% / 0.3;
+    --secondary: 0 0% 11%;
     --secondary-foreground: 0 0% 92%;
     --muted: 0 0% 11%;
     --muted-foreground: 0 0% 45%;
@@ -50,6 +47,44 @@
     --radius: 0.5rem;
   }
 
+  .light {
+    --bg-1: #ffffff;
+    --bg-2: #f9f9f9;
+    --bg-3: #f5f5f5;
+    --bg-4: #eeeeee;
+    --bg-5: #e8e8e8;
+
+    --text-primary: #1a1a1a;
+    --text-secondary: rgba(0, 0, 0, 0.55);
+    --text-tertiary: rgba(0, 0, 0, 0.35);
+    --text-disabled: rgba(0, 0, 0, 0.15);
+
+    --border-color: rgba(0, 0, 0, 0.06);
+    --border-default: 1px solid var(--border-color);
+    --border-emphasized: 1px solid rgba(0, 0, 0, 0.12);
+
+    --accent: #1a1a1a;
+
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 142 71% 45%;
+    --primary-foreground: 144 100% 98%;
+    --primary-glow: 142 71% 45% / 0.1;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent-muted: 0 0% 92%;
+    --accent-foreground: 0 0% 10%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+  }
+
+
   .monochrome-theme {
     --primary: 0 0% 91%;
     --primary-foreground: 0 0% 4%;
@@ -59,7 +94,7 @@
   }
 
   * {
-    border-color: rgba(255, 255, 255, 0.06);
+    border-color: var(--border-color);
     transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
   }
 

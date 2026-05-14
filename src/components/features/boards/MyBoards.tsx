@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -61,11 +61,28 @@ const MyBoards = ({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'alphabetical'>('newest');
 
   // Quick Add Modal States
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [isAddingItem, setIsAddingItem] = useState(false);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+
+  const TEMPLATES = [
+    { title: 'Deep Learning Study', emoji: '🧠', items: [
+      { type: 'note', title: 'Curriculum Outline', content: { type: 'doc', content: [] } },
+      { type: 'link', title: 'Fast.ai Course', url: 'https://course.fast.ai' }
+    ]},
+    { title: 'Market Research', emoji: '📈', items: [
+      { type: 'note', title: 'Competitor Analysis', content: { type: 'doc', content: [] } },
+      { type: 'link', title: 'Crunchbase', url: 'https://crunchbase.com' }
+    ]},
+    { title: 'Product Launch', emoji: '🚀', items: [
+      { type: 'note', title: 'Strategy Doc', content: { type: 'doc', content: [] } },
+      { type: 'link', title: 'Product Hunt', url: 'https://producthunt.com' }
+    ]}
+  ];
 
   const fetchItems = useCallback(async () => {
     if (!selectedBoard || !user) return;
@@ -85,6 +102,19 @@ const MyBoards = ({
       setLoading(false);
     }
   }, [selectedBoard, user]);
+
+  const sortedItems = useMemo(() => {
+    let result = [...items];
+    if (searchQuery) {
+      result = result.filter(item => item.title.toLowerCase().includes(searchQuery.toLowerCase()));
+    }
+    
+    switch (sortOrder) {
+      case 'alphabetical': return result.sort((a, b) => a.title.localeCompare(b.title));
+      case 'oldest': return result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      case 'newest': default: return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  }, [items, searchQuery, sortOrder]);
 
   useEffect(() => {
     fetchItems();
@@ -116,6 +146,8 @@ const MyBoards = ({
       setShowLinkModal(false);
       setLinkUrl('');
     }
+  };
+
   const handleDeleteItem = async (id: string) => {
     try {
       const { error } = await supabase
@@ -129,6 +161,8 @@ const MyBoards = ({
     } catch (error) {
       toast.error('Failed to remove item');
     }
+  };
+
   const handleDeleteBoard = async () => {
     if (!selectedBoard || !user) return;
     if (!confirm('Are you sure you want to delete this board and all its items?')) return;
@@ -137,7 +171,8 @@ const MyBoards = ({
       const { error } = await supabase
         .from('research_boards' as any)
         .delete()
-        .eq('id', selectedBoard.id);
+        .eq('id', selectedBoard.id)
+        .eq('user_id', user.id); // Explicit security check
       
       if (error) throw error;
       toast.success('Board deleted');
@@ -145,6 +180,20 @@ const MyBoards = ({
     } catch (error) {
       toast.error('Failed to delete board');
     }
+  };
+
+  const handleShareBoard = () => {
+    if (!selectedBoard) return;
+    const url = `${window.location.origin}/dashboard/boards?id=${selectedBoard.id}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Share link copied to clipboard');
+  };
+
+  const handleChatWithBoard = () => {
+    // Navigate to chat and potentially pass context via state or URL
+    toast.info('Opening AI Assistant with board context...');
+    // Assuming onViewChange is available via a parent or we use window.location
+    window.location.href = '/dashboard/chat';
   };
 
   const openCreateModal = () => {
@@ -182,6 +231,40 @@ const MyBoards = ({
     }
   };
 
+  const handleSelectTemplate = async (template: any) => {
+    if (!user) return;
+    setIsCreating(true);
+    try {
+      const { data: board, error } = await supabase
+        .from('research_boards' as any)
+        .insert([{ user_id: user.id, title: template.title, emoji: template.emoji }])
+        .select().single();
+
+      if (error) throw error;
+
+      // Add template items
+      const itemsToAdd = template.items.map((item: any) => ({
+        board_id: board.id,
+        user_id: user.id,
+        type: item.type,
+        title: item.title,
+        content: item.content || {},
+        url: item.url
+      }));
+
+      await supabase.from('research_board_items').insert(itemsToAdd);
+      
+      onBoardsUpdate();
+      setShowTemplatesModal(false);
+      toast.success(`${template.title} board instantiated`);
+    } catch (err) {
+      toast.error('Failed to create from template');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+
   return (
     <div className="h-full flex min-h-0 overflow-hidden bg-background text-foreground">
       <main className="flex-1 min-w-0 flex flex-col bg-[#050505] overflow-hidden">
@@ -208,11 +291,26 @@ const MyBoards = ({
               </div>
 
               <div className="flex items-center gap-6">
-                {['SORT', 'CHAT', 'SHARE'].map((action) => (
-                  <button key={action} className="text-[10px] font-bold tracking-[0.2em] text-white/30 hover:text-white transition-colors">
-                    {action}
-                  </button>
-                ))}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="text-[10px] font-bold tracking-[0.2em] text-white/30 hover:text-white transition-colors uppercase">
+                      SORT: {sortOrder}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-[#161616] border-white/10 rounded-xl p-1">
+                    <DropdownMenuItem onClick={() => setSortOrder('newest')} className="text-xs font-bold text-white hover:bg-white/5 rounded-lg">NEWEST</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortOrder('oldest')} className="text-xs font-bold text-white hover:bg-white/5 rounded-lg">OLDEST</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortOrder('alphabetical')} className="text-xs font-bold text-white hover:bg-white/5 rounded-lg">A-Z</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <button onClick={handleChatWithBoard} className="text-[10px] font-bold tracking-[0.2em] text-white/30 hover:text-white transition-colors">
+                  CHAT
+                </button>
+                <button onClick={handleShareBoard} className="text-[10px] font-bold tracking-[0.2em] text-white/30 hover:text-white transition-colors">
+                  SHARE
+                </button>
+
                 <div className="w-px h-4 bg-white/10" />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -246,9 +344,7 @@ const MyBoards = ({
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 group-hover:text-white transition-all">Add New Item</span>
                   </button>
 
-                  {items.filter(item => 
-                    item.title.toLowerCase().includes(searchQuery.toLowerCase())
-                  ).map((item) => (
+                  {sortedItems.map((item) => (
                     <motion.div
                       layout
                       key={item.id}
@@ -299,7 +395,7 @@ const MyBoards = ({
                         </div>
                         <Button 
                           variant="ghost" 
-                          onClick={() => setShowLinkModal(true)}
+                          onClick={() => setShowTemplatesModal(true)}
                           className="h-12 rounded-2xl border border-white/10 bg-white/5 px-5 text-[9px] font-black uppercase tracking-[0.2em] text-white/60 hover:bg-white/10 transition-all shadow-xl"
                         >
                           <LayoutTemplate className="w-4 h-4 mr-2" /> Templates
@@ -425,8 +521,28 @@ const MyBoards = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={showTemplatesModal} onOpenChange={setShowTemplatesModal}>
+        <DialogContent className="max-w-2xl rounded-3xl border-white/10 bg-[#0a0a0a] p-8 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white mb-4">Board Templates</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
+            {TEMPLATES.map(t => (
+              <button 
+                key={t.title}
+                onClick={() => handleSelectTemplate(t)}
+                className="flex flex-col items-center justify-center p-6 rounded-[2rem] bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all gap-4 group"
+              >
+                <span className="text-4xl group-hover:scale-110 transition-transform">{t.emoji}</span>
+                <span className="text-xs font-bold text-center text-white/60 group-hover:text-white">{t.title}</span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 export default MyBoards;

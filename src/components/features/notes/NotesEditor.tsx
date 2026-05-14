@@ -17,6 +17,12 @@ const NotesEditor = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const activeNoteRef = useRef<Note | null>(null);
+
+  // Sync ref with state for the timer to avoid stale closures
+  useEffect(() => {
+    activeNoteRef.current = activeNote;
+  }, [activeNote]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -115,9 +121,13 @@ const NotesEditor = () => {
     const updatedNote = { ...activeNote, ...updates };
     setActiveNote(updatedNote);
 
-    // Debounced autosave
+    // Debounced autosave using the ref to ensure we always have the latest state
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(() => saveNote(updatedNote), 1500);
+    autoSaveTimer.current = setTimeout(() => {
+      if (activeNoteRef.current) {
+        saveNote(activeNoteRef.current);
+      }
+    }, 1500);
   };
 
   const handleCreateNote = async (folderId?: string) => {

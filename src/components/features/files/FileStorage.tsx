@@ -59,14 +59,36 @@ const TAB_TYPES: Record<string,string[]> = {
 
 // ─── Preview Modal ───────────────────────────────────────────
 const PreviewModal = ({ file, onClose }: { file: any; onClose: () => void }) => {
-  const [textContent, setTextContent] = useState<string | null>(null);
   const type = file.type?.toLowerCase();
+  const [textContent, setTextContent] = useState<string | null>(null);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (IS_TEXT(type)) {
-      fetch(file.public_url).then(r => r.text()).then(setTextContent).catch(() => setTextContent('Could not load file content.'));
-    }
-  }, [file]);
+    const fetchSignedUrl = async () => {
+      try {
+        const { data, error } = await supabase.storage
+          .from('kiden-files')
+          .createSignedUrl(file.storage_path, 3600); // 1 hour
+        
+        if (error) throw error;
+        
+        if (IS_TEXT(type)) {
+          const r = await fetch(data.signedUrl);
+          const text = await r.text();
+          setTextContent(text);
+        }
+        
+        // Store signed URL for other preview types
+        setResolvedUrl(data.signedUrl);
+      } catch (err) {
+        setTextContent('Could not load file content safely.');
+        console.error('Signed URL error:', err);
+      }
+    };
+    
+    fetchSignedUrl();
+  }, [file, type]);
+
 
   return (
     <motion.div
@@ -105,14 +127,14 @@ const PreviewModal = ({ file, onClose }: { file: any; onClose: () => void }) => 
 
         {/* Content */}
         <div className="flex-1 overflow-auto min-h-0 flex items-center justify-center bg-black/20">
-          {IS_IMAGE(type) && (
-            <img src={file.public_url} alt={file.name} className="max-w-full max-h-full object-contain" />
+          {IS_IMAGE(type) && resolvedUrl && (
+            <img src={resolvedUrl} alt={file.name} className="max-w-full max-h-full object-contain" />
           )}
-          {IS_VIDEO(type) && (
-            <video src={file.public_url} controls className="max-w-full max-h-full rounded-xl" />
+          {IS_VIDEO(type) && resolvedUrl && (
+            <video src={resolvedUrl} controls className="max-w-full max-h-full rounded-xl" />
           )}
-          {type === 'pdf' && (
-            <iframe src={file.public_url} title={file.name} className="w-full h-full min-h-[70vh]" />
+          {type === 'pdf' && resolvedUrl && (
+            <iframe src={resolvedUrl} title={file.name} className="w-full h-full min-h-[70vh]" />
           )}
           {IS_TEXT(type) && (
             <div className="w-full h-full p-6 overflow-auto">
@@ -217,7 +239,7 @@ const FileStorage = () => {
 
   const deleteFile = async (file: any) => {
     await supabase.storage.from('kiden-files').remove([file.storage_path]);
-    await supabase.from('files').delete().eq('id', file.id);
+    await supabase.from('files').delete().eq('id', file.id).eq('user_id', user.id);
     
     // Log Activity
     logActivity(user.id, 'delete_file', file.name, 'file');

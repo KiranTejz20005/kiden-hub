@@ -17,6 +17,7 @@ import NotesEditor from '@/components/features/notes/NotesEditor';
 import MyBoards from '@/components/features/boards/MyBoards';
 import Collaborators from '@/components/features/team/Collaborators';
 import Preferences from '@/components/features/settings/Preferences';
+import { SettingsModal } from '@/components/features/settings/SettingsModal';
 
 // Enhanced placeholder component for new features
 const PlaceholderView = ({ title, icon: Icon }: { title: string, icon: any }) => (
@@ -50,6 +51,10 @@ const Dashboard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [boards, setBoards] = useState<any[]>([]);
   const [selectedBoard, setSelectedBoard] = useState<any | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,87 +83,115 @@ const Dashboard = () => {
   const lastFetchTimeRef = useRef(0);
   const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutes - don't refetch if done recently
 
-  // 1. Sync URL -> State
+  // 1. Sync URL -> State (Robust derivation)
   useEffect(() => {
     const path = location.pathname.split('/dashboard')[1]?.replace('/', '');
-    if (path && path !== activeView) {
-      setActiveView(path as ActiveView);
-    } else if (!path && activeView !== 'dashboard') {
-      setActiveView('dashboard');
+    const validViews: ActiveView[] = ['dashboard', 'files', 'chat', 'notes', 'boards', 'team', 'settings'];
+    
+    if (path && validViews.includes(path as ActiveView)) {
+      if (path !== activeView) setActiveView(path as ActiveView);
+    } else if (!path || !validViews.includes(path as ActiveView)) {
+      // Fallback for invalid or empty sub-routes
+      if (activeView !== 'dashboard') {
+        setActiveView('dashboard');
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }, [location.pathname]);
+  }, [location.pathname, navigate]);
 
   const [resetCounter, setResetCounter] = useState(0);
 
   // 2. Sync State -> URL
   const handleViewChange = (view: ActiveView) => {
+    if (view === 'settings') {
+      setIsSettingsOpen(true);
+      return;
+    }
+
     if (view === activeView) {
       setResetCounter(prev => prev + 1);
     }
     
     setActiveView(view);
-    
     const path = view === 'dashboard' ? '/dashboard' : `/dashboard/${view}`;
     navigate(path);
   };
 
-  const fetchProfile = async (force = false) => {
-    // Prevent duplicate requests
-    if (fetchInProgressRef.current) return;
-    
-    // Don't refetch if we just fetched recently (tab was just in focus), unless forced
-    const now = Date.now();
-    if (!force && (now - lastFetchTimeRef.current < FETCH_COOLDOWN)) return;
-
+  const initializeData = useCallback(async () => {
     if (!user) return;
+    setIsInitialLoading(true);
     
-    fetchInProgressRef.current = true;
     try {
-      const { data } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
-      if (data) {
-        setProfile(data as unknown as Profile);
-        lastFetchTimeRef.current = now;
-        // Guard for onboarding
-        if (!data.onboarding_completed) {
+      const [profileRes, boardsRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('research_boards' as any).select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+      ]);
+
+      if (profileRes.data) {
+        setProfile(profileRes.data as unknown as Profile);
+        if (!profileRes.data.onboarding_completed) {
           navigate('/onboarding');
         }
+      } else {
+        // Create default profile if missing (fallback logic)
+        const { data: newProfile } = await supabase.from('profiles').insert([{ 
+          user_id: user.id, 
+          display_name: user.email?.split('@')[0],
+          onboarding_completed: false 
+        }]).select().single();
+        if (newProfile) setProfile(newProfile as unknown as Profile);
       }
+
+      if (boardsRes.data) {
+        setBoards(boardsRes.data);
+        if (boardsRes.data.length > 0 && !selectedBoard) {
+          setSelectedBoard(boardsRes.data[0]);
+        }
+      }
+      
+      lastFetchTimeRef.current = Date.now();
+    } catch (err) {
+      console.error('Initialization error:', err);
     } finally {
-      fetchInProgressRef.current = false;
+      setIsInitialLoading(false);
     }
-  };
+  }, [user, navigate, selectedBoard]);
 
   useEffect(() => {
-    // Only fetch if user just logged in (initial mount)
-    if (user && !profile) {
-      fetchProfile();
-    }
+    if (user) initializeData();
   }, [user]);
   
-  // Refetch profile only on explicit visibility change (tab regains focus)
+  // Re-sync visibility
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Tab is now visible - but use cooldown to avoid rapid refetches
-        fetchProfile();
+      if (document.visibilityState === 'visible' && Date.now() - lastFetchTimeRef.current > FETCH_COOLDOWN) {
+        initializeData();
       }
     };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user]);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [initializeData]);
+
+  if (isInitialLoading) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#050505] gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center animate-pulse">
+          <div className="w-4 h-4 bg-white rounded-full animate-ping" />
+        </div>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 animate-pulse">Initializing Hub</p>
+      </div>
+    );
+  }
 
   return (
     <WorkspaceProvider>
-      <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden monochrome-theme">
+      <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden">
         <div className="relative z-[60]">
           <AppSidebar
             activeView={activeView}
             onViewChange={handleViewChange}
             profile={profile}
-            onProfileUpdate={() => fetchProfile(true)}
+            onProfileUpdate={initializeData}
             isCollapsed={isSidebarCollapsed}
             setIsCollapsed={setIsSidebarCollapsed}
             boards={boards}
@@ -195,6 +228,13 @@ const Dashboard = () => {
           </div>
         </main>
       </div>
+
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+        profile={profile}
+        onProfileUpdate={initializeData}
+      />
     </WorkspaceProvider>
   );
 };

@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Profile, ActiveView } from '@/lib/types';
-import SettingsPanel from './SettingsPanel';
 import GlobalSearch from './GlobalSearch';
 import {
   LayoutDashboard,
@@ -72,7 +71,6 @@ const AppSidebar = ({
   onBoardsUpdate
 }: AppSidebarProps) => {
   const { user, signOut } = useAuth();
-  const [showSettings, setShowSettings] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [isBoardsExpanded, setIsBoardsExpanded] = useState(true);
 
@@ -148,7 +146,7 @@ const AppSidebar = ({
                 </div>
                 <DropdownMenuSeparator className="bg-white/[0.03] my-1.5" />
                 <DropdownMenuItem 
-                  onClick={() => setShowSettings(true)}
+                  onClick={() => onViewChange('settings')}
                   className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-white/[0.05] rounded-xl transition-all text-[13px] font-medium group"
                 >
                   <Settings className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-white transition-colors" />
@@ -290,7 +288,7 @@ const AppSidebar = ({
                 </div>
                 <div className={cn(
                   "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-[#0a0a0a]",
-                  profile.status === 'online' || !profile.status ? "bg-emerald-500" :
+                  profile.status === 'online' || !profile.status ? "bg-primary" :
                   profile.status === 'away' ? "bg-amber-500" : "bg-gray-500"
                 )} />
               </div>
@@ -309,7 +307,7 @@ const AppSidebar = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <button 
-                  onClick={() => setShowSettings(true)}
+                  onClick={() => onViewChange('settings')}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 text-[var(--text-tertiary)] hover:text-white transition-all group"
                 >
                   <Settings className="w-4 h-4 group-hover:rotate-45 transition-transform" />
@@ -324,12 +322,6 @@ const AppSidebar = ({
           open={showSearch} 
           onOpenChange={setShowSearch} 
           onViewChange={onViewChange} 
-        />
-        <SettingsPanel 
-          profile={profile} 
-          onProfileUpdate={onProfileUpdate || (() => {})} 
-          isOpen={showSettings} 
-          onOpenChange={setShowSettings} 
         />
       </motion.aside>
     </TooltipProvider>

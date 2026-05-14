@@ -198,18 +198,19 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
 
             <div className="space-y-6">
               <h2 className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em] px-2 flex items-center gap-2">
-                System Status <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                System Status <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               </h2>
-              <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-6 flex items-center gap-4 group hover:bg-emerald-500/10 transition-all">
-                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                   <Zap className="w-5 h-5 text-emerald-400" />
+              <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 flex items-center gap-4 group hover:bg-primary/20 transition-all">
+                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                   <Zap className="w-5 h-5 text-primary" />
                  </div>
                  <div>
-                   <p className="text-[13px] font-bold text-emerald-400">All systems operational</p>
-                   <p className="text-[10px] text-emerald-400/60 uppercase tracking-widest mt-0.5">Latency: 24ms</p>
+                   <p className="text-[13px] font-bold text-primary">All systems operational</p>
+                   <p className="text-[10px] text-primary/60 uppercase tracking-widest mt-0.5">Latency: 24ms</p>
                  </div>
               </div>
             </div>
+
           </div>
         </div>
       </motion.div>
