@@ -42,7 +42,7 @@ export const CacheProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     sessionStorage.setItem('app-cache', JSON.stringify(cache));
   }, [cache]);
 
-  const get = useCallback(<T>(key: string): T | null => {
+  const get = useCallback(<T,>(key: string): T | null => {
     const entry = cache[key];
     if (!entry) return null;
     
@@ -53,7 +53,7 @@ export const CacheProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return entry.data as T;
   }, [cache]);
 
-  const set = useCallback(<T>(key: string, data: T, ttl = DEFAULT_TTL) => {
+  const set = useCallback(<T,>(key: string, data: T, ttl = DEFAULT_TTL) => {
     setCache(prev => ({
       ...prev,
       [key]: { data, timestamp: Date.now(), ttl }
