@@ -29,13 +29,21 @@ class NVIDIAService {
     try {
       const { data, error } = await supabase.functions.invoke('nvidia-chat', {
         body: { action: 'chat', messages, model: this.model },
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge Function Error Response:', error);
+        throw error;
+      }
       return data.choices[0]?.message?.content || 'No response generated';
     } catch (error: any) {
       console.error('NVIDIA Service Error:', error);
-      throw new Error(`AI Service Error: ${error.message}`);
+      // Detailed error message for the UI
+      const msg = error.message || 'Check if Supabase Edge Function "nvidia-chat" is deployed and CORS is configured.';
+      throw new Error(`AI Service Error: ${msg}`);
     }
   }
 
@@ -46,13 +54,20 @@ class NVIDIAService {
     try {
       const { data, error } = await supabase.functions.invoke('nvidia-chat', {
         body: { action: 'embedding', input },
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Embedding Edge Function Error:', error);
+        throw error;
+      }
       return data.embedding;
     } catch (error: any) {
       console.error('Embedding Generation Error:', error);
-      throw new Error(`Embedding Error: ${error.message}`);
+      const msg = error.message || 'Check if "nvidia-chat" function is deployed.';
+      throw new Error(`Embedding Error: ${msg}`);
     }
   }
 

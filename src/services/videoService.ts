@@ -8,11 +8,13 @@ export async function addVideoToLibrary(userId: string, videoData: any) {
       user_id: userId,
       video_id: videoData.id,
       title: videoData.title,
-      channel_name: videoData.channel,
-      thumbnail_url: videoData.thumbnail,
-      video_url: videoData.url,
-      duration: videoData.duration,
-      view_count: videoData.views,
+      channel_name: videoData.channel_name,
+      channel_avatar: videoData.channel_avatar,
+      thumbnail_url: videoData.thumbnail_url,
+      video_url: videoData.video_url,
+      published_at: videoData.published_at,
+      duration: videoData.duration_seconds,
+      view_count: videoData.view_count,
       position: (await getMaxPosition(userId)) + 1
     })
     .select()

@@ -53,11 +53,11 @@ const NoteHeader = ({
     <div className="flex flex-col w-full">
       {/* ── Breadcrumbs & Actions ── */}
       <div className="h-14 flex items-center justify-between px-6 bg-background/50 backdrop-blur-md sticky top-0 z-40 border-b border-border/10">
-        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground/90">
           <span className="hover:text-foreground cursor-pointer transition-colors">Workspace</span>
-          <ChevronRight className="w-3 h-3 opacity-30" />
-          <span className="hover:text-foreground cursor-pointer transition-colors">Intelligence</span>
-          <ChevronRight className="w-3 h-3 opacity-30" />
+          <ChevronRight className="w-3 h-3 opacity-50" />
+          <span className="hover:text-foreground cursor-pointer transition-colors">Notes</span>
+          <ChevronRight className="w-3 h-3 opacity-50" />
           <div className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer text-foreground font-bold">
             {note.icon || '📝'}
             <span className="truncate max-w-[200px]">{note.title || 'Untitled'}</span>
@@ -65,7 +65,7 @@ const NoteHeader = ({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 mr-4 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+          <div className="flex items-center gap-2 mr-4 text-[10px] text-muted-foreground/80 font-bold uppercase tracking-widest">
             {note.word_count || 0} Words · {Math.ceil((note.word_count || 0) / 200)} Min Read
           </div>
 
@@ -102,7 +102,7 @@ const NoteHeader = ({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsChangingCover(true)}><ImageIcon className="w-4 h-4 mr-2" /> Change Cover</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onDelete} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Delete Intelligence</DropdownMenuItem>
+                <DropdownMenuItem onClick={onDelete} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Delete Note</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -176,8 +176,8 @@ const NoteHeader = ({
             <input
               value={note.title || ''}
               onChange={(e) => onUpdate({ title: e.target.value })}
-              className="w-full bg-transparent border-none focus:outline-none text-4xl font-bold tracking-tight text-white placeholder:text-white/10 transition-all"
-              placeholder="Untitled Intelligence"
+              className="w-full bg-transparent border-none focus:outline-none text-4xl font-bold tracking-tight text-white placeholder:text-white/20 transition-all"
+              placeholder="Untitled Note"
             />
             
             {/* Metadata Row */}
@@ -188,11 +188,11 @@ const NoteHeader = ({
                 </div>
                 <span className="text-[11px] font-bold text-muted-foreground/80">{profile?.display_name || 'System User'}</span>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground/40">
+              <div className="flex items-center gap-2 text-muted-foreground/70">
                 <Calendar className="w-3.5 h-3.5" />
                 <span className="text-[10px] font-medium uppercase tracking-wider">{format(new Date(note.created_at), 'MMM d, yyyy')}</span>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground/40">
+              <div className="flex items-center gap-2 text-muted-foreground/70">
                 <Clock className="w-3.5 h-3.5" />
                 <span className="text-[10px] font-medium uppercase tracking-wider">Last Edited {format(new Date(note.updated_at), 'h:mm a')}</span>
               </div>

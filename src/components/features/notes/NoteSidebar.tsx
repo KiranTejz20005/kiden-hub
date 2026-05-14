@@ -151,7 +151,7 @@ const NoteSidebar = ({
         <p className={cn("text-xs font-semibold truncate", activeNoteId === note.id ? "text-primary" : "text-foreground")}>
           {note.title || 'Untitled'}
         </p>
-        <p className="text-[10px] text-muted-foreground/60 mt-0.5 font-medium">
+        <p className="text-[10px] text-muted-foreground/80 mt-0.5 font-medium">
           {formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
         </p>
       </div>
@@ -239,7 +239,7 @@ const NoteSidebar = ({
     >
       <div className="p-5 border-b border-border/30 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Intelligence Base</h2>
+          <h2 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Notes Base</h2>
           <div className="flex items-center gap-2">
             <button onClick={() => onNewNote()} className="w-7 h-7 flex items-center justify-center rounded-lg bg-primary text-white shadow-lg shadow-primary/20 hover:opacity-90 active:scale-90 transition-all">
               <Plus className="w-4 h-4" />
@@ -250,7 +250,7 @@ const NoteSidebar = ({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/40" />
           <Input
-            placeholder="Search Intelligence..."
+            placeholder="Search Notes..."
             className="h-10 pl-9 bg-white/5 border-white/5 text-[13px] rounded-xl placeholder:text-muted-foreground/20 focus:ring-1 focus:ring-primary/30 transition-all"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
@@ -290,8 +290,8 @@ const NoteSidebar = ({
 
       <div className="p-4 border-t border-border/30 bg-white/[0.02]">
         <div className="flex items-center justify-between px-2 mb-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/40">{notes.length} Intelligence Points</span>
-          <button className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/40 hover:text-red-400 transition-colors flex items-center gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{notes.length} Active Notes</span>
+          <button className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-red-400 transition-colors flex items-center gap-1">
             <Trash2 className="w-3 h-3" /> Trash
           </button>
         </div>

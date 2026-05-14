@@ -26,6 +26,8 @@ interface SettingsPanelProps {
   profile: Profile | null;
   onProfileUpdate: () => void;
   isCollapsed?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const statusOptions: { value: UserStatus; label: string; icon: typeof Wifi; color: string }[] = [
@@ -35,9 +37,13 @@ const statusOptions: { value: UserStatus; label: string; icon: typeof Wifi; colo
   { value: 'offline', label: 'Offline', icon: WifiOff, color: 'bg-muted-foreground' },
 ];
 
-const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelProps) => {
+const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed, isOpen: externalOpen, onOpenChange: setExternalOpen }: SettingsPanelProps) => {
   const { user } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setIsOpen = setExternalOpen !== undefined ? setExternalOpen : setInternalOpen;
+  
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
@@ -103,15 +109,17 @@ const SettingsPanel = ({ profile, onProfileUpdate, isCollapsed }: SettingsPanelP
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-2xl transition-all active:scale-90"
-        >
-          <Settings className="w-5 h-5" />
-        </Button>
-      </SheetTrigger>
+      {setExternalOpen === undefined && (
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-2xl transition-all active:scale-90"
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
+        </SheetTrigger>
+      )}
       <SheetContent side="right" className="w-full sm:max-w-2xl bg-[#050505] border-l border-white/5 p-0 flex flex-col shadow-2xl">
         <SheetHeader className="p-8 pb-4 border-b border-white/5">
           <div className="flex items-center gap-3 mb-2">

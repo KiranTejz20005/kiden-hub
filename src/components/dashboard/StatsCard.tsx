@@ -7,7 +7,6 @@ interface StatsCardProps {
   value: string;
   subValue?: string;
   icon: LucideIcon;
-  color: 'blue' | 'emerald' | 'purple' | 'amber' | 'rose' | 'primary';
   change?: string;
   trend?: 'up' | 'down';
   progress?: number;
@@ -19,87 +18,62 @@ export const StatsCard = ({
   value, 
   subValue, 
   icon: Icon, 
-  color = 'emerald', 
   change, 
   trend, 
   progress,
   delay = 0 
 }: StatsCardProps) => {
-  
-  const colorMap = {
-    blue: 'from-blue-500/20 to-teal-500/5 text-blue-400 border-blue-500/20',
-    emerald: 'from-emerald-500/20 to-teal-500/5 text-emerald-400 border-emerald-500/20',
-    purple: 'from-purple-500/20 to-emerald-500/5 text-purple-400 border-purple-500/20',
-    amber: 'from-amber-500/20 to-orange-500/5 text-amber-400 border-amber-500/20',
-    rose: 'from-rose-500/20 to-pink-500/5 text-rose-400 border-rose-500/20',
-    primary: 'from-primary/20 to-accent/5 text-primary border-primary/20',
-  };
-
-  const glowMap = {
-    blue: 'bg-blue-500/5',
-    emerald: 'bg-emerald-500/5',
-    purple: 'bg-purple-500/5',
-    amber: 'bg-amber-500/5',
-    rose: 'bg-rose-500/5',
-    primary: 'bg-primary/10',
-  };
-
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      whileHover={{ y: -5, transition: { duration: 0.2 } }}
-      className="group relative bg-[#050505] rounded-3xl p-6 border border-white/5 hover:border-primary/20 transition-all duration-300 overflow-hidden shadow-2xl"
+      whileHover={{ y: -4, scale: 1.02 }}
+      transition={{ duration: 0.4, delay }}
+      className="bg-white/[0.02] rounded-[2rem] p-8 border border-white/5 flex flex-col gap-6 relative group hover:bg-white/[0.04] hover:border-white/10 transition-all shadow-2xl"
     >
-      {/* Background Glow */}
-      <div className={cn("absolute -right-4 -bottom-4 w-32 h-32 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full", glowMap[color])} />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem]" />
       
-      <div className="relative z-10 space-y-4">
-        <div className="flex items-start justify-between">
-          <div className={cn("p-3 rounded-2xl bg-gradient-to-br border shadow-sm transition-transform duration-500 group-hover:scale-110", colorMap[color])}>
-            <Icon className="w-6 h-6" />
-          </div>
-          
-          {change && (
-            <div className={cn(
-              "flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black tracking-wider uppercase",
-              trend === 'up' ? "bg-primary/10 text-primary" : "bg-rose-500/10 text-rose-400"
-            )}>
-              {trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-              {change}
-            </div>
-          )}
+      <div className="flex items-start justify-between relative z-10">
+        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/40 group-hover:text-primary group-hover:bg-primary/10 transition-all">
+          <Icon className="w-6 h-6" />
         </div>
-
-        <div>
-          <h3 className="text-gray-500 text-xs font-black uppercase tracking-[0.15em] mb-1">{label}</h3>
-          <div className="flex items-baseline gap-2">
-            <p className="text-3xl font-black text-white tracking-tighter">{value}</p>
-            {subValue && <span className="text-[10px] font-bold text-gray-600 truncate uppercase tracking-widest">{subValue}</span>}
-          </div>
-        </div>
-
-        {progress !== undefined && (
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-gray-600">
-              <span>Usage</span>
-              <span className="text-white">{Math.round(progress)}%</span>
-            </div>
-            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 p-[1px]">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 1, delay: delay + 0.5 }}
-                className={cn(
-                  "h-full rounded-full bg-gradient-to-r",
-                  color === 'primary' ? "from-primary to-accent" : "from-emerald-500 to-teal-500"
-                )}
-              />
-            </div>
+        
+        {change && (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-[10px] font-bold text-emerald-400 border border-emerald-500/10">
+            {trend === 'up' ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+            {change}
           </div>
         )}
       </div>
+
+      <div className="relative z-10">
+        <h3 className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30 group-hover:text-white/50 transition-colors mb-2">{label}</h3>
+        <div className="flex items-baseline gap-2">
+          <p className="text-2xl font-bold text-white tracking-tight leading-none">{value}</p>
+          {subValue && (
+            <span className="text-[9px] text-white/20 uppercase tracking-widest font-bold">
+              {subValue}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {progress !== undefined && (
+        <div className="mt-auto pt-4 space-y-3 relative z-10">
+          <div className="h-[4px] w-full bg-white/5 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 1.5, delay: delay + 0.3, ease: "circOut" }}
+              className="h-full bg-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]"
+            />
+          </div>
+          <div className="flex justify-between text-[9px] font-bold uppercase tracking-[0.2em] text-white/20">
+            <span className="text-primary">{Math.round(progress)}% utilized</span>
+            <span>50MB Limit</span>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

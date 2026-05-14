@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { WorkspaceProvider } from '@/hooks/useWorkspace';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,30 +20,27 @@ import Preferences from '@/components/features/settings/Preferences';
 
 // Enhanced placeholder component for new features
 const PlaceholderView = ({ title, icon: Icon }: { title: string, icon: any }) => (
-  <PageLayout className="flex flex-col items-center justify-center p-10 text-center">
+  <div className="flex-1 flex flex-col items-center justify-center p-12 bg-[var(--bg-1)]">
     <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="space-y-6 max-w-sm"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-8 max-w-sm text-center"
     >
-      <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-500/20 to-teal-600/20 border border-emerald-500/20 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/10">
-        <Icon className="w-10 h-10 text-emerald-400" />
+      <div className="w-16 h-16 rounded-2xl bg-[var(--bg-3)] border border-white/[0.06] flex items-center justify-center mx-auto">
+        <Icon className="w-6 h-6 text-[var(--text-tertiary)]" />
       </div>
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">{title}</h1>
-        <p className="text-muted-foreground mt-3 leading-relaxed">
-          We're currently perfecting the <span className="text-emerald-400/80 font-medium">{title}</span> module. 
-          This high-performance workspace feature is scheduled for release in the next major update.
+      <div className="space-y-2">
+        <h1 className="text-2xl font-medium text-[var(--text-primary)] tracking-tight">{title}</h1>
+        <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+          We're currently perfecting the <span className="text-[var(--text-primary)] font-medium">{title}</span> module. 
         </p>
       </div>
-      <div className="pt-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border/40 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          Coming Soon · Phase 2.5
-        </div>
+      <div className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-4)] border border-white/[0.04] text-[9px] font-bold uppercase tracking-widest text-[var(--text-tertiary)] w-fit mx-auto">
+        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" />
+        Coming Soon
       </div>
     </motion.div>
-  </PageLayout>
+  </div>
 );
 
 const Dashboard = () => {
@@ -51,9 +48,30 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [boards, setBoards] = useState<any[]>([]);
+  const [selectedBoard, setSelectedBoard] = useState<any | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  const fetchBoards = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('research_boards' as any)
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (data) {
+      setBoards(data);
+      if (data.length > 0 && !selectedBoard) {
+        setSelectedBoard(data[0]);
+      }
+    }
+  }, [user, selectedBoard]);
+
+  useEffect(() => {
+    fetchBoards();
+  }, [fetchBoards]);
   
   // Track fetch to prevent duplicate requests when tab regains focus
   const fetchInProgressRef = useRef(false);
@@ -72,7 +90,7 @@ const Dashboard = () => {
 
   const [resetCounter, setResetCounter] = useState(0);
 
-  // 2. Sync State -> URL + Auto-Collapse Logic
+  // 2. Sync State -> URL
   const handleViewChange = (view: ActiveView) => {
     if (view === activeView) {
       setResetCounter(prev => prev + 1);
@@ -80,13 +98,6 @@ const Dashboard = () => {
     
     setActiveView(view);
     
-    // Auto-collapse for focus-heavy views
-    if (view === 'chat' || view === 'notes' || view === 'boards') {
-      setIsSidebarCollapsed(true);
-    } else {
-      setIsSidebarCollapsed(false);
-    }
-
     const path = view === 'dashboard' ? '/dashboard' : `/dashboard/${view}`;
     navigate(path);
   };
@@ -150,6 +161,12 @@ const Dashboard = () => {
             onProfileUpdate={() => fetchProfile(true)}
             isCollapsed={isSidebarCollapsed}
             setIsCollapsed={setIsSidebarCollapsed}
+            boards={boards}
+            selectedBoard={selectedBoard}
+            onBoardSelect={(board) => {
+              setSelectedBoard(board);
+              handleViewChange('boards');
+            }}
           />
         </div>
 
@@ -167,7 +184,13 @@ const Dashboard = () => {
             <NotesEditor />
           </div>
           <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'boards' && "hidden")}>
-            <MyBoards resetCounter={resetCounter} />
+            <MyBoards 
+              selectedBoard={selectedBoard} 
+              onBoardSelect={setSelectedBoard}
+              boards={boards}
+              onBoardsUpdate={fetchBoards}
+              resetCounter={resetCounter} 
+            />
           </div>
         </main>
       </div>

@@ -5,11 +5,14 @@ import { toast } from 'sonner';
 import { 
   Users, UserPlus, Mail, Shield, ShieldCheck, 
   Trash2, Loader2, Search, MoreVertical, Check,
-  X, User as UserIcon, ShieldAlert, ArrowRight
+  X, User as UserIcon, ShieldAlert, ArrowRight,
+  Eye, Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';

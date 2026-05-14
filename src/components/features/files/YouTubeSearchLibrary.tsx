@@ -65,22 +65,32 @@ export const YouTubeSearchLibrary = () => {
         throw new Error(data.error.message);
       }
 
-      const videos = data.items.map((item: any) => {
-        const initials = item.snippet.channelTitle.substring(0, 2).toUpperCase();
-        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F'];
-        const bgColor = colors[Math.floor(Math.random() * colors.length)];
-        
-        return {
-          id: item.id.videoId,
-          title: item.snippet.title,
-          channel_name: item.snippet.channelTitle,
-          channel_avatar: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='${bgColor.replace('#', '%23')}' width='100' height='100'/%3E%3Ctext x='50' y='55' text-anchor='middle' font-size='40' font-weight='bold' fill='white'%3E${initials}%3C/text%3E%3C/svg%3E`,
-          thumbnail_url: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
-          video_id: item.id.videoId,
-          published_at: item.snippet.publishedAt,
-          duration_seconds: 0
-        };
+      const rawVideos = data.items.map((item: any) => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        channel_name: item.snippet.channelTitle,
+        channel_id: item.snippet.channelId,
+        thumbnail_url: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+        video_id: item.id.videoId,
+        published_at: item.snippet.publishedAt,
+        duration_seconds: 0
+      }));
+
+      // Fetch channel avatars
+      const channelIds = [...new Set(rawVideos.map((v: any) => v.channel_id))].join(',');
+      const channelRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelIds}&key=${YOUTUBE_API_KEY}`
+      );
+      const channelData = await channelRes.json();
+      const channelMap = new Map();
+      channelData.items?.forEach((item: any) => {
+        channelMap.set(item.id, item.snippet.thumbnails.default?.url);
       });
+
+      const videos = rawVideos.map((v: any) => ({
+        ...v,
+        channel_avatar: channelMap.get(v.channel_id) || `https://api.dicebear.com/7.x/initials/svg?seed=${v.channel_name}`
+      }));
       
       // Sort by published date (most recent first)
       videos.sort((a: any, b: any) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());

@@ -5,7 +5,7 @@
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 
 // Point to CDN worker so we don't need to copy it locally
-GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.mjs`;
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.7.284/pdf.worker.min.mjs`;
 
 export async function extractPdfText(url: string, maxChars = 12000): Promise<string> {
   try {

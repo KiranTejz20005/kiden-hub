@@ -6,11 +6,8 @@ import { StarterKit } from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
-import { Link } from '@tiptap/extension-link';
 import { Image } from '@tiptap/extension-image';
-import { Underline } from '@tiptap/extension-underline';
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
-import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
@@ -32,7 +29,7 @@ const lowlight = createLowlight(common);
 
 interface BlockEditorProps {
   content: any;
-  onChange: (content: any) => void;
+  onChange: (content: any, wordCount: number) => void;
   isFullWidth?: boolean;
 }
 
@@ -53,14 +50,11 @@ const BlockEditor = ({ content, onChange, isFullWidth }: BlockEditorProps) => {
           return "Type '/' for commands...";
         },
       }),
-      Underline,
       Typography,
-      Link.configure({ openOnClick: false }),
       TaskList,
       TaskItem.configure({ nested: true }),
       CodeBlockLowlight.configure({ lowlight }),
       Image.configure({ inline: true, allowBase64: true }),
-      HorizontalRule,
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
@@ -68,7 +62,9 @@ const BlockEditor = ({ content, onChange, isFullWidth }: BlockEditorProps) => {
     ],
     content: content,
     onUpdate: ({ editor }) => {
-      onChange(editor.getJSON());
+      const text = editor.getText();
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      onChange(editor.getJSON(), words);
     },
     editorProps: {
       attributes: {
@@ -149,6 +145,11 @@ const BlockEditor = ({ content, onChange, isFullWidth }: BlockEditorProps) => {
         <FloatingMenu 
           editor={editor} 
           tippyOptions={{ duration: 100 }}
+          shouldShow={({ editor }) => {
+            const { selection } = editor.state;
+            const { $from } = selection;
+            return $from.parent.type.name === 'paragraph' && $from.parent.content.size === 0;
+          }}
           className="flex flex-col p-1.5 bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl w-64 max-h-[400px] overflow-y-auto"
         >
           <div className="px-3 py-2">
@@ -182,7 +183,7 @@ const BlockEditor = ({ content, onChange, isFullWidth }: BlockEditorProps) => {
             </button>
           ))}
           <div className="px-3 py-2 mt-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">Intelligence AI</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">Notes AI</p>
           </div>
           <button
             onClick={() => toast.info('AI generation coming soon!')}
@@ -206,7 +207,7 @@ const BlockEditor = ({ content, onChange, isFullWidth }: BlockEditorProps) => {
         .tiptap p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
           float: left;
-          color: #adb5bd;
+          color: rgba(255,255,255,0.4);
           pointer-events: none;
           height: 0;
         }

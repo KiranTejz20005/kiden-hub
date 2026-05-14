@@ -44,9 +44,15 @@ export const VideoCard = React.memo(({
       return null;
     }
 
+    const displayDate = v.created_at || v.published_at;
+    const isAddedTime = !!v.created_at;
+
     const timeAgo = safeFormatDate(
-      v.published_at,
-      (date) => formatDistanceToNow(date, { addSuffix: true }).replace('about ', ''),
+      displayDate,
+      (date) => {
+        const distance = formatDistanceToNow(date, { addSuffix: true }).replace('about ', '');
+        return isAddedTime ? `${distance} added` : distance;
+      },
       'recently'
     );
 

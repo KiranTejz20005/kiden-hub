@@ -21,8 +21,37 @@ const NotesEditor = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (data) setProfile(data);
+      try {
+        // Specifically select columns to avoid potential 406 errors with select(*)
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('display_name, avatar_url, bio, focus_settings')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Profile fetch error:', error);
+          // If 406, it might be a specific column issue, try minimal select
+          if (error.code === '406' || error.message?.includes('406')) {
+            const { data: minimalData } = await supabase
+              .from('profiles')
+              .select('display_name')
+              .eq('id', user.id)
+              .maybeSingle();
+            if (minimalData) setProfile(minimalData);
+            return;
+          }
+          throw error;
+        }
+
+        if (data) {
+          setProfile(data);
+        } else {
+          console.warn('No profile found for user:', user.id);
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+      }
     };
     fetchProfile();
   }, [user]);
@@ -31,24 +60,44 @@ const NotesEditor = () => {
     if (!user) return;
     setIsSaving(true);
     try {
+      // Ensure we are only sending fields that exist in the DB
+      // AND handle content stringification as a fallback for 400 errors
+      const updatePayload: any = {
+        title: noteToSave.title || 'Untitled Note',
+        content: noteToSave.content,
+        icon: noteToSave.icon,
+        cover_image: noteToSave.cover_image,
+        is_favorite: !!noteToSave.is_favorite,
+        is_full_width: !!noteToSave.is_full_width,
+        word_count: noteToSave.word_count || 0,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('notes')
-        .update({
-          title: noteToSave.title,
-          content: noteToSave.content,
-          icon: noteToSave.icon,
-          cover_image: noteToSave.cover_image,
-          is_favorite: noteToSave.is_favorite,
-          is_full_width: noteToSave.is_full_width,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('id', noteToSave.id)
         .eq('user_id', user.id);
 
-      if (error) throw error;
-    } catch (err) {
+      if (error) {
+        console.error('Supabase update error (trying stringify fallback):', error);
+        
+        // Fallback: If 400, try stringifying the content
+        if (error.code === '400' || error.message?.includes('400')) {
+          const { error: retryError } = await supabase
+            .from('notes')
+            .update({ ...updatePayload, content: JSON.stringify(noteToSave.content) })
+            .eq('id', noteToSave.id)
+            .eq('user_id', user.id);
+          
+          if (retryError) throw retryError;
+        } else {
+          throw error;
+        }
+      }
+    } catch (err: any) {
       console.error('Failed to save note:', err);
-      toast.error('Failed to save changes');
+      toast.error(`Failed to save changes: ${err.message || 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
@@ -152,7 +201,7 @@ const NotesEditor = () => {
               )}>
                 <BlockEditor 
                   content={activeNote.content}
-                  onChange={(content) => handleUpdateNote({ content })}
+                  onChange={(content, wordCount) => handleUpdateNote({ content, word_count: wordCount })}
                   isFullWidth={activeNote.is_full_width}
                 />
               </div>
@@ -182,9 +231,9 @@ const NotesEditor = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-white tracking-tight">Intelligence Matrix</h2>
+              <h2 className="text-2xl font-bold text-white tracking-tight">Notes Hub</h2>
               <p className="text-muted-foreground text-sm max-w-xs mx-auto leading-relaxed">
-                Select a research node to begin or initialize a new intelligence unit.
+                Select a note to begin or create a new one.
               </p>
             </div>
             <Button onClick={() => handleCreateNote()} className="h-11 px-8 rounded-xl bg-white text-black hover:bg-white/90 font-bold uppercase tracking-wider text-xs shadow-xl active:scale-95 transition-all">
