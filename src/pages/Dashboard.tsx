@@ -152,7 +152,7 @@ const Dashboard = () => {
 
   return (
     <WorkspaceProvider>
-      <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden">
+      <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden monochrome-theme">
         <div className="relative z-[60]">
           <AppSidebar
             activeView={activeView}

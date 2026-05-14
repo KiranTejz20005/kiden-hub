@@ -33,8 +33,9 @@
     --card-foreground: 0 0% 92%;
     --popover: 0 0% 9%;
     --popover-foreground: 0 0% 92%;
-    --primary: 0 0% 91%; /* #e8e8e8 */
-    --primary-foreground: 0 0% 4%;
+    --primary: 142 71% 45%; /* #22c55e Emerald */
+    --primary-foreground: 144 100% 98%;
+    --primary-glow: 142 71% 45% / 0.3;
     --secondary: 0 0% 11%; /* #1c1c1c approx */
     --secondary-foreground: 0 0% 92%;
     --muted: 0 0% 11%;
@@ -45,8 +46,16 @@
     --destructive-foreground: 210 40% 98%;
     --border: 0 0% 6%;
     --input: 0 0% 6%;
-    --ring: 0 0% 91%;
+    --ring: 142 71% 45%;
     --radius: 0.5rem;
+  }
+
+  .monochrome-theme {
+    --primary: 0 0% 91%;
+    --primary-foreground: 0 0% 4%;
+    --primary-glow: 0 0% 100% / 0.1;
+    --accent: #e8e8e8;
+    --ring: 0 0% 91%;
   }
 
   * {
