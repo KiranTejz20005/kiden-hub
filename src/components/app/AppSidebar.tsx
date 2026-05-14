@@ -16,12 +16,11 @@ import {
   Columns,
   MoreHorizontal,
   ChevronLeft,
-  ChevronRight,
-  ExternalLink,
   ExternalLink,
   CreditCard,
   Trash2
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
