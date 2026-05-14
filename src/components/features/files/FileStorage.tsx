@@ -20,20 +20,20 @@ import { logActivity } from '@/services/activityService';
 const FILE_SIZE_LIMIT = 50 * 1024 * 1024; // 50MB
 
 const FILE_CFG: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
-  pdf:  { icon: <FileText className="w-5 h-5" />, color: 'text-red-400',    bg: 'bg-red-500/10 border-red-500/20' },
-  md:   { icon: <FileText className="w-5 h-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-  txt:  { icon: <FileText className="w-5 h-5" />, color: 'text-zinc-300',   bg: 'bg-zinc-500/10 border-zinc-500/20' },
-  doc:  { icon: <FileText className="w-5 h-5" />, color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20' },
-  docx: { icon: <FileText className="w-5 h-5" />, color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20' },
-  jpg:  { icon: <ImageIcon className="w-5 h-5" />, color: 'text-pink-400',  bg: 'bg-pink-500/10 border-pink-500/20' },
-  jpeg: { icon: <ImageIcon className="w-5 h-5" />, color: 'text-pink-400',  bg: 'bg-pink-500/10 border-pink-500/20' },
-  png:  { icon: <ImageIcon className="w-5 h-5" />, color: 'text-pink-400',  bg: 'bg-pink-500/10 border-pink-500/20' },
-  gif:  { icon: <ImageIcon className="w-5 h-5" />, color: 'text-pink-400',  bg: 'bg-pink-500/10 border-pink-500/20' },
-  svg:  { icon: <ImageIcon className="w-5 h-5" />, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20' },
-  mp4:  { icon: <Video className="w-5 h-5" />,     color: 'text-teal-400', bg: 'bg-teal-500/10 border-teal-500/20' },
-  mov:  { icon: <Video className="w-5 h-5" />,     color: 'text-teal-400', bg: 'bg-teal-500/10 border-teal-500/20' },
-  json: { icon: <FileText className="w-5 h-5" />, color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
-  csv:  { icon: <FileText className="w-5 h-5" />, color: 'text-green-400',  bg: 'bg-green-500/10 border-green-500/20' },
+  pdf:  { icon: <FileText className="w-5 h-5" />, color: 'text-white/60',    bg: 'bg-white/5 border-white/10' },
+  md:   { icon: <FileText className="w-5 h-5" />, color: 'text-white/60', bg: 'bg-white/5 border-white/10' },
+  txt:  { icon: <FileText className="w-5 h-5" />, color: 'text-white/60',   bg: 'bg-white/5 border-white/10' },
+  doc:  { icon: <FileText className="w-5 h-5" />, color: 'text-white/60',   bg: 'bg-white/5 border-white/10' },
+  docx: { icon: <FileText className="w-5 h-5" />, color: 'text-white/60',   bg: 'bg-white/5 border-white/10' },
+  jpg:  { icon: <ImageIcon className="w-5 h-5" />, color: 'text-white/60',  bg: 'bg-white/5 border-white/10' },
+  jpeg: { icon: <ImageIcon className="w-5 h-5" />, color: 'text-white/60',  bg: 'bg-white/5 border-white/10' },
+  png:  { icon: <ImageIcon className="w-5 h-5" />, color: 'text-white/60',  bg: 'bg-white/5 border-white/10' },
+  gif:  { icon: <ImageIcon className="w-5 h-5" />, color: 'text-white/60',  bg: 'bg-white/5 border-white/10' },
+  svg:  { icon: <ImageIcon className="w-5 h-5" />, color: 'text-white/60', bg: 'bg-white/5 border-white/10' },
+  mp4:  { icon: <Video className="w-5 h-5" />,     color: 'text-white/60', bg: 'bg-white/5 border-white/10' },
+  mov:  { icon: <Video className="w-5 h-5" />,     color: 'text-white/60', bg: 'bg-white/5 border-white/10' },
+  json: { icon: <FileText className="w-5 h-5" />, color: 'text-white/60', bg: 'bg-white/5 border-white/10' },
+  csv:  { icon: <FileText className="w-5 h-5" />, color: 'text-white/60',  bg: 'bg-white/5 border-white/10' },
 };
 
 const getCfg = (type: string) =>
@@ -253,37 +253,34 @@ const FileStorage = () => {
         <AnimatePresence>
           {isDragActive && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 z-40 bg-emerald-500/10 border-2 border-dashed border-emerald-500 rounded-2xl flex items-center justify-center pointer-events-none">
+              className="absolute inset-0 z-40 bg-white/5 border-2 border-dashed border-white/20 rounded-2xl flex items-center justify-center pointer-events-none">
               <div className="text-center">
-                <Upload className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-                <p className="text-xl font-bold text-emerald-300">Drop files to upload</p>
-                <p className="text-sm text-emerald-400/70">Max 50MB per file</p>
+                <Upload className="w-12 h-12 text-white/40 mx-auto mb-3" />
+                <p className="text-xl font-bold text-white">Drop files to upload</p>
+                <p className="text-sm text-white/40">Max 50MB per file</p>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* ── Top Bar ── */}
-        <div className="flex items-center gap-4 px-6 py-3.5 border-b border-border/40 bg-card/20 shrink-0">
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold leading-tight capitalize">{tab === 'All' ? 'Files' : tab}</h1>
-            <p className="text-[11px] text-muted-foreground">
-              {tab === 'YouTube' ? 'Search and manage study videos' : 
-               tab === 'Trending' ? 'Discover educational content' : 
-               `${files.length} files · ${fmtSize(totalSize)}`}
-            </p>
+        <div className="flex items-center gap-6 px-6 py-2.5 border-b border-border/40 bg-card/20 shrink-0">
+          <div className="flex items-center gap-1">
+            {TABS.map(t => (
+              <button 
+                key={t} 
+                onClick={() => setTab(t)} 
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap', 
+                  tab === t 
+                    ? 'bg-white/10 text-white border border-white/10' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                )}
+              >
+                {t}
+              </button>
+            ))}
           </div>
-
-          {/* Storage bar - Hide if on discovery tabs to save space if needed, or keep for consistency */}
-          {(tab !== 'YouTube' && tab !== 'Trending') && (
-            <div className="flex items-center gap-2 w-40">
-              <HardDrive className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <div className="flex-1 h-1.5 bg-secondary/50 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full" style={{ width: `${usagePct}%` }} />
-              </div>
-              <span className="text-[10px] text-muted-foreground">{usagePct.toFixed(1)}%</span>
-            </div>
-          )}
 
           <div className="flex items-center gap-2 ml-auto">
             {(tab !== 'YouTube' && tab !== 'Trending') && (
@@ -307,7 +304,7 @@ const FileStorage = () => {
               <button
                 onClick={open}
                 disabled={uploading}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-500 hover:to-teal-500 transition-all shadow-lg shadow-emerald-500/20 active:scale-95 disabled:opacity-60"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-sm font-bold hover:bg-white/90 transition-all shadow-lg shadow-white/5 active:scale-95 disabled:opacity-60"
               >
                 {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                 {uploading ? 'Uploading…' : 'Upload'}
@@ -328,20 +325,13 @@ const FileStorage = () => {
           </div>
         </div>
 
-        {/* ── Filter Tabs ── */}
-        <div className="flex items-center gap-1 px-6 py-2 border-b border-border/30 shrink-0">
-          {TABS.map(t => (
-            <button key={t} onClick={() => setTab(t)} className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all', tab === t ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40')}>
-              {t}
-            </button>
-          ))}
-        </div>
+
 
         {/* ── Drop hint strip ── */}
         {(tab !== 'YouTube' && tab !== 'Trending') && (
-          <div className="mx-6 mt-4 py-3 px-5 rounded-xl border border-dashed border-border/40 flex items-center gap-3 bg-secondary/10 shrink-0 cursor-pointer hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all" onClick={open}>
+          <div className="mx-6 mt-4 py-3 px-5 rounded-xl border border-dashed border-border/40 flex items-center gap-3 bg-secondary/10 shrink-0 cursor-pointer hover:border-white/20 hover:bg-white/5 transition-all" onClick={open}>
             <Upload className="w-4 h-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Drag & drop files anywhere, or <span className="text-emerald-400 font-semibold">click to browse</span> · Max <span className="font-semibold text-foreground">50MB</span> per file</span>
+            <span className="text-xs text-muted-foreground">Drag & drop files anywhere, or <span className="text-white font-bold underline underline-offset-4">click to browse</span> · Max <span className="font-bold text-foreground">50MB</span> per file</span>
           </div>
         )}
 
