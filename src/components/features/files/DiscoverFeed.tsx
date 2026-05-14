@@ -631,7 +631,8 @@ export const DiscoverFeed = () => {
                 <Reorder.Item 
                   key={item.id} 
                   value={item}
-                  className="group flex items-center gap-4 bg-card border border-border/30 p-4 rounded-[1.5rem] hover:border-primary/30 transition-all cursor-default"
+                  whileDrag={{ scale: 1.02, boxShadow: "0 20px 50px rgba(0,0,0,0.5)", zIndex: 50 }}
+                  className="group flex items-center gap-4 bg-card border border-border/30 p-4 rounded-[1.5rem] hover:border-primary/30 cursor-default"
                 >
                   <div className="cursor-grab active:cursor-grabbing text-muted-foreground/30 group-hover:text-primary transition-colors">
                     <GripVertical className="w-5 h-5" />
