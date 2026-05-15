@@ -2,8 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Loader2, FileText } from 'lucide-react';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+// Configure PDF.js worker using a reliable CDN link
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@5.7.284/build/pdf.worker.min.mjs`;
 
 interface PDFThumbnailProps {
   url: string;
@@ -21,18 +21,40 @@ const PDFThumbnail: React.FC<PDFThumbnailProps> = ({ url, className }) => {
     const renderThumbnail = async () => {
       try {
         setLoading(true);
-        const loadingTask = pdfjsLib.getDocument(url);
+        setError(false);
+        
+        // Fetch with a timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.arrayBuffer();
+        
+        const loadingTask = pdfjsLib.getDocument({ 
+          data,
+          disableRange: true,
+          disableAutoFetch: true
+        });
+        
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(1);
 
-        const viewport = page.getViewport({ scale: 0.5 });
+        // Higher scale for better quality
+        const viewport = page.getViewport({ scale: 2.0 });
         const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
+        const context = canvas.getContext('2d', { alpha: false });
 
         if (!context) throw new Error('Could not get canvas context');
 
         canvas.height = viewport.height;
         canvas.width = viewport.width;
+
+        // Set white background for the canvas
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
 
         await page.render({
           canvasContext: context,
@@ -40,11 +62,14 @@ const PDFThumbnail: React.FC<PDFThumbnailProps> = ({ url, className }) => {
         }).promise;
 
         if (isMounted) {
-          setThumbnail(canvas.toDataURL());
+          setThumbnail(canvas.toDataURL('image/jpeg', 0.8));
           setLoading(false);
         }
+        
+        // Cleanup
+        pdf.destroy();
       } catch (err) {
-        console.error('Error rendering PDF thumbnail:', err);
+        console.error('Final attempt PDF error:', err);
         if (isMounted) {
           setError(true);
           setLoading(false);

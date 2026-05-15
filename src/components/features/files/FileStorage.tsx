@@ -16,6 +16,8 @@ import { cn } from '@/lib/utils';
 import { YouTubeSearchLibrary } from './YouTubeSearchLibrary';
 import { DiscoverFeed } from './DiscoverFeed';
 import { logActivity } from '@/services/activityService';
+import PDFThumbnail from '../boards/PDFThumbnail';
+import TextPreview from './TextPreview';
 
 const FILE_SIZE_LIMIT = 50 * 1024 * 1024; // 50MB
 
@@ -380,38 +382,48 @@ const FileStorage = () => {
                     <p className="text-sm text-muted-foreground">{search ? 'No files match your search' : 'No files yet — upload something!'}</p>
                   </div>
                 ) : view === 'grid' ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-20">
                     <AnimatePresence>
                       {filtered.map(file => {
                         const cfg = getCfg(file.type);
                         const isImg = IS_IMAGE(file.type);
                         return (
                           <motion.div key={file.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-                            className="group relative bg-card border border-border/50 rounded-2xl overflow-hidden hover:border-emerald-500/30 hover:shadow-lg hover:shadow-black/10 transition-all cursor-pointer"
+                            className="group relative bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden hover:border-emerald-500/30 hover:shadow-xl transition-all duration-300 cursor-pointer"
                             onClick={() => setPreview(file)}
                           >
-                            <div className={cn('h-32 flex items-center justify-center', isImg ? 'bg-black/20' : cfg.bg)}>
-                              {isImg
-                                ? <img src={file.public_url} alt={file.name} className="w-full h-full object-cover" loading="lazy" />
-                                : <div className={cn('w-12 h-12 rounded-xl border flex items-center justify-center', cfg.bg)}><span className={cfg.color}>{cfg.icon}</span></div>
-                              }
+                            <div className={cn('h-40 flex items-center justify-center relative overflow-hidden', (isImg || file.type === 'pdf' || ['md', 'txt', 'js', 'ts', 'tsx'].includes(file.type)) ? 'bg-black/40' : cfg.bg)}>
+                              {isImg ? (
+                                <img src={file.public_url} alt={file.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" loading="lazy" />
+                              ) : file.type === 'pdf' ? (
+                                <PDFThumbnail url={file.public_url} />
+                              ) : ['md', 'txt', 'js', 'ts', 'tsx'].includes(file.type) ? (
+                                <TextPreview url={file.public_url} />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-white/[0.01]">
+                                  <div className={cn('w-12 h-12 rounded-xl border border-white/5 flex items-center justify-center group-hover:scale-110 transition-all duration-500 shadow-lg', cfg.bg)}>
+                                    <span className={cfg.color}>{cfg.icon}</span>
+                                  </div>
+                                  <div className="absolute inset-0 opacity-[0.05] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
+                                </div>
+                              )}
                               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5" onClick={e => e.stopPropagation()}>
-                                <button onClick={e => { e.stopPropagation(); setPreview(file); }} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
-                                  <ExternalLink className="w-3.5 h-3.5" />
+                                <button onClick={e => { e.stopPropagation(); setPreview(file); }} className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
+                                  <ExternalLink className="w-3 h-3" />
                                 </button>
-                                <a href={file.public_url} download={file.name} onClick={e => e.stopPropagation()} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
-                                  <Download className="w-3.5 h-3.5" />
+                                <a href={file.public_url} download={file.name} onClick={e => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
+                                  <Download className="w-3 h-3" />
                                 </a>
-                                <button onClick={e => { e.stopPropagation(); deleteFile(file); }} className="w-8 h-8 rounded-lg bg-red-500/30 hover:bg-red-500/50 flex items-center justify-center text-red-300">
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                <button onClick={e => { e.stopPropagation(); deleteFile(file); }} className="w-7 h-7 rounded-lg bg-red-500/30 hover:bg-red-500/50 flex items-center justify-center text-red-300">
+                                  <Trash2 className="w-3 h-3" />
                                 </button>
                               </div>
                             </div>
                             <div className="p-2.5">
-                              <p className="text-xs font-semibold truncate">{file.name}</p>
-                              <div className="flex items-center justify-between mt-1">
-                                <span className="text-[10px] text-muted-foreground">{fmtSize(file.size)}</span>
-                                <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase', cfg.bg, cfg.color)}>{file.type}</span>
+                              <p className="text-[11px] font-bold text-white/90 truncate leading-tight mb-1">{file.name}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[9px] text-white/30 font-medium">{fmtSize(file.size)}</span>
+                                <span className={cn('text-[8px] font-black px-1.5 py-0.5 rounded-md border border-white/5 uppercase tracking-tighter', cfg.bg, cfg.color)}>{file.type}</span>
                               </div>
                             </div>
                           </motion.div>

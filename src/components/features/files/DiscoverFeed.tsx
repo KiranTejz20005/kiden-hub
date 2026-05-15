@@ -391,7 +391,6 @@ export const DiscoverFeed = () => {
     List: React.forwardRef(({ style, children, footer, ...props }: any, ref) => (
       <div 
         ref={ref} 
-        {...props} 
         style={{ 
           ...style, 
           display: 'grid', 
@@ -399,6 +398,7 @@ export const DiscoverFeed = () => {
           gap: '20px',
           paddingBottom: '40px'
         }}
+        {...props} 
       >
         {children}
         {footer}

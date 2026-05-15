@@ -4,6 +4,7 @@ export type ActiveView =
   | 'chat'
   | 'notes'
   | 'boards'
+  | 'calendar'
   | 'team'
   | 'settings';
 

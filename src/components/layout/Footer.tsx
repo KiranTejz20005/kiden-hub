@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import kidenLogo from "@/assets/kiden-logo-green.jpg";
 
 const Footer = () => {
@@ -14,10 +15,10 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 lg:gap-12">
           {/* Logo & Description */}
           <div className="lg:col-span-1">
-            <a href="/" className="flex items-center gap-2 mb-4">
+            <Link to="/" className="flex items-center gap-2 mb-4">
               <img src={kidenLogo} alt="Kiden" className="h-10 w-10 rounded-lg" />
               <span className="text-xl font-semibold">Kiden</span>
-            </a>
+            </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
               The creative project tracker for designers and developers.
             </p>

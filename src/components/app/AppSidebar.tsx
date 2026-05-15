@@ -7,6 +7,7 @@ import {
   FileText,
   Search,
   Compass,
+  Calendar,
   Plus,
   Copy,
   ChevronDown,
@@ -17,7 +18,9 @@ import {
   ChevronLeft,
   ExternalLink,
   CreditCard,
-  Trash2
+  Trash2,
+  ArrowRight,
+  Hash
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -55,7 +58,8 @@ const mainNavItems = [
   { id: 'files', label: 'Asset Library', icon: Columns },
   { id: 'chat', label: 'AI Assistant', icon: MessageSquare },
   { id: 'notes', label: 'Notes Taking', icon: FileText },
-  { id: 'boards', label: 'My Boards', icon: Columns },
+  { id: 'calendar', label: 'Calendar', icon: Calendar },
+  { id: 'boards', label: 'My Boards', icon: Columns, canCreate: true },
 ] as const;
 
 const AppSidebar = ({ 
@@ -81,6 +85,9 @@ const AppSidebar = ({
       const { error } = await supabase.from('research_boards' as any).delete().eq('id', id);
       if (error) throw error;
       toast.success('Board removed');
+      if (selectedBoard?.id === id) {
+        onBoardSelect(null as any);
+      }
       if (onBoardsUpdate) onBoardsUpdate();
     } catch (err) {
       toast.error('Failed to delete board');
@@ -185,12 +192,11 @@ const AppSidebar = ({
                 
                 return (
                   <div key={item.id} className="space-y-0.5">
-                    <motion.button
+                    <motion.div
                       whileHover={{ backgroundColor: "rgba(255,255,255,0.03)" }}
-                      whileTap={{ scale: 0.98 }}
                       onClick={() => onViewChange(item.id as ActiveView)}
                       className={cn(
-                        "w-full h-9 flex items-center gap-3 px-3 relative group transition-all rounded-xl",
+                        "w-full h-9 flex items-center gap-3 px-3 relative group transition-all rounded-xl cursor-pointer",
                         isActive ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
                         isCollapsed && "justify-center px-0"
                       )}
@@ -212,18 +218,30 @@ const AppSidebar = ({
                       )}
                       
                       {item.id === 'boards' && !isCollapsed && (
-                        <motion.div
-                          animate={{ rotate: isBoardsExpanded ? 0 : -90 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsBoardsExpanded(!isBoardsExpanded);
-                          }}
-                          className="p-1 hover:bg-white/10 rounded-md transition-colors cursor-pointer"
-                        >
-                          <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" />
-                        </motion.div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onViewChange('boards');
+                              navigate('/dashboard/boards?create=true');
+                            }}
+                            className="p-1 rounded-md text-[var(--text-tertiary)] hover:text-white hover:bg-white/10 transition-colors"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                          <motion.div
+                            animate={{ rotate: isBoardsExpanded ? 0 : -90 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsBoardsExpanded(!isBoardsExpanded);
+                            }}
+                            className="p-1 hover:bg-white/10 rounded-md transition-colors cursor-pointer"
+                          >
+                            <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" />
+                          </motion.div>
+                        </div>
                       )}
-                    </motion.button>
+                    </motion.div>
 
                     {/* Inline Boards List under 'My Boards' */}
                     {item.id === 'boards' && !isCollapsed && boards.length > 0 && (
@@ -244,12 +262,12 @@ const AppSidebar = ({
                                 className={cn(
                                   "w-full h-8 flex items-center gap-3 px-8 rounded-lg transition-all group",
                                   selectedBoard?.id === board.id 
-                                    ? "text-white font-semibold" 
+                                    ? "text-white font-semibold bg-white/5" 
                                     : "text-white/40 hover:text-white"
                                 )}
                               >
-                                <span className="text-xs transition-transform group-hover:scale-125">
-                                  {board.emoji || '📁'}
+                                <span className="text-[14px] opacity-70 group-hover:opacity-100 transition-opacity">
+                                  {board.emoji || '🔬'}
                                 </span>
                                 <span className="text-[12px] truncate flex-1">{board.title}</span>
                                 <button 

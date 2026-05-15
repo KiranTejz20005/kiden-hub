@@ -36,15 +36,35 @@ export const VideoPlayerModal = ({ video, isOpen, onClose, onAdd, playlists = []
   const [activeTab, setActiveTab] = useState<'insights' | 'notes'>('insights');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
-  // Sync state with video prop
+  // Sync state with video prop & fetch fresh data
   useEffect(() => {
     if (video) {
       setNotes(video.personal_notes || '');
       setIsFavorite(video.is_favorite || false);
       checkSavedStatus();
       fetchRelatedVideos();
+      fetchLatestData();
     }
   }, [video?.id]);
+
+  const fetchLatestData = async () => {
+    if (!video?.id || video.id.length === 11) return; // Skip if it's just a YT ID
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_study_videos')
+        .select('personal_notes, is_favorite')
+        .eq('id', video.id)
+        .single();
+        
+      if (data && !error) {
+        setNotes(data.personal_notes || '');
+        setIsFavorite(data.is_favorite || false);
+      }
+    } catch (err) {
+      console.error('Error fetching fresh video data:', err);
+    }
+  };
 
   const checkSavedStatus = async () => {
     if (!video) return;
@@ -157,28 +177,29 @@ export const VideoPlayerModal = ({ video, isOpen, onClose, onAdd, playlists = []
 
   if (!video) return null;
 
-  const videoId = video.video_id || video.id;
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+  // Extract valid YouTube ID
+  const videoId = video.video_id || (typeof video.id === 'string' && video.id.length === 11 ? video.id : null) || video.id;
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1`;
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8 overflow-hidden">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/95 backdrop-blur-md"
+            className="absolute inset-0 bg-black/90 backdrop-blur-xl"
           />
 
           {/* Modal Content */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+            initial={{ opacity: 0, scale: 0.98, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 30 }}
-            className="relative w-full max-w-7xl h-full max-h-[95vh] bg-[#0A0A0A] border border-white/10 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row overflow-hidden"
+            exit={{ opacity: 0, scale: 0.98, y: 20 }}
+            className="relative w-full max-w-6xl h-full max-h-[90vh] bg-[#050505] border border-white/10 rounded-[2rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,1)] flex flex-col md:flex-row overflow-hidden"
           >
             {/* Left Column: Player & Info */}
             <div className="flex-1 flex flex-col overflow-y-auto scrollbar-hide">
@@ -206,8 +227,8 @@ export const VideoPlayerModal = ({ video, isOpen, onClose, onAdd, playlists = []
               </div>
 
               {/* Video Player Section */}
-              <div className="px-6">
-                <div className="relative aspect-video rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/5">
+              <div className="px-8">
+                <div className="relative aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-white/5">
                   <iframe 
                     src={embedUrl}
                     className="w-full h-full"
@@ -223,45 +244,40 @@ export const VideoPlayerModal = ({ video, isOpen, onClose, onAdd, playlists = []
                   <div className="flex items-center gap-2 text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">
                     <Youtube className="w-3.5 h-3.5" /> Study Intelligence
                   </div>
-                  <h1 className="text-3xl font-black leading-tight text-white">{video.title}</h1>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
+                  <h1 className="text-2xl font-black leading-tight text-white">{video.title}</h1>
+                  <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1">
                     <span className="font-bold text-white">{video.channel_name || video.channel}</span>
                     <span>•</span>
                     <span>{video.view_count || video.views} views</span>
-                    <span>•</span>
-                    <span>{formatDistanceToNow(new Date(video.published_at || Date.now()), { addSuffix: true })}</span>
                   </div>
                 </div>
 
-                <div className="p-6 rounded-3xl bg-white/5 border border-white/5">
-                  <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap line-clamp-4 hover:line-clamp-none transition-all">
+                <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5">
+                  <p className="text-muted-foreground text-xs leading-relaxed whitespace-pre-wrap line-clamp-3 hover:line-clamp-none transition-all">
                     {video.description || "No description available for this study material."}
                   </p>
                 </div>
 
                 {/* Related Content */}
-                <div className="space-y-6 pt-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-black uppercase tracking-widest text-white flex items-center gap-3">
-                      <Sparkles className="w-5 h-5 text-emerald-400" />
-                      Related Discovery
-                    </h3>
-                  </div>
+                <div className="space-y-4 pt-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    Related Discovery
+                  </h3>
                   
                   {isLoadingRelated ? (
-                    <div className="flex items-center gap-3 text-muted-foreground animate-pulse">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Fetching similar insights...
+                    <div className="flex items-center gap-3 text-muted-foreground animate-pulse text-[10px]">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Fetching similar insights...
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {relatedVideos.map(rv => (
-                        <div key={rv.id} className="group flex gap-4 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all cursor-pointer">
-                          <div className="w-32 aspect-video rounded-xl overflow-hidden shrink-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {relatedVideos.slice(0, 4).map(rv => (
+                        <div key={rv.id} className="group flex gap-3 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all cursor-pointer">
+                          <div className="w-24 aspect-video rounded-lg overflow-hidden shrink-0">
                             <img src={rv.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                           </div>
                           <div className="flex flex-col justify-center min-w-0">
-                            <h4 className="text-xs font-bold line-clamp-2 leading-snug group-hover:text-emerald-400 transition-colors">{rv.title}</h4>
-                            <p className="text-[10px] text-muted-foreground mt-1 truncate">{rv.channel}</p>
+                            <h4 className="text-[10px] font-bold line-clamp-2 leading-snug group-hover:text-emerald-400 transition-colors">{rv.title}</h4>
                           </div>
                         </div>
                       ))}
@@ -272,7 +288,7 @@ export const VideoPlayerModal = ({ video, isOpen, onClose, onAdd, playlists = []
             </div>
 
             {/* Right Column: Intelligence & Notes */}
-            <div className="w-full md:w-[450px] border-l border-white/5 bg-black/40 flex flex-col">
+            <div className="w-full md:w-[380px] border-l border-white/5 bg-black/20 flex flex-col">
               {/* Tabs */}
               <div className="flex p-6 border-b border-white/5 gap-4">
                 <button 

@@ -20,6 +20,7 @@ import MyBoards from '@/components/features/boards/MyBoards';
 import Collaborators from '@/components/features/team/Collaborators';
 import Preferences from '@/components/features/settings/Preferences';
 import { SettingsModal } from '@/components/features/settings/SettingsModal';
+import CalendarView from '@/components/features/calendar/CalendarView';
 
 // Enhanced placeholder component for new features
 const PlaceholderView = ({ title, icon: Icon }: { title: string, icon: any }) => (
@@ -70,7 +71,7 @@ const Dashboard = () => {
     // Layer 4: Check cache
     const cacheKey = `boards:${user.id}`;
     const cached = get<any[]>(cacheKey);
-    if (cached) {
+    if (cached && boards.length === 0) {
       setBoards(cached);
       if (cached.length > 0 && !selectedBoard) setSelectedBoard(cached[0]);
       return;
@@ -85,11 +86,23 @@ const Dashboard = () => {
     if (data) {
       setBoards(data);
       set(cacheKey, data); // 5m TTL
-      if (data.length > 0 && !selectedBoard) {
+      
+      // Sync selected board: if current one is gone, pick the first available
+      if (selectedBoard) {
+        const stillExists = data.find(b => b.id === selectedBoard.id);
+        if (!stillExists) {
+          setSelectedBoard(data.length > 0 ? data[0] : null);
+        }
+      } else if (data.length > 0) {
         setSelectedBoard(data[0]);
       }
     }
-  }, [user, selectedBoard, get, set]);
+  }, [user, get, set, selectedBoard]);
+
+  const addBoardOptimistically = useCallback((newBoard: any) => {
+    setBoards(prev => [newBoard, ...prev]);
+    setSelectedBoard(newBoard);
+  }, []);
 
   useEffect(() => {
     fetchBoards();
@@ -103,7 +116,7 @@ const Dashboard = () => {
   // 1. Sync URL -> State (Robust derivation)
   useEffect(() => {
     const path = location.pathname.split('/dashboard')[1]?.replace('/', '');
-    const validViews: ActiveView[] = ['dashboard', 'files', 'chat', 'notes', 'boards', 'team', 'settings'];
+    const validViews: ActiveView[] = ['dashboard', 'files', 'chat', 'notes', 'boards', 'calendar', 'team', 'settings'];
     
     if (path && validViews.includes(path as ActiveView)) {
       if (path !== activeView) setActiveView(path as ActiveView);
@@ -182,7 +195,7 @@ const Dashboard = () => {
     } finally {
       setIsInitialLoading(false);
     }
-  }, [user, navigate, selectedBoard, get, set]);
+  }, [user, navigate, get, set]);
 
   useEffect(() => {
     if (user) initializeData();
@@ -249,8 +262,12 @@ const Dashboard = () => {
               onBoardSelect={setSelectedBoard}
               boards={boards}
               onBoardsUpdate={fetchBoards}
+              onBoardCreateOptimistic={addBoardOptimistically}
               resetCounter={resetCounter} 
             />
+          </div>
+          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'calendar' && "hidden")}>
+            <CalendarView />
           </div>
         </main>
       </div>

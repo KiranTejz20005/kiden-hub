@@ -96,7 +96,7 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Your name"
-                  className="h-11 rounded-xl bg-bg-3 border-none focus-visible:ring-1 focus-visible:ring-primary text-sm text-foreground placeholder:text-text-tertiary"
+                  className="h-11 rounded-xl bg-secondary/50 border-none focus-visible:ring-1 focus-visible:ring-primary text-sm text-foreground placeholder:text-text-tertiary"
                 />
               </div>
 
@@ -105,7 +105,7 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
                 <Input 
                   value={user?.email || ''}
                   disabled
-                  className="h-11 rounded-xl bg-bg-3 border-none text-text-tertiary text-sm cursor-not-allowed"
+                  className="h-11 rounded-xl bg-secondary/50 border-none text-text-tertiary text-sm cursor-not-allowed"
                 />
               </div>
 
@@ -153,7 +153,7 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary font-medium text-sm">@</span>
                   <Input 
                     value={`${user?.email?.split('@')[0] || 'user'}-s-workspace`}
-                    className="h-11 rounded-xl bg-bg-3 border-none focus-visible:ring-1 focus-visible:ring-primary pl-8 text-sm text-foreground transition-all"
+                    className="h-11 rounded-xl bg-secondary/50 border-none focus-visible:ring-1 focus-visible:ring-primary pl-8 text-sm text-foreground transition-all"
                   />
                 </div>
                 <p className="text-[11px] text-primary font-medium flex items-center gap-2">
@@ -178,20 +178,26 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
               <p className="text-text-secondary text-sm">Manage who has access to this workspace.</p>
             </div>
 
-            <div className="p-10 rounded-[2.5rem] border border-border bg-gradient-to-br from-background to-bg-2 relative overflow-hidden shadow-[0_20px_50px_-20px_rgba(0,0,0,0.2)] group transition-all hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.3)]">
-              <div className="absolute top-10 left-10 w-10 h-10 rounded-2xl bg-background border border-border flex items-center justify-center shadow-sm group-hover:rotate-6 transition-transform duration-500">
-                <ShieldCheck className="w-5 h-5 text-primary" />
+            <div className="p-8 rounded-[2.5rem] bg-secondary/20 border border-white/5 space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-white tracking-tight">Invite your team</h3>
+                <p className="text-sm text-white/40">Collaborate on files, research boards, and AI chats together.</p>
               </div>
-              <div className="pl-16 space-y-4">
-                <h3 className="text-lg font-bold text-foreground tracking-tight">Team members are a Studio feature</h3>
-                <p className="text-sm text-text-secondary leading-relaxed max-w-lg">
-                  Your Starter workspace is a single-seat plan. Upgrade to Studio to invite teammates and collaborate together — Studio workspaces include unlimited members at no extra cost.
-                </p>
-                <Button className="h-11 px-8 rounded-full bg-primary hover:opacity-90 text-white font-bold text-[11px] uppercase tracking-wider gap-3 shadow-xl transition-all hover:scale-105 active:scale-95">
-                  Upgrade to Studio <ArrowLeft className="w-4 h-4 rotate-180" />
+              
+              <div className="flex gap-3">
+                <Input 
+                  placeholder="Enter email address..." 
+                  className="h-12 rounded-2xl bg-black/40 border-white/5 focus-visible:ring-1 focus-visible:ring-primary text-sm text-white placeholder:text-white/20"
+                />
+                <Button className="h-12 px-6 rounded-2xl bg-white text-black hover:bg-white/90 font-bold text-xs transition-all shadow-xl shadow-white/5">
+                  Send Invite
                 </Button>
               </div>
-              <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+              
+              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/5">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.1em]">Share workspace link coming soon</span>
+              </div>
             </div>
 
 
@@ -345,7 +351,7 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-[95vw] h-[85vh] p-0 overflow-hidden bg-background border-none rounded-[2rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)]">
+      <DialogContent className="max-w-6xl w-[95vw] h-[85vh] p-0 overflow-hidden bg-background/60 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)]">
         <div className="flex h-full font-sans">
           {/* Sidebar */}
           <div className="w-64 bg-bg-2 border-r border-border p-6 flex flex-col">

@@ -31,7 +31,7 @@ const Navbar = () => {
       <div className={`${scrolled ? "w-full" : "container mx-auto"}`}>
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-3 group">
+          <Link to="/" className="flex items-center gap-3 group">
             <div className={`relative overflow-hidden rounded-xl transition-all duration-300 ${scrolled ? "h-8 w-8" : "h-10 w-10"}`}>
               <img src={kidenLogo} alt="Kiden" className="h-full w-full object-cover" />
               <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -39,7 +39,7 @@ const Navbar = () => {
             <span className={`font-semibold text-foreground tracking-tight transition-all duration-300 ${scrolled ? "text-lg" : "text-xl"}`}>
               Kiden
             </span>
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">

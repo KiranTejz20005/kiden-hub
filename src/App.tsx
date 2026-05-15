@@ -17,6 +17,9 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const GoogleCallback = lazy(() => import("./pages/auth/GoogleCallback"));
+const Privacy = lazy(() => import("./pages/legal/Privacy"));
+const Terms = lazy(() => import("./pages/legal/Terms"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +63,9 @@ const App = () => (
                     <Route path="/sign-in" element={<Auth />} />
                     <Route path="/sign-up" element={<Auth />} />
                     <Route path="/auth" element={<Auth />} />
+                    <Route path="/auth/callback/google" element={<GoogleCallback />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/terms" element={<Terms />} />
                     <Route
                       path="/dashboard/*"
                       element={

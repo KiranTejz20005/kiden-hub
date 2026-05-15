@@ -6,7 +6,8 @@ import {
   FileText, MessageSquare, Layout, Database, 
   Plus, Upload, MessageCircle, FilePlus, 
   Sparkles, Zap, Clock, ChevronRight,
-  TrendingUp, Activity, Users, Calendar
+  TrendingUp, Activity, Users, Calendar,
+  Settings, Heart, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,10 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
     chats: 0,
     boards: 0,
     storage: 0, 
-    storageText: '0 MB'
+    storageText: '0 MB',
+    newFiles: 0,
+    newChats: 0,
+    newBoards: 0
   });
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -35,12 +39,19 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
   const fetchStats = useCallback(async () => {
     if (!user) return;
     try {
-      const [filesCount, chatsCount, boardsCount, storageSum, recentLogs] = await Promise.all([
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayIso = yesterday.toISOString();
+
+      const [filesCount, chatsCount, boardsCount, storageSum, recentLogs, recentFiles, recentChats, recentBoards] = await Promise.all([
         supabase.from('files').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase.from('research_boards' as any).select('*', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase.from('files').select('size').eq('user_id', user.id),
-        fetchRecentActivities(user.id, 5)
+        fetchRecentActivities(user.id, 5),
+        supabase.from('files').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', yesterdayIso),
+        supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', yesterdayIso),
+        supabase.from('research_boards' as any).select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', yesterdayIso),
       ]);
 
       const totalSize = storageSum.data?.reduce((acc, curr) => acc + curr.size, 0) || 0;
@@ -53,7 +64,10 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
         chats: chatsCount.count || 0,
         boards: boardsCount.count || 0,
         storage: totalSize,
-        storageText: formattedStorage
+        storageText: formattedStorage,
+        newFiles: recentFiles.count || 0,
+        newChats: recentChats.count || 0,
+        newBoards: recentBoards.count || 0
       });
       
       setActivities(recentLogs);
@@ -85,7 +99,7 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="max-w-6xl mx-auto p-8 space-y-12 pb-20"
+        className="max-w-6xl mx-auto p-8 space-y-10 pb-20"
       >
         {/* ── Header ── */}
         <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -123,50 +137,106 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
         </section>
 
         {/* ── Stats ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatsCard label="Assets" value={stats.files.toString()} subValue="FILES" icon={FileText} change="+12%" trend="up" delay={0.1} />
-          <StatsCard label="AI Context" value={stats.chats.toString()} subValue="CONVERSATIONS" icon={MessageSquare} change="+5" trend="up" delay={0.2} />
-          <StatsCard label="Research" value={stats.boards.toString()} subValue="ACTIVE BOARDS" icon={Layout} delay={0.3} />
-          <StatsCard label="Storage" value={stats.storageText} subValue="OF 50MB" icon={Database} progress={(stats.storage / (50 * 1024 * 1024)) * 100} delay={0.4} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatsCard 
+            label="Assets" 
+            value={stats.files.toString()} 
+            subValue="FILES" 
+            icon={FileText} 
+            change={stats.newFiles > 0 ? `+${stats.newFiles}` : undefined} 
+            trend="up" 
+            delay={0.1} 
+          />
+          <StatsCard 
+            label="AI Context" 
+            value={stats.chats.toString()} 
+            subValue="CONVERSATIONS" 
+            icon={MessageSquare} 
+            change={stats.newChats > 0 ? `+${stats.newChats}` : undefined} 
+            trend="up" 
+            delay={0.2} 
+          />
+          <StatsCard 
+            label="Research" 
+            value={stats.boards.toString()} 
+            subValue="ACTIVE BOARDS" 
+            icon={Layout} 
+            change={stats.newBoards > 0 ? `+${stats.newBoards}` : undefined} 
+            trend="up" 
+            delay={0.3} 
+          />
+          <StatsCard 
+            label="Storage" 
+            value={stats.storageText} 
+            subValue="OF 50MB" 
+            icon={Database} 
+            progress={(stats.storage / (50 * 1024 * 1024)) * 100} 
+            delay={0.4} 
+          />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           <div className="xl:col-span-8 space-y-6">
             {/* Activity Feed */}
-            <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-8 space-y-8">
+            <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-6 space-y-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-white">Recent Activity</h2>
-                <button className="text-[9px] font-bold text-white/40 hover:text-primary uppercase tracking-[0.2em] transition-colors">View All</button>
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider">Recent Activity</h2>
+                <button className="text-[9px] font-bold text-white/30 hover:text-primary uppercase tracking-[0.2em] transition-colors">View All</button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {activities.length > 0 ? activities.map((item, i) => {
-                  const ActionIcon = 
-                    item.action_type === 'upload' ? Upload :
-                    item.action_type === 'update_profile' ? Users :
-                    item.action_type === 'add_to_library' ? Plus : Activity;
+                  const getActionDetails = (type: string) => {
+                    switch (type) {
+                      case 'upload': 
+                        return { label: 'uploaded', icon: Upload, color: 'text-emerald-500' };
+                      case 'update_profile': 
+                        return { label: 'updated profile', icon: Users, color: 'text-blue-500' };
+                      case 'update_settings': 
+                        return { label: 'updated settings', icon: Settings, color: 'text-gray-500' };
+                      case 'add_to_library': 
+                        return { label: 'added', icon: Plus, color: 'text-primary' };
+                      case 'follow_creator': 
+                        return { label: 'followed', icon: Heart, color: 'text-pink-500' };
+                      case 'create_note': 
+                        return { label: 'created note', icon: FilePlus, color: 'text-amber-500' };
+                      case 'delete_file': 
+                        return { label: 'deleted', icon: Trash2, color: 'text-rose-500' };
+                      case 'summarize_file': 
+                        return { label: 'summarized', icon: Sparkles, color: 'text-purple-500' };
+                      case 'sync_storage': 
+                        return { label: 'synced storage', icon: Database, color: 'text-cyan-500' };
+                      default: 
+                        return { label: type.replace(/_/g, ' ') + 'ed', icon: Activity, color: 'text-white/40' };
+                    }
+                  };
+
+                  const { label, icon: ActionIcon, color } = getActionDetails(item.action_type);
                   
                   return (
                     <motion.div 
                       key={item.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 * i }}
-                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-white/[0.04] transition-all group border border-transparent hover:border-white/5"
+                      transition={{ delay: 0.05 * i }}
+                      className="flex items-center gap-3.5 p-2.5 rounded-xl hover:bg-white/[0.04] transition-all group border border-transparent hover:border-white/5"
                     >
-                      <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                        <ActionIcon className="w-5 h-5 text-white/40 group-hover:text-primary" />
+                      <div className={cn(
+                        "w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center shrink-0 transition-all group-hover:scale-105",
+                        "group-hover:bg-white/10"
+                      )}>
+                        <ActionIcon className={cn("w-4 h-4", color)} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[15px] text-white/70 group-hover:text-white transition-colors">
-                          <span className="font-bold text-white">You</span> {item.action_type}ed <span className="font-bold text-white">{item.target_name}</span>
+                        <p className="text-[13px] text-white/60 group-hover:text-white transition-colors truncate">
+                          <span className="font-bold text-white/90">You</span> {label} <span className="font-bold text-white/90">{item.target_name}</span>
                         </p>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/20 mt-1.5">{formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}</p>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/20 mt-0.5">{formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}</p>
                       </div>
                     </motion.div>
                   );
                 }) : (
-                  <div className="py-12 text-center text-white/20 text-xs font-bold uppercase tracking-[0.2em] italic">No recent activity detected.</div>
+                  <div className="py-12 text-center text-white/20 text-[10px] font-bold uppercase tracking-[0.2em] italic">No activity detected.</div>
                 )}
               </div>
             </div>

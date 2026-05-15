@@ -14,9 +14,9 @@
     --bg-5: #232323;
 
     --text-primary: #ebebeb;
-    --text-secondary: rgba(255, 255, 255, 0.45);
-    --text-tertiary: rgba(255, 255, 255, 0.28);
-    --text-disabled: rgba(255, 255, 255, 0.18);
+    --text-secondary: rgba(255, 255, 255, 0.65);
+    --text-tertiary: rgba(255, 255, 255, 0.45);
+    --text-disabled: rgba(255, 255, 255, 0.25);
 
     --border-color: rgba(255, 255, 255, 0.06);
     --border-default: 1px solid var(--border-color);
@@ -125,9 +125,34 @@
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+.masonry-grid {
+  column-count: 1;
+  column-gap: 1.5rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .masonry-grid {
+    column-count: 2;
   }
+}
+
+@media (min-width: 1024px) {
+  .masonry-grid {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 1280px) {
+  .masonry-grid {
+    column-count: 4;
+  }
+}
+
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 1.5rem;
+}
 }
 
 /* Scrollbar styling */
