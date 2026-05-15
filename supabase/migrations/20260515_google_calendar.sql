@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.calendars (
 CREATE TABLE IF NOT EXISTS public.calendar_events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    calendar_id UUID REFERENCES public.calendars(id) ON DELETE CASCADE NOT NULL,
+    calendar_id UUID REFERENCES public.calendars(id) ON DELETE CASCADE,
     google_event_id TEXT,
     title TEXT NOT NULL,
     description TEXT,
@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS public.calendar_events (
     priority TEXT DEFAULT 'medium',
     workspace_id UUID REFERENCES public.workspaces(id) ON DELETE SET NULL,
     meeting_url TEXT,
+    source TEXT DEFAULT 'google',
     recurrence_rule TEXT,
     reminders JSONB DEFAULT '[]',
     metadata JSONB DEFAULT '{}',
@@ -56,22 +57,36 @@ CREATE TABLE IF NOT EXISTS public.calendar_events (
     UNIQUE(calendar_id, google_event_id)
 );
 
+-- Ensure source column exists (if migration was run before it was added)
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='calendar_events' AND column_name='source') THEN
+        ALTER TABLE public.calendar_events ADD COLUMN source TEXT DEFAULT 'google';
+    END IF;
+    
+    -- Ensure calendar_id is nullable
+    ALTER TABLE public.calendar_events ALTER COLUMN calendar_id DROP NOT NULL;
+END $$;
+
 -- 4. Enable RLS
 ALTER TABLE public.user_google_connections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.calendars ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.calendar_events ENABLE ROW LEVEL SECURITY;
 
 -- 5. RLS Policies
+DROP POLICY IF EXISTS "Users can manage their own google connections" ON public.user_google_connections;
 CREATE POLICY "Users can manage their own google connections"
     ON public.user_google_connections
     FOR ALL
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can manage their own calendars" ON public.calendars;
 CREATE POLICY "Users can manage their own calendars"
     ON public.calendars
     FOR ALL
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can manage their own calendar events" ON public.calendar_events;
 CREATE POLICY "Users can manage their own calendar events"
     ON public.calendar_events
     FOR ALL
