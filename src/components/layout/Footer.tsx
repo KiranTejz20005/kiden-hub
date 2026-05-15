@@ -17,7 +17,7 @@ const Footer = () => {
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
               <img src={kidenLogo} alt="Kiden" className="h-10 w-10 rounded-lg" />
-              <span className="text-xl font-semibold">Kiden</span>
+              <span className="text-xl font-semibold">Kiden Hub</span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
               The creative project tracker for designers and developers.
@@ -31,12 +31,12 @@ const Footer = () => {
               <ul className="space-y-3">
                 {items.map((item) => (
                   <li key={item}>
-                    <a
-                      href="#"
+                    <Link
+                      to={item === "Privacy" ? "/privacy" : item === "Terms" ? "/terms" : "#"}
                       className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {item}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -47,7 +47,7 @@ const Footer = () => {
         {/* Bottom */}
         <div className="mt-16 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Kiden. All rights reserved.
+            © {new Date().getFullYear()} Kiden Hub. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             {["Twitter", "LinkedIn", "GitHub"].map((social) => (

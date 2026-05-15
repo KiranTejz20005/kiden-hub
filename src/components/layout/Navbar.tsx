@@ -37,7 +37,7 @@ const Navbar = () => {
               <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
             <span className={`font-semibold text-foreground tracking-tight transition-all duration-300 ${scrolled ? "text-lg" : "text-xl"}`}>
-              Kiden
+              Kiden Hub
             </span>
           </Link>
 
