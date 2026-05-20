@@ -5,6 +5,8 @@ export type ActiveView =
   | 'notes'
   | 'boards'
   | 'calendar'
+  | 'focus'
+  | 'habits'
   | 'team'
   | 'settings';
 
