@@ -6,21 +6,18 @@ import {
   MessageSquare,
   FileText,
   Search,
-  Compass,
   Calendar,
   Plus,
-  Copy,
   ChevronDown,
   LogOut,
   Settings,
   Columns,
-  MoreHorizontal,
   ChevronLeft,
-  ExternalLink,
-  CreditCard,
   Trash2,
-  ArrowRight,
-  Hash
+  Hash,
+  Flame,
+  Target,
+  CreditCard
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -59,6 +56,8 @@ const mainNavItems = [
   { id: 'chat', label: 'AI Assistant', icon: MessageSquare },
   { id: 'notes', label: 'Notes Taking', icon: FileText },
   { id: 'calendar', label: 'Calendar', icon: Calendar },
+  { id: 'focus', label: 'Focus Timer', icon: Flame },
+  { id: 'habits', label: 'Habit Tracker', icon: Target },
   { id: 'boards', label: 'My Boards', icon: Columns, canCreate: true },
 ] as const;
 
@@ -223,7 +222,6 @@ const AppSidebar = ({
                             onClick={(e) => {
                               e.stopPropagation();
                               onViewChange('boards');
-                              navigate('/dashboard/boards?create=true');
                             }}
                             className="p-1 rounded-md text-[var(--text-tertiary)] hover:text-white hover:bg-white/10 transition-colors"
                           >
