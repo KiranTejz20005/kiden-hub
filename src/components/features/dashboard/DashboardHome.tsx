@@ -7,13 +7,14 @@ import {
   Plus, Upload, MessageCircle, FilePlus, 
   Sparkles, Zap, Clock, ChevronRight,
   TrendingUp, Activity, Users, Calendar,
-  Settings, Heart, Trash2
+  Settings, Heart, Trash2, Flame, Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ActiveView } from '@/lib/types';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fetchRecentActivities, ActivityLog } from '@/services/activityService';
+import { fetchTodayFocusMinutes } from '@/services/focusService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => void }) => {
@@ -26,7 +27,8 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
     storageText: '0 MB',
     newFiles: 0,
     newChats: 0,
-    newBoards: 0
+    newBoards: 0,
+    focusMinutes: 0,
   });
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -43,7 +45,7 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayIso = yesterday.toISOString();
 
-      const [filesCount, chatsCount, boardsCount, storageSum, recentLogs, recentFiles, recentChats, recentBoards] = await Promise.all([
+      const [filesCount, chatsCount, boardsCount, storageSum, recentLogs, recentFiles, recentChats, recentBoards, todayFocus] = await Promise.all([
         supabase.from('files').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase.from('research_boards' as any).select('*', { count: 'exact', head: true }).eq('user_id', user.id),
@@ -52,6 +54,7 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
         supabase.from('files').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', yesterdayIso),
         supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', yesterdayIso),
         supabase.from('research_boards' as any).select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', yesterdayIso),
+        fetchTodayFocusMinutes(user.id),
       ]);
 
       const totalSize = storageSum.data?.reduce((acc, curr) => acc + curr.size, 0) || 0;
@@ -67,7 +70,8 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
         storageText: formattedStorage,
         newFiles: recentFiles.count || 0,
         newChats: recentChats.count || 0,
-        newBoards: recentBoards.count || 0
+        newBoards: recentBoards.count || 0,
+        focusMinutes: todayFocus,
       });
       
       setActivities(recentLogs);
@@ -85,6 +89,8 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
     { label: 'AI Assistant', desc: 'Start a conversation', icon: MessageCircle, view: 'chat' },
     { label: 'Research Board', desc: 'Organize project', icon: Layout, view: 'boards' },
     { label: 'Smart Note', desc: 'Capture thoughts', icon: FilePlus, view: 'notes' },
+    { label: 'Focus Timer', desc: 'Deep work session', icon: Flame, view: 'focus' },
+    { label: 'Habit Tracker', desc: 'Log daily habits', icon: Target, view: 'habits' },
   ];
 
   const greeting = () => {
@@ -137,7 +143,7 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
         </section>
 
         {/* ── Stats ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-5">
           <StatsCard 
             label="Assets" 
             value={stats.files.toString()} 
@@ -172,6 +178,14 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
             icon={Database} 
             progress={(stats.storage / (50 * 1024 * 1024)) * 100} 
             delay={0.4} 
+          />
+          <StatsCard 
+            label="Focus Today" 
+            value={`${stats.focusMinutes}m`} 
+            subValue="FOCUSED" 
+            icon={Flame} 
+            trend={stats.focusMinutes > 0 ? 'up' : undefined}
+            delay={0.5} 
           />
         </div>
 

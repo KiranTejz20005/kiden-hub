@@ -1,13 +1,11 @@
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { WorkspaceProvider } from '@/hooks/useWorkspace';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, ActiveView } from '@/lib/types';
 import AppSidebar from '@/components/app/AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
-import { PageLayout } from '@/components/ui/PageLayout';
 import { motion } from 'framer-motion';
-import { Users, Settings as SettingsIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useVisibility } from '@/components/providers/VisibilityManager';
 import { useAppCache } from '@/components/providers/CacheProvider';
@@ -17,10 +15,12 @@ import FileStorage from '@/components/features/files/FileStorage';
 import AIChat from '@/components/features/ai/AIChat';
 import NotesEditor from '@/components/features/notes/NotesEditor';
 import MyBoards from '@/components/features/boards/MyBoards';
-import Collaborators from '@/components/features/team/Collaborators';
-import Preferences from '@/components/features/settings/Preferences';
 import { SettingsModal } from '@/components/features/settings/SettingsModal';
 import CalendarView from '@/components/features/calendar/CalendarView';
+import FocusTimer from '@/components/features/focus/FocusTimer';
+import HabitTracker from '@/components/features/habits/HabitTracker';
+import { CommandPalette } from '@/components/app/CommandPalette';
+import { SmartSearch } from '@/components/app/SmartSearch';
 
 // Enhanced placeholder component for new features
 const PlaceholderView = ({ title, icon: Icon }: { title: string, icon: any }) => (
@@ -49,7 +49,7 @@ const PlaceholderView = ({ title, icon: Icon }: { title: string, icon: any }) =>
 
 const Dashboard = () => {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [boards, setBoards] = useState<any[]>([]);
@@ -59,6 +59,8 @@ const Dashboard = () => {
   const [activeNote, setActiveNote] = useState<any | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
 
 
@@ -116,7 +118,7 @@ const Dashboard = () => {
   // 1. Sync URL -> State (Robust derivation)
   useEffect(() => {
     const path = location.pathname.split('/dashboard')[1]?.replace('/', '');
-    const validViews: ActiveView[] = ['dashboard', 'files', 'chat', 'notes', 'boards', 'calendar', 'team', 'settings'];
+    const validViews: ActiveView[] = ['dashboard', 'files', 'chat', 'notes', 'boards', 'calendar', 'focus', 'habits', 'team', 'settings'];
     
     if (path && validViews.includes(path as ActiveView)) {
       if (path !== activeView) setActiveView(path as ActiveView);
@@ -200,6 +202,26 @@ const Dashboard = () => {
   useEffect(() => {
     if (user) initializeData();
   }, [user]);
+
+  // Global keyboard shortcuts for palette and search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandOpen(prev => !prev);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'f') {
+        e.preventDefault();
+        setIsSearchOpen(prev => !prev);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'F') {
+        e.preventDefault();
+        setIsSearchOpen(prev => !prev);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
   
   // Layer 1: Centralized Visibility-based revalidation
   useEffect(() => {
@@ -269,6 +291,12 @@ const Dashboard = () => {
           <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'calendar' && "hidden")}>
             <CalendarView />
           </div>
+          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'focus' && "hidden")}>
+            <FocusTimer />
+          </div>
+          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'habits' && "hidden")}>
+            <HabitTracker />
+          </div>
         </main>
       </div>
 
@@ -277,6 +305,19 @@ const Dashboard = () => {
         onClose={() => setIsSettingsOpen(false)} 
         profile={profile}
         onProfileUpdate={initializeData}
+      />
+
+      <CommandPalette
+        open={isCommandOpen}
+        onOpenChange={setIsCommandOpen}
+        onViewChange={handleViewChange}
+        onSignOut={signOut}
+      />
+
+      <SmartSearch
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onNavigate={handleViewChange}
       />
     </WorkspaceProvider>
   );

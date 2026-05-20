@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import NoteSidebar from './NoteSidebar';
 import NoteHeader from './NoteHeader';
 import BlockEditor from './BlockEditor';
-import { Loader2, FileText } from 'lucide-react';
+import { TemplateGallery } from './TemplateGallery';
+import { Loader2, FileText, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +17,7 @@ const NotesEditor = () => {
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const activeNoteRef = useRef<Note | null>(null);
 
@@ -130,21 +132,21 @@ const NotesEditor = () => {
     }, 1500);
   };
 
-  const handleCreateNote = async (folderId?: string) => {
+  const handleCreateNote = async (folderId?: string, templateContent?: any, templateTitle?: string) => {
     if (!user) return;
     const { data, error } = await supabase
       .from('notes')
       .insert([{ 
         user_id: user.id, 
-        title: 'Untitled Note', 
-        content: { type: 'doc', content: [] },
+        title: templateTitle || 'Untitled Note', 
+        content: templateContent || { type: 'doc', content: [] },
         folder_id: folderId
       }])
       .select().single();
     
     if (data) {
       setActiveNote(data);
-      toast.success('Note instantiated');
+      toast.success(templateTitle ? `Created from template` : 'Note instantiated');
     } else {
       toast.error('Failed to create note');
     }
@@ -241,7 +243,7 @@ const NotesEditor = () => {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-12 gap-12">
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-12 gap-8">
             <div className="space-y-6">
               <div className="w-20 h-20 rounded-3xl bg-white/[0.03] border border-white/10 flex items-center justify-center mx-auto shadow-2xl">
                 <FileText className="w-10 h-10 text-white/30" />
@@ -254,12 +256,31 @@ const NotesEditor = () => {
               </div>
             </div>
             
-            <Button 
-              onClick={() => handleCreateNote()} 
-              className="h-14 px-10 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-[0.25em] text-[10px] shadow-2xl shadow-white/5 active:scale-95 transition-all"
-            >
-              Initialize New Node
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={() => handleCreateNote()} 
+                className="h-12 px-8 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-[0.25em] text-[10px] shadow-2xl shadow-white/5 active:scale-95 transition-all"
+              >
+                New Note
+              </Button>
+              <Button
+                onClick={() => setShowTemplates(true)}
+                variant="outline"
+                className="h-12 px-8 rounded-2xl border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white font-bold uppercase tracking-[0.15em] text-[10px] transition-all"
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-2 text-amber-400" />
+                Templates
+              </Button>
+            </div>
+
+            <TemplateGallery
+              isOpen={showTemplates}
+              onClose={() => setShowTemplates(false)}
+              onSelectTemplate={(tpl) => {
+                setShowTemplates(false);
+                handleCreateNote(undefined, tpl.content, tpl.name);
+              }}
+            />
           </div>
         )}
       </main>
