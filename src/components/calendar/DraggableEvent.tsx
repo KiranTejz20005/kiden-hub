@@ -2,7 +2,7 @@ import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { Clock } from 'lucide-react';
+import { Clock, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DraggableEventProps {
@@ -13,6 +13,8 @@ interface DraggableEventProps {
 
 export const DraggableEvent = ({ event, view, onClick }: DraggableEventProps) => {
   const isMonth = view === 'month';
+  const isAgenda = view === 'agenda';
+  
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: event.id,
     data: {
@@ -25,51 +27,74 @@ export const DraggableEvent = ({ event, view, onClick }: DraggableEventProps) =>
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
+  // Render a clean list item for agenda view, no drag styles needed
+  if (isAgenda) {
+    return (
+      <div 
+        onClick={onClick}
+        className="w-full flex items-center justify-between p-4 rounded-xl border border-white/[0.05] bg-white/[0.01] hover:bg-white/[0.03] transition-all cursor-pointer group"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] shrink-0" />
+          <div>
+            <h4 className="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors">
+              {event.title}
+            </h4>
+            {event.location && (
+              <div className="flex items-center gap-1.5 mt-1 text-[11px] text-white/40">
+                <MapPin className="w-3 h-3" />
+                <span>{event.location}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-xs font-medium text-white/40">
+          <Clock className="w-3.5 h-3.5" />
+          <span>
+            {format(new Date(event.start_time), 'h:mm a')} - {format(new Date(event.end_time), 'h:mm a')}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
-      layoutId={`event-${event.id}`}
-      whileHover={{ scale: isMonth ? 1.02 : 1 }}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      onMouseDown={(e) => {
-        e.stopPropagation();
-      }}
       className={cn(
-        "group cursor-grab active:cursor-grabbing rounded-md border text-left transition-all relative overflow-hidden h-full w-full",
-        isDragging && "opacity-50 z-50 ring-2 ring-emerald-500 shadow-2xl",
+        "group cursor-grab active:cursor-grabbing rounded-lg border text-left transition-all relative overflow-hidden h-full w-full select-none",
+        isDragging && "opacity-40 z-50 ring-2 ring-emerald-500 shadow-2xl scale-[1.02]",
         isMonth 
-          ? "px-1.5 py-0.5 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20" 
-          : "px-2 py-1 bg-emerald-500/15 border-emerald-500/30 hover:ring-2 ring-emerald-500/20 z-10 shadow-lg shadow-emerald-500/5"
+          ? "px-2 py-1 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20" 
+          : "px-3 py-2 bg-emerald-500/15 border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/20 z-10 shadow-lg shadow-emerald-500/5"
       )}
     >
-      <div className="flex items-center gap-1.5 overflow-hidden">
+      <div className="flex items-start gap-2 h-full">
         {!isMonth && (
-           <div className="w-1 h-full absolute left-0 top-0 bg-emerald-500 rounded-l-md" />
+          <div className="w-1 self-stretch bg-emerald-500 rounded-full shrink-0" />
         )}
-        <p className={cn(
-          "font-semibold truncate",
-          isMonth ? "text-[9px] text-emerald-500" : "text-[11px] text-white"
-        )}>
-          {event.title}
-        </p>
-      </div>
-      {!isMonth && (
-        <div className="flex items-center gap-2 mt-0.5 opacity-40 text-[9px] text-white font-medium">
-          <Clock className="w-2.5 h-2.5" />
-          {format(new Date(event.start_time), 'HH:mm')}
+        <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
+          <p className={cn(
+            "font-semibold leading-tight truncate text-white",
+            isMonth ? "text-[10px]" : "text-[11.5px]"
+          )}>
+            {event.title}
+          </p>
+          {!isMonth && (
+            <div className="flex items-center gap-1.5 mt-1 opacity-55 text-[9.5px] text-white/80 font-medium">
+              <Clock className="w-3 h-3 text-emerald-400" />
+              {format(new Date(event.start_time), 'h:mm a')}
+            </div>
+          )}
         </div>
-      )}
-      
-      {/* Resize Handle (Placeholder for now) */}
-      {!isMonth && (
-        <div className="absolute bottom-0 left-0 right-0 h-1.5 cursor-ns-resize hover:bg-emerald-500/50 transition-colors" />
-      )}
-    </motion.div>
+      </div>
+    </div>
   );
 };

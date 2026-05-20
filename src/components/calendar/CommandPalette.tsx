@@ -23,6 +23,12 @@ export const CalendarCommandPalette = () => {
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
+      // Only run if the calendar view container is visible (not hidden via class)
+      const container = document.getElementById("calendar-view-container");
+      if (!container || container.classList.contains("hidden") || container.closest(".hidden")) {
+        return;
+      }
+
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((open) => !open);
@@ -33,6 +39,7 @@ export const CalendarCommandPalette = () => {
         if (e.key === "d") setView("day");
         if (e.key === "w") setView("week");
         if (e.key === "m") setView("month");
+        if (e.key === "a") setView("agenda");
         if (e.key === "c") setCreateModalOpen(true);
       }
     };
@@ -102,6 +109,13 @@ export const CalendarCommandPalette = () => {
                       <span>Month View</span>
                     </div>
                     <kbd className="text-[10px] font-bold text-white/20">M</kbd>
+                  </Item>
+                  <Item onSelect={() => { setView("agenda"); setOpen(false); }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center"><CalendarRange className="w-4 h-4 text-emerald-500" /></div>
+                      <span>Agenda View</span>
+                    </div>
+                    <kbd className="text-[10px] font-bold text-white/20">A</kbd>
                   </Item>
                 </Command.Group>
 
