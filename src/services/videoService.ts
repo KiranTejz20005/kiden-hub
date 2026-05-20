@@ -2,19 +2,30 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Add video to library
 export async function addVideoToLibrary(userId: string, videoData: any) {
+  // Map fields robustly to support both snake_case, camelCase, and various component/API formats
+  const videoId = videoData.video_id || videoData.videoId || videoData.id || videoData.external_id;
+  const title = videoData.title;
+  const channelName = videoData.channel_name || videoData.channelName || videoData.channelTitle || videoData.channel_title || 'Unknown Channel';
+  const channelAvatar = videoData.channel_avatar || videoData.channelAvatar || videoData.channel_profile_img || '';
+  const thumbnailUrl = videoData.thumbnail_url || videoData.thumbnailUrl || videoData.high_res_thumbnail || '';
+  const videoUrl = videoData.video_url || videoData.videoUrl || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : '');
+  const publishedAt = videoData.published_at || videoData.publishedAt || videoData.publishedTime || new Date().toISOString();
+  const duration = Number(videoData.duration_seconds || videoData.durationSeconds || videoData.duration || 0);
+  const viewCount = Number(videoData.view_count || videoData.viewCount || videoData.views || 0);
+
   const { data, error } = await supabase
     .from('user_study_videos')
     .insert({
       user_id: userId,
-      video_id: videoData.id,
-      title: videoData.title,
-      channel_name: videoData.channel_name,
-      channel_avatar: videoData.channel_avatar,
-      thumbnail_url: videoData.thumbnail_url,
-      video_url: videoData.video_url,
-      published_at: videoData.published_at,
-      duration: videoData.duration_seconds,
-      view_count: videoData.view_count,
+      video_id: videoId,
+      title: title,
+      channel_name: channelName,
+      channel_avatar: channelAvatar,
+      thumbnail_url: thumbnailUrl,
+      video_url: videoUrl,
+      published_at: publishedAt,
+      duration: duration,
+      view_count: viewCount,
       position: (await getMaxPosition(userId)) + 1
     })
     .select()

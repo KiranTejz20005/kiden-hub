@@ -1,6 +1,20 @@
 import axios from 'axios';
 import { supabase } from '@/integrations/supabase/client';
 
+const YOUTUBE_KEYS = [
+  import.meta.env.VITE_YOUTUBE_API_KEY,
+  import.meta.env.VITE_YOUTUBE_API_KEY_2
+].filter(Boolean);
+
+
+/**
+ * Safe Unicode slicing to avoid cutting in the middle of UTF-16 surrogate pairs (like emojis)
+ */
+export function safeSlice(str: string | null | undefined, maxLength: number): string | null {
+  if (!str) return null;
+  return Array.from(str).slice(0, maxLength).join('');
+}
+
 /**
  * Secure YouTube API Proxy via Supabase Edge Functions
  * This hides the API keys from the browser.
@@ -30,18 +44,18 @@ export const PREMIUM_CHANNELS: Record<string, Array<{ name: string; id: string }
   'Education': [
     { name: 'Kurzgesagt', id: 'UCsXVk37bltHxD1rDPwtNM8Q' },
     { name: 'TED-Ed', id: 'UCsooa4yRKGN_zEE8iknghZA' },
-    { name: '3Blue1Brown', id: 'UCYO_jab_esuFRV4b0ie8YAY' },
-    { name: 'Veritasium', id: 'UCivA7_KLKWo43tFcCkFvydw' },
-    { name: 'Vsauce', id: 'UCHnyfMX8lOD_EWGrG4V2zDQ' },
+    { name: '3Blue1Brown', id: 'UCYO_jab_esuFRV4b17AJtAw' },
+    { name: 'Veritasium', id: 'UCHnyfMqiRRG1u-2MsSQLbXA' },
+    { name: 'Vsauce', id: 'UC6nSFpj9HTCZ5t-N3Rm3-HA' },
     { name: 'CrashCourse', id: 'UCX6b17PVsYBQ0ip5gyeme-Q' },
-    { name: 'Wendover Productions', id: 'UC9RM-iSzvit8LxrmjcFundA' },
+    { name: 'Wendover Productions', id: 'UC9RM-iSvTu1uPJb8X5yp3EQ' },
   ],
   'Technology': [
     { name: 'Fireship', id: 'UCsBjURrPoezykLs9EqgamOA' },
-    { name: 'Theo - t3.gg', id: 'UCbRP3rAa5TM3AhHJz1mPBHg' },
-    { name: 'ByteByteGo', id: 'UCZgt6AkMdfo-YjEVp-oUD_w' },
+    { name: 'Theo - t3.gg', id: 'UCbRP3c757lWg9M-U7TyEkXA' },
+    { name: 'ByteByteGo', id: 'UCZgt6AzoyjslHTC9dz0UoTw' },
     { name: 'Hussein Nasser', id: 'UC_ML5xP23TOWKUcc-oAE_Eg' },
-    { name: 'Primeagen', id: 'UC8ENHE5xdFSwx71u3fDH5Xw' },
+    { name: 'Primeagen', id: 'UCUyeluBRhGPCW4rPe_UvBZQ' },
     { name: 'Traversy Media', id: 'UC29ju8bIPH5as8OGnQzwJyA' },
     { name: 'Jack Herrington', id: 'UC6vRUjYqDuoUsYsku86Lrsw' },
   ],
@@ -49,17 +63,17 @@ export const PREMIUM_CHANNELS: Record<string, Array<{ name: string; id: string }
     { name: 'Ali Abdaal', id: 'UCoOae5nYA7VqaXzerajD0lg' },
     { name: 'Thomas Frank', id: 'UCG-KntY7aVnIGXYEBQvmBAQ' },
     { name: 'Matt D\'Avella', id: 'UCJ24N4O0bP7LGLBDvye7oCA' },
-    { name: 'Mike and Matty', id: 'UCLBcgzKaEFBkWdWqfPgCXbw' },
-    { name: 'Tiago Forte', id: 'UCbGBi9PZ6c6YdQCQqLlE8ZA' },
-    { name: 'Keep Productive', id: 'UCYyaQsm2HyneP9CsIOdihBw' },
+    { name: 'Mike and Matty', id: 'UCBX_-ls-dXuhFNSWSXcHrTA' },
+    { name: 'Tiago Forte', id: 'UCmvYCRYPDlzSHVNCI_ViJDQ' },
+    { name: 'Keep Productive', id: 'UCiZN_5w0O_8CYLW9gxysGfg' },
   ],
   'Self-Improvement': [
     { name: 'Andrew Huberman', id: 'UC2D2CMWXMOVWx7giW1n3LIg' },
     { name: 'Lex Fridman', id: 'UCSHZKyawb77ixDdsGog4iWA' },
     { name: 'Jordan Peterson', id: 'UCL_f53ZEJxp8TtlOkHwMV9Q' },
-    { name: 'Mark Manson', id: 'UCcpjOp15f8BM-dUn8mmMtRg' },
-    { name: 'Improvement Pill', id: 'UCBcRF18a7Qf58cCRy5xuWwQ' },
-    { name: 'Better Ideas', id: 'UCtUId5WEqFektp9sq5Y51CQ' },
+    { name: 'Mark Manson', id: 'UC0TnW9acNxqeojxXDMbohcA' },
+    { name: 'Improvement Pill', id: 'UCBIt1VN5j37PVM8LLSuTTlw' },
+    { name: 'Better Ideas', id: 'UCtUId5WFnN82GdDy7DgaQ7w' },
   ],
   'Science': [
     { name: 'Mark Rober', id: 'UCY1kMZp36IQSyNx_9h4mpCg' },
@@ -68,48 +82,48 @@ export const PREMIUM_CHANNELS: Record<string, Array<{ name: string; id: string }
     { name: 'SciShow', id: 'UCZYTClx2T1of7BRZ86-8fow' },
   ],
   'Business': [
-    { name: 'Y Combinator', id: 'UCcefcZRL2oaA_uBNeo5UNqg' },
-    { name: 'Patrick Boyle', id: 'UCVEBbAk6Fo2eF-CxJFiXkPg' },
+    { name: 'Y Combinator', id: 'UCcefcZRL2oaA_uBNeo5UOWg' },
+    { name: 'Patrick Boyle', id: 'UCASM0cgfkJxQ1ICmRilfHLw' },
     { name: 'Plain Bagel', id: 'UCFCEuCsyWP0YkP3CZ3Mr01Q' },
     { name: 'Garry Tan', id: 'UCIBgYfDjtWlbJhg--Z4sOgQ' },
-    { name: 'How Money Works', id: 'UC4YHpECrPv6YP8-fJX-FMzA' },
-    { name: 'Slidebean', id: 'UCWwqnq8zNKrquJH1JrKSX5w' },
+    { name: 'How Money Works', id: 'UCkCGANrihzExmu9QiqZpPlQ' },
+    { name: 'Slidebean', id: 'UC4bq21IPPbpu0Qrsl7LW0sw' },
   ],
   'Design': [
     { name: 'Flux Academy', id: 'UCN7dywl5wDxTu1RM3eJ_h9Q' },
     { name: 'Jesse Showalter', id: 'UCvBGFeXbBrq3W9_0oNLJREQ' },
-    { name: 'The Futur', id: 'UCB_4blHFJQP7IInr45Pd_8w' },
+    { name: 'The Futur', id: 'UC-b3c7kxa5vU-bnmaROgvog' },
     { name: 'DesignCourse', id: 'UCVyRiMvfUNMA1UPlDPzG5Ow' },
-    { name: 'Figma', id: 'UCQsVmhSa4X-GpFBFmBFnQhA' },
+    { name: 'Figma', id: 'UCQsVmhSa4X-G3lHlUtejzLA' },
   ],
   'Philosophy': [
-    { name: 'Academy of Ideas', id: 'UCiRiQGCAjXa_x3w_hZDtBNg' },
-    { name: 'Einzelgänger', id: 'UCJn9SHnSCe_HlDGhFP-EIBA' },
-    { name: 'Pursuit of Wonder', id: 'UCDq5v10l4wkV5-ZBIJJFbzQ' },
-    { name: 'Like Stories of Old', id: 'UCA1ufHHHH-Ry68Mv2P75fCg' },
-    { name: 'Philosophize This!', id: 'UCFpnY5NnBl-8L7SvICQFI2Q' },
+    { name: 'Academy of Ideas', id: 'UCiRiQGCHGjDLT9FQXFW0I3A' },
+    { name: 'Einzelgänger', id: 'UCybBViio_TH_uiFFDJuz5tg' },
+    { name: 'Pursuit of Wonder', id: 'UC-tLyAaPbRZiYrOJxAGB7dQ' },
+    { name: 'Like Stories of Old', id: 'UCs7nPQIEba0T3tGOWWsZpJQ' },
+    { name: 'Philosophize This!', id: 'UCjnpuIGovFFUBLG5BeHzTag' },
   ],
   'Startups': [
-    { name: 'Dalton Caldwell', id: 'UCcefcZRL2oaA_uBNeo5UNqg' },
+    { name: 'Dalton Caldwell', id: 'UCllx7jOjBL794FK67jtb5Og' },
     { name: 'TechCrunch', id: 'UCCjyq_K1Xwfg8Lndy7lKMpA' },
-    { name: 'First Round Capital', id: 'UCxB0FP7OwFRMlsOaHlF0hiA' },
-    { name: 'a16z', id: 'UC9cn0TuPq4dnbTY-CBadO2Q' },
-    { name: 'Sequoia', id: 'UC2GGU6PgpmmfUJnDMedckbA' },
+    { name: 'First Round Capital', id: 'UC_oji6l_-xwhmZqCxRGuAXw' },
+    { name: 'a16z', id: 'UC9cn0TuPq4dnbTY-CBsm8XA' },
+    { name: 'Sequoia', id: 'UCWrF0oN6unbXrWsTN7RctTw' },
   ],
   'Content creation': [
-    { name: 'Sean Cannell', id: 'UCqEqHuax9gcJLb1cla80tsA' },
+    { name: 'Sean Cannell', id: 'UCWWFavn3ym0w3myTD5OX59g' },
     { name: 'Colin and Samir', id: 'UCamLstJyCa-t5gfZegxsFMw' },
     { name: 'Roberto Blake', id: 'UCovtFObhY9NypXcyHxAS7-Q' },
-    { name: 'Think Media', id: 'UCnUYZLuoy1rq1aVMwx4aTzw' },
-    { name: 'Cathrin Manning', id: 'UCpZ5x3GHcFIwUfGDdnXXA0A' },
+    { name: 'Think Media', id: 'UCGxjDWAN1KwrkXYVi8CXtjQ' },
+    { name: 'Cathrin Manning', id: 'UC3VWHYS6atML3nKVUmEr0lA' },
   ],
   'Coding': [
     { name: 'freeCodeCamp', id: 'UC8butISFwT-Wl7EV0hUK0BQ' },
     { name: 'Programming with Mosh', id: 'UCWv7vMbMWH4-V0ZXdmDpPBA' },
-    { name: 'Kevin Powell', id: 'UCjzHeG1KWoonqz7DVPQGn9w' },
+    { name: 'Kevin Powell', id: 'UCJZv4d5rbIKd4QHMPkcABCw' },
     { name: 'Web Dev Simplified', id: 'UCFbNIlppjAuEX4znoulh0Cw' },
-    { name: 'Hitesh Choudhary', id: 'UCXgGY0wkgOONij8OcS7LcqA' },
-    { name: 'Code with Harry', id: 'UCeVMnSShP_IineV1MqelHPg' },
+    { name: 'Hitesh Choudhary', id: 'UCXgGY0wkgOzynnHvSEVmE3A' },
+    { name: 'Code with Harry', id: 'UCeVMnSShP_Iviwkknt83cww' },
   ],
 };
 
@@ -182,7 +196,7 @@ async function upsertCreator(channelData: any, subscriberCount: number): Promise
     handle: channelData.id,
     profile_image_url: channelData.snippet?.thumbnails?.default?.url ||
       `https://api.dicebear.com/7.x/avataaars/svg?seed=${channelData.id}`,
-    bio: channelData.snippet?.description?.slice(0, 300) || null,
+    bio: safeSlice(channelData.snippet?.description, 300),
     primary_platform: 'youtube',
     platform_accounts: {
       youtube: {
@@ -300,14 +314,16 @@ async function scrapeChannel(
         external_id: videoId,
         source_platform: 'youtube',
         title: video.snippet.title,
-        description: video.snippet.description?.slice(0, 500) || null,
+        description: safeSlice(video.snippet.description, 500),
         content_url: `https://www.youtube.com/watch?v=${videoId}`,
         thumbnail_url: `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
-        preview_content: video.snippet.description?.slice(0, 500) || null,
+        preview_content: safeSlice(video.snippet.description, 500),
         creator_id: creatorId,
         category: category,
-        tags: JSON.stringify(video.snippet.tags?.slice(0, 10) || []),
-        content_metadata: JSON.stringify({
+        tags: video.snippet.tags?.slice(0, 10) || [],
+        published_at: video.snippet.publishedAt,
+        view_count: viewCount,
+        content_metadata: {
           video_id: videoId,
           duration_seconds: duration,
           view_count: viewCount,
@@ -322,7 +338,7 @@ async function scrapeChannel(
           // Keep backward compatibility
           high_res_thumbnail: `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
           video_url: `https://www.youtube.com/watch?v=${videoId}`,
-        }),
+        },
         quality_score: qualityScore,
         virality_score: viralityScore,
         engagement_rate: engagement,
@@ -342,6 +358,9 @@ async function scrapeChannel(
     return contentToInsert.length;
   } catch (err: any) {
     console.error(`Failed to scrape channel ${channel.name}:`, err.message);
+    if (err.message?.includes('Quota Exceeded') || err.response?.status === 403) {
+      throw err;
+    }
     return 0;
   }
 }
@@ -405,6 +424,61 @@ export async function scrapeAllPremiumChannels(
   return { totalAdded, byCategory };
 }
 
+/**
+ * Scrapes only the channels belonging to a specific category
+ */
+export async function scrapeCategory(
+  category: string,
+  onProgress?: (msg: string) => void
+): Promise<number> {
+  if (YOUTUBE_KEYS.length === 0) {
+    throw new Error('YouTube API Keys not configured in .env');
+  }
+
+  const dbCategory = normalizeCategoryForDB(category);
+  const channels = PREMIUM_CHANNELS[dbCategory];
+  if (!channels) return 0;
+
+  const seenVideoIds = new Set<string>();
+  const { data: existing } = await supabase
+    .from('content_pieces')
+    .select('external_id')
+    .eq('category', dbCategory);
+  
+  if (existing) {
+    existing.forEach(row => seenVideoIds.add(row.external_id));
+  }
+
+  let addedCount = 0;
+  try {
+    const channelIds = channels.map(c => c.id).join(',');
+    const channelsRes = await ytRequest('channels', { 
+      part: 'snippet,statistics', 
+      id: channelIds 
+    });
+    
+    const channelMap = new Map();
+    channelsRes.data.items?.forEach((item: any) => channelMap.set(item.id, item));
+
+    const shuffledChannels = [...channels].sort(() => Math.random() - 0.5);
+
+    for (const channel of shuffledChannels) {
+      const preFetched = channelMap.get(channel.id);
+      if (!preFetched) continue;
+
+      onProgress?.(`🛰️ ${category} > ${channel.name}...`);
+      const count = await scrapeChannel(channel, dbCategory, seenVideoIds, true, preFetched);
+      addedCount += count;
+
+      // Small delay to prevent rate limits
+      await new Promise(r => setTimeout(r, 200));
+    }
+  } catch (err: any) {
+    console.error(`Category ${category} scrape failed:`, err.message);
+  }
+  return addedCount;
+}
+
 // ── FETCH CONTENT FROM SUPABASE ──────────────────────────────────────────────
 
 export interface ContentPiece {
@@ -424,6 +498,8 @@ export interface ContentPiece {
   virality_score: number;
   engagement_rate: number;
   created_at: string;
+  published_at?: string;
+  view_count?: number;
   // Joined creator data
   creator?: Creator;
 }
@@ -532,7 +608,7 @@ export async function fetchContentByCategory(
 
   // Determine sort column
   const sortCol = sortBy === 'trending' ? 'virality_score' : 
-                  sortBy === 'recent' ? 'created_at' : 'quality_score';
+                  sortBy === 'recent' ? 'published_at' : 'view_count';
 
   // Apply Cursor Filter
   if (cursor) {
@@ -653,12 +729,14 @@ export async function searchContent(
         external_id: i.id.videoId,
         source_platform: 'youtube',
         title: i.snippet.title,
-        description: i.snippet.description?.slice(0, 500),
+        description: safeSlice(i.snippet.description, 500),
         content_url: `https://www.youtube.com/watch?v=${i.id.videoId}`,
         thumbnail_url: i.snippet.thumbnails?.high?.url || i.snippet.thumbnails?.default?.url,
         category: category && category !== 'All' ? category : 'Coding',
         quality_score: 70, 
         virality_score: 50,
+        published_at: i.snippet.publishedAt,
+        view_count: 50, // default view count fallback
         content_metadata: {
           channel_name: i.snippet.channelTitle,
           channel_id: i.snippet.channelId,

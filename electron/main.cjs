@@ -23,7 +23,7 @@ function createWindow() {
 
     if (isDev) {
         // In dev, wait for Vite to serve
-        win.loadURL('http://localhost:8080'); // Assuming default vite port + script to run on 8080 or check logic
+        win.loadURL('http://localhost:8000'); // Assuming default vite port + script to run on 8080 or check logic
         win.webContents.openDevTools();
     } else {
         // In production, load the built index.html

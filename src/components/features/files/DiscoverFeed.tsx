@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   RefreshCw, Search, Play, Award, Plus, ExternalLink,
   TrendingUp, X, Loader2, List, Trash2, GripVertical,
-  Edit2, Link as LinkIcon, Globe, Twitter, BookOpen
+  Edit2, Link as LinkIcon, Globe, Twitter, BookOpen, ChevronDown
 } from 'lucide-react';
 import { VirtuosoGrid } from 'react-virtuoso';
 import { Reorder } from 'framer-motion';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +20,7 @@ import {
 import { nvidiaService } from '@/services/nvidia-service';
 import { 
   addVideoToLibrary, getUserVideos, 
-  deleteVideo, batchUpdatePositions 
+  deleteVideo, batchUpdatePositions, updateVideoTag 
 } from '@/services/videoService';
 import { 
   getPlaylists, createPlaylist, deletePlaylist, addVideoToPlaylist, 
@@ -279,8 +280,8 @@ export const DiscoverFeed = () => {
   }, [tab, fetchMyList, fetchPlaylists]);
 
   useEffect(() => { 
-    if (tab === 'Discover' && !isSearching) loadItems(true); 
-  }, [category, sort, tab, isSearching]);
+    if (tab === 'Discover' && !searchQuery.trim() && !isSearching) loadItems(true); 
+  }, [category, sort, tab, isSearching, searchQuery]);
 
   useEffect(() => {
     if (tab !== 'Discover') return;
@@ -327,6 +328,43 @@ export const DiscoverFeed = () => {
       setNewPlaylistName('');
       setShowCreateModal(false);
       fetchPlaylists();
+    }
+  };
+
+  const handleDeletePlaylist = async (playlistId: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete the playlist "${name}"?`)) return;
+    const { error } = await deletePlaylist(playlistId);
+    if (error) {
+      toast.error('Failed to delete playlist');
+    } else {
+      toast.success('Playlist deleted');
+      if (activePlaylist === playlistId) {
+        setActivePlaylist('all');
+      }
+      fetchPlaylists();
+    }
+  };
+
+  const handleRenamePlaylist = async (playlistId: string, currentName: string) => {
+    const newName = prompt('Enter new playlist name:', currentName);
+    if (!newName || !newName.trim() || newName === currentName) return;
+    const { error } = await updatePlaylist(playlistId, { name: newName });
+    if (error) {
+      toast.error('Failed to rename playlist');
+    } else {
+      toast.success('Playlist renamed');
+      fetchPlaylists();
+    }
+  };
+
+  const handleUpdateTag = async (videoId: string, tag: string) => {
+    const { error } = await updateVideoTag(videoId, tag);
+    if (error) {
+      toast.error('Failed to update tag');
+    } else {
+      toast.success(`Tag updated to ${tag}`);
+      setMyList(prev => prev.map(v => v.id === videoId ? { ...v, subject_tag: tag } : v));
+      fetchMyList();
     }
   };
 
@@ -664,10 +702,10 @@ export const DiscoverFeed = () => {
                       <List className="w-3 h-3" /> {p.name}
                     </button>
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover/p:opacity-100 transition-all">
-                      <button onClick={(e) => { e.stopPropagation(); }} className="p-1 rounded-md hover:bg-white/10 text-muted-foreground hover:text-white">
+                      <button onClick={(e) => { e.stopPropagation(); handleRenamePlaylist(p.id, p.name); }} className="p-1 rounded-md hover:bg-white/10 text-muted-foreground hover:text-white" title="Rename Playlist">
                         <Edit2 className="w-3 h-3" />
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); }} className="p-1 rounded-md hover:bg-rose-500/20 text-muted-foreground hover:text-rose-400">
+                      <button onClick={(e) => { e.stopPropagation(); handleDeletePlaylist(p.id, p.name); }} className="p-1 rounded-md hover:bg-rose-500/20 text-muted-foreground hover:text-rose-400" title="Delete Playlist">
                         <X className="w-3 h-3" />
                       </button>
                     </div>
@@ -756,7 +794,30 @@ export const DiscoverFeed = () => {
 
                       <div className="flex-1 min-w-0">
                         <h4 className="text-[14px] font-bold truncate group-hover:text-primary transition-colors cursor-pointer" onClick={() => setSelected(item)}>{item.title}</h4>
-                        <p className="text-[12px] text-muted-foreground mt-1">{item.channel_name} • {Math.floor((item.duration || 0)/60)}m</p>
+                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                          <p className="text-[12px] text-muted-foreground">{item.channel_name} • {Math.floor((item.duration || 0)/60)}m</p>
+                          <DropdownMenu.Root>
+                            <DropdownMenu.Trigger asChild>
+                              <button className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-black border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center gap-1 uppercase tracking-widest cursor-pointer select-none">
+                                {item.subject_tag || 'Uncategorized'}
+                                <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                              </button>
+                            </DropdownMenu.Trigger>
+                            <DropdownMenu.Portal>
+                              <DropdownMenu.Content className="bg-card border border-border/50 rounded-2xl p-1.5 min-w-[130px] shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
+                                {['Math', 'Science', 'Programming', 'Design', 'Other'].map(tag => (
+                                  <DropdownMenu.Item 
+                                    key={tag} 
+                                    onSelect={() => handleUpdateTag(item.id, tag)}
+                                    className="p-2 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-500/10 hover:text-emerald-400 transition-all cursor-pointer outline-none"
+                                  >
+                                    {tag}
+                                  </DropdownMenu.Item>
+                                ))}
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Portal>
+                          </DropdownMenu.Root>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

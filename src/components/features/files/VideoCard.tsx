@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Play, Eye, Award, Plus, ExternalLink, 
-  UserCheck, UserPlus, List 
+  UserCheck, UserPlus, List, Trash2, ChevronDown 
 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
@@ -20,6 +20,9 @@ interface VideoCardProps {
   onClick: (item: any) => void;
   playlists: any[];
   onAddToPlaylist: (playlistId: string, item: any) => void;
+  isInLibrary?: boolean;
+  onDelete?: (id: string) => void;
+  onUpdateTag?: (tag: string) => void;
 }
 
 export const VideoCard = React.memo(({ 
@@ -29,7 +32,10 @@ export const VideoCard = React.memo(({
   isFollowing, 
   onClick, 
   playlists, 
-  onAddToPlaylist 
+  onAddToPlaylist,
+  isInLibrary = false,
+  onDelete,
+  onUpdateTag
 }: VideoCardProps) => {
   // Guard against undefined/null items - return null instead of crashing
   if (!item) {
@@ -68,7 +74,7 @@ export const VideoCard = React.memo(({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-        className="group flex flex-col bg-card border border-border/30 rounded-3xl overflow-hidden hover:border-primary/20 transition-all duration-300 h-full"
+        className="group flex flex-col bg-card/40 backdrop-blur-md border border-white/5 rounded-3xl overflow-hidden hover:border-emerald-500/20 hover:shadow-2xl hover:shadow-emerald-500/5 transition-all duration-300 h-full"
       >
         {/* Header */}
         <div className="p-4 flex items-center justify-between gap-3">
@@ -91,12 +97,52 @@ export const VideoCard = React.memo(({
               <p className="text-[11px] text-muted-foreground">{timeAgo}</p>
             </div>
           </div>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onFollow(item); }}
-            className={cn('p-2 rounded-xl transition-all', isFollowing ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:bg-white/5')}
-          >
-            {isFollowing ? <UserCheck className="w-4 h-4"/> : <UserPlus className="w-4 h-4"/>}
-          </button>
+          
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isInLibrary && onUpdateTag && (
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <button className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-black border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center gap-1 uppercase tracking-widest cursor-pointer select-none">
+                    {item.subject_tag || 'Uncategorized'}
+                    <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                  </button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content className="bg-card border border-border/50 rounded-2xl p-1.5 min-w-[130px] shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
+                    {['Math', 'Science', 'Programming', 'Design', 'Other'].map(tag => (
+                      <DropdownMenu.Item 
+                        key={tag} 
+                        onSelect={() => onUpdateTag?.(tag)}
+                        className="p-2 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-500/10 hover:text-emerald-400 transition-all cursor-pointer outline-none"
+                      >
+                        {tag}
+                      </DropdownMenu.Item>
+                    ))}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
+            )}
+
+            {!isInLibrary ? (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onAdd(item); }}
+                className="p-2 rounded-xl text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-400 transition-all"
+                title="Add to Library"
+              >
+                <Plus className="w-4 h-4"/>
+              </button>
+            ) : (
+              onDelete && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+                  className="p-2 rounded-xl text-muted-foreground hover:bg-rose-500/10 hover:text-rose-400 transition-all"
+                  title="Delete from Library"
+                >
+                  <Trash2 className="w-4 h-4"/>
+                </button>
+              )
+            )}
+          </div>
         </div>
 
         <div className="px-4 pb-2">
