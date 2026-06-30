@@ -202,7 +202,7 @@ interface TemplateGalleryProps {
 export function TemplateGallery({ isOpen, onClose, onSelectTemplate }: TemplateGalleryProps) {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
-  const [preview, setPreview] = useState<Template | null>(null);
+  const [preview] = useState<Template | null>(null);
 
   const filtered = SYSTEM_TEMPLATES.filter(t => {
     const matchQuery = query === '' || t.name.toLowerCase().includes(query.toLowerCase()) || t.description.toLowerCase().includes(query.toLowerCase());

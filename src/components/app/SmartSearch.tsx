@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ActiveView } from '@/lib/types';
 import { searchAll, SearchResult } from '@/services/searchService';
 import { cn } from '@/lib/utils';
-import { Search, X, FileText, Columns, MessageSquare, Hash, Filter, Loader2 } from 'lucide-react';
+import { Search, X, FileText, Columns, MessageSquare, Hash, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 type FilterType = 'all' | 'note' | 'file' | 'board' | 'conversation';

@@ -6,16 +6,15 @@ import {
   FileText, MessageSquare, Layout, Database, 
   Plus, Upload, MessageCircle, FilePlus, 
   Sparkles, Zap, Clock, ChevronRight,
-  TrendingUp, Activity, Users, Calendar,
+  Activity, Users, Calendar,
   Settings, Heart, Trash2, Flame, Target
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ActiveView } from '@/lib/types';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fetchRecentActivities, ActivityLog } from '@/services/activityService';
 import { fetchTodayFocusMinutes } from '@/services/focusService';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => void }) => {
   const { user } = useAuth();

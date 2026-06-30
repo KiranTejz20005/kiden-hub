@@ -134,7 +134,7 @@ const NotesEditor = () => {
 
   const handleCreateNote = async (folderId?: string, templateContent?: any, templateTitle?: string) => {
     if (!user) return;
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('notes')
       .insert([{ 
         user_id: user.id, 

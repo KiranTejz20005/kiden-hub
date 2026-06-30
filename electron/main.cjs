@@ -1,46 +1,69 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, session } = require('electron');
 const path = require('path');
 
+app.disableHardwareAcceleration();
+
+const isDev = !app.isPackaged;
+
 function createWindow() {
-    const isDev = !app.isPackaged;
+  const win = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    show: false,
+    backgroundColor: '#090C10',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#090C10',
+      symbolColor: '#ffffff',
+      height: 40,
+    },
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
+      disableBlinkFeatures: 'Auxclick',
+    },
+  });
 
-    const win = new BrowserWindow({
-        width: 1280,
-        height: 800,
-        webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
-            preload: path.join(__dirname, 'preload.cjs')
-        },
-        backgroundColor: '#090C10', // Match your app theme
-        titleBarStyle: 'hidden', // Optional: for custom title bar if you want
-        titleBarOverlay: {
-            color: '#090C10',
-            symbolColor: '#ffffff'
-        },
-        autoHideMenuBar: true
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-src 'self' https:; media-src 'self' blob:;"
+        ],
+        'X-Content-Type-Options': ['nosniff'],
+        'X-Frame-Options': ['DENY'],
+      },
     });
+  });
 
-    if (isDev) {
-        // In dev, wait for Vite to serve
-        win.loadURL('http://localhost:8000'); // Assuming default vite port + script to run on 8080 or check logic
-        win.webContents.openDevTools();
-    } else {
-        // In production, load the built index.html
-        win.loadFile(path.join(__dirname, '../dist/index.html'));
-    }
+  win.once('ready-to-show', () => {
+    win.show();
+  });
+
+  if (isDev) {
+    win.loadURL('http://localhost:8000');
+    win.webContents.openDevTools({ mode: 'detach' });
+  } else {
+    win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+  }
 }
 
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
 
 app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
-    }
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });

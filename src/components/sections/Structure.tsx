@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Box, Layers, CheckCircle2, FileText, Github, Figma, Command } from "lucide-react";
+import { Box, Layers, CheckCircle2, FileText, Github, Figma } from "lucide-react";
 
 const Structure = () => {
   const sectionRef = useRef<HTMLDivElement>(null);

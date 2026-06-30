@@ -4,10 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { 
   User, Building, Users, Settings as PrefsIcon, CreditCard,
-  ArrowLeft, Camera, ShieldCheck, Check, Sun, Moon, Monitor,
-  Loader2, Zap
+  ArrowLeft, Camera, Check, Sun, Moon, Monitor,
+  Loader2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';

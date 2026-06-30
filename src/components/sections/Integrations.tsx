@@ -1,7 +1,6 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 // import useEmblaCarousel from "embla-carousel-react"; // Removed for stability
-import { Box, AudioWaveform, Figma, Github, ChevronRight, ChevronLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Box, AudioWaveform, Figma, Github } from "lucide-react";
 
 const Integrations = () => {
   const sectionRef = useRef<HTMLDivElement>(null);

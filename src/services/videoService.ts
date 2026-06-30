@@ -35,8 +35,11 @@ export async function addVideoToLibrary(userId: string, videoData: any) {
 
 // Batch update positions
 export async function batchUpdatePositions(updates: { id: string; position: number }[]) {
+  const videoIds = updates.map(u => u.id);
+  const newPositions = updates.map(u => u.position);
   const { error } = await supabase.rpc('batch_update_video_positions', {
-    updates: updates
+    video_ids: videoIds,
+    new_positions: newPositions,
   });
   return { error };
 }
@@ -80,7 +83,7 @@ export async function deleteVideo(videoId: string) {
 
 // Check if video already in library
 export async function isVideoInLibrary(userId: string, videoId: string) {
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('user_study_videos')
     .select('id')
     .eq('user_id', userId)

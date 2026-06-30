@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft, 
   ChevronRight, 
-  Plus, 
   RefreshCw,
   CheckCircle2,
   Trash2,
@@ -14,8 +13,6 @@ import {
   X,
   Video,
   Globe,
-  ArrowRight,
-  Sparkles,
   Link2,
   Info
 } from 'lucide-react';
@@ -82,8 +79,6 @@ const CalendarView = () => {
   const [isDraggingNew, setIsDraggingNew] = useState(false);
   const [dragStart, setDragStart] = useState<{ day: Date, hour: number, minutes: number } | null>(null);
   const [dragEnd, setDragEnd] = useState<{ hour: number, minutes: number } | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -587,7 +582,7 @@ const CalendarView = () => {
                               )}
                               {events
                                 .filter(event => isSameDay(new Date(event.start_time), day))
-                                .map((event, index, dayEvents) => {
+                                .map((event, _index, dayEvents) => {
                                    const overlapping = dayEvents.filter(e => 
                                      (new Date(e.start_time) < new Date(event.end_time) && new Date(e.end_time) > new Date(event.start_time))
                                    );

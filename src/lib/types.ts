@@ -88,7 +88,7 @@ export interface Workspace {
   user_id: string;
   name: string;
   slug?: string;
-  icon?: string;
+  icon?: string | null;
   created_at?: string;
   updated_at?: string;
   role?: 'owner' | 'admin' | 'member';
@@ -98,9 +98,9 @@ export interface Collection {
   id: string;
   workspace_id: string;
   name: string;
-  color?: string;
-  icon?: string;
-  item_count?: number;
+  color?: string | null;
+  icon?: string | null;
+  item_count?: number | null;
   created_at?: string;
 }
 
@@ -132,9 +132,9 @@ export interface Note {
   title: string;
   content: any;
   content_text?: string;
-  is_favorite: boolean;
-  is_full_width: boolean;
-  is_deleted: boolean;
+  is_favorite?: boolean | null;
+  is_full_width?: boolean;
+  is_deleted?: boolean;
   deleted_at?: string | null;
   icon?: string | null;
   cover_image?: string | null;
@@ -149,7 +149,7 @@ export interface NoteFolder {
   parent_id?: string | null;
   name: string;
   icon?: string | null;
-  is_collapsed: boolean;
+  is_collapsed?: boolean;
   created_at: string;
   updated_at: string;
 }

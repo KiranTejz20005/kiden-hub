@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  RefreshCw, Search, Play, Award, Plus, ExternalLink,
+  RefreshCw, Search, Play, Plus, ExternalLink,
   TrendingUp, X, Loader2, List, Trash2, GripVertical,
   Edit2, Link as LinkIcon, Globe, Twitter, BookOpen, ChevronDown
 } from 'lucide-react';

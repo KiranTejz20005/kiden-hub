@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
 import { 
   Share2, Link as LinkIcon, Star, MoreVertical, 
-  Trash2, Copy, Move, Save, FileText, ChevronRight,
-  User, Calendar, Clock, Image as ImageIcon, Smile,
-  Plus, X, Maximize, Minimize, Loader2
+  Trash2, Copy, ChevronRight,
+  Calendar, Clock, Image as ImageIcon, Smile,
+  X, Maximize, Minimize
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Note, Profile } from '@/lib/types';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 interface NoteHeaderProps {
   note: Note;
@@ -33,7 +32,6 @@ const NoteHeader = ({
   onCopyLink
 }: NoteHeaderProps) => {
   const [isChangingCover, setIsChangingCover] = useState(false);
-  const [isRepositioning, setIsRepositioning] = useState(false);
   const coverRef = useRef<HTMLDivElement>(null);
 
   const handleIconSelect = async (emoji: string) => {

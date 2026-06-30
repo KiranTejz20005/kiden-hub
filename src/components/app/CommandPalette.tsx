@@ -6,8 +6,8 @@ import { searchAll, SearchResult } from '@/services/searchService';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, FileText, MessageSquare, Calendar, Columns,
-  Flame, Target, Upload, FilePlus, Zap, ArrowRight, Clock,
-  Search, Hash, Settings, LogOut, Command
+  Flame, Target, ArrowRight, Clock,
+  Search, Hash, Settings, Command
 } from 'lucide-react';
 
 interface CommandItem {
@@ -52,7 +52,7 @@ function addRecentCommand(id: string) {
   localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)));
 }
 
-export function CommandPalette({ open, onOpenChange, onViewChange, onSignOut }: CommandPaletteProps) {
+export function CommandPalette({ open, onOpenChange, onViewChange }: CommandPaletteProps) {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -143,8 +143,6 @@ export function CommandPalette({ open, onOpenChange, onViewChange, onSignOut }: 
     }
     onOpenChange(false);
   };
-
-  const typeViewMap: Record<string, ActiveView> = { note: 'notes', file: 'files', board: 'boards', conversation: 'chat' };
 
   const getResultColor = (type: string) => {
     const m: Record<string, string> = { note: 'text-amber-400', file: 'text-blue-400', board: 'text-violet-400', conversation: 'text-emerald-400' };

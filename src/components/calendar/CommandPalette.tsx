@@ -3,23 +3,17 @@ import { Command } from "cmdk";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, 
-  Calendar, 
   Plus, 
-  Clock, 
-  ChevronRight, 
-  Settings,
   LayoutGrid,
   CalendarDays,
   CalendarRange,
   Zap
 } from "lucide-react";
 import { useCalendarStore } from "@/store/useCalendarStore";
-import { useNavigate } from "react-router-dom";
 
 export const CalendarCommandPalette = () => {
   const [open, setOpen] = useState(false);
   const { setView, setCurrentDate, setCreateModalOpen } = useCalendarStore();
-  const navigate = useNavigate();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {

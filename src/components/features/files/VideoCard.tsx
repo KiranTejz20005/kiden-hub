@@ -2,11 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Play, Eye, Award, Plus, ExternalLink, 
-  UserCheck, UserPlus, List, Trash2, ChevronDown 
+  List, Trash2, ChevronDown 
 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { normalizeContentPiece } from '@/services/discoverService';
 import { safeFormatDate } from '@/lib/safe-parse';
 
@@ -28,8 +27,6 @@ interface VideoCardProps {
 export const VideoCard = React.memo(({ 
   item, 
   onAdd, 
-  onFollow, 
-  isFollowing, 
   onClick, 
   playlists, 
   onAddToPlaylist,

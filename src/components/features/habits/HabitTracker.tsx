@@ -8,7 +8,7 @@ import {
 } from '@/services/habitService';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Plus, Flame, CheckCircle2, Target, Trash2, Edit2, X, ChevronRight } from 'lucide-react';
+import { Plus, Flame, CheckCircle2, Trash2, Edit2, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 const PRESET_ICONS = ['🏃', '💧', '📚', '🧘', '💪', '🥗', '🛌', '✍️', '🎯', '🎸', '🌱', '🧠', '❤️', '🚴', '🏊'];
@@ -60,7 +60,7 @@ function ProgressRing({ value, max, color, size = 56 }: { value: number; max: nu
 export default function HabitTracker() {
   const { user } = useAuth();
   const [habits, setHabits] = useState<HabitWithProgress[]>([]);
-  const [todayLogs, setTodayLogs] = useState<HabitLog[]>([]);
+  const [, setTodayLogs] = useState<HabitLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);

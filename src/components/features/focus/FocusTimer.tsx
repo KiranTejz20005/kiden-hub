@@ -7,7 +7,7 @@ import { createFocusSession, completeFocusSession, fetchRecentFocusSessions, fet
 import { toast } from 'sonner';
 import {
   Play, Pause, RotateCcw, Coffee, Zap, CheckCircle2,
-  BarChart3, Settings2, Moon, ChevronRight, Flame
+  BarChart3, Settings2, Moon, Flame
 } from 'lucide-react';
 import { format } from 'date-fns';
 

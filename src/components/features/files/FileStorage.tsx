@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   FileText, Image as ImageIcon, Video, Download, Trash2, Search,
   Upload, Loader2, File, ExternalLink, FolderOpen, Grid3X3, List,
-  HardDrive, X, MoreVertical, Youtube, Sparkles
+  X, MoreVertical, Youtube, Sparkles
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -258,9 +258,6 @@ const FileStorage = () => {
       TAB_TYPES[tab]?.includes(f.type?.toLowerCase());
     return matchSearch && matchTab;
   });
-
-  const totalSize = files.reduce((a, f) => a + (f.size ?? 0), 0);
-  const usagePct  = Math.min((totalSize / (5 * 1024 ** 3)) * 100, 100);
 
   return (
     <>

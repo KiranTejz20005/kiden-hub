@@ -34,6 +34,7 @@ export async function logActivity(
       .insert({
         user_id: userId,
         action_type: action,
+        target_id: targetName,
         target_name: targetName,
         target_type: targetType,
         metadata
@@ -60,5 +61,5 @@ export async function fetchRecentActivities(userId: string, limit = 10): Promise
     return [];
   }
 
-  return data || [];
+  return (data || []) as ActivityLog[];
 }

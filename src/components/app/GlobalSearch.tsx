@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   CommandDialog, 
   CommandInput, 
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/command';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { FileText, Columns, MessageSquare, Search, File, Layout } from 'lucide-react';
+import { FileText, MessageSquare, Search, File, Layout } from 'lucide-react';
 import { ActiveView } from '@/lib/types';
 
 interface GlobalSearchProps {

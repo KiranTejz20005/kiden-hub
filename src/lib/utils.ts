@@ -15,12 +15,12 @@ export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number,
   options: { leading?: boolean; trailing?: boolean; maxWait?: number } = {}
-) {
-  let timeout: NodeJS.Timeout | null = null;
+): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
   let previous = 0;
-  let maxWaitTimer: NodeJS.Timeout | null = null;
+  let maxWaitTimer: ReturnType<typeof setTimeout> | null = null;
 
-  return function (...args: Parameters<T>) {
+  return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
     const now = Date.now();
     const callNow = options.leading && !previous;
 
@@ -53,14 +53,14 @@ export function debounce<T extends (...args: any[]) => any>(
  * @param func Function to throttle
  * @param limit Minimum delay between calls in milliseconds
  */
-export function throttle<T extends (...args: any[]) => any>(func: T, limit: number) {
-  let inThrottle: boolean;
-  
-  return function (...args: Parameters<T>) {
+export function throttle<T extends (...args: any[]) => any>(func: T, limit: number): (...args: Parameters<T>) => void {
+  let inThrottle = false;
+
+  return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
+      setTimeout(() => { inThrottle = false; }, limit);
     }
   };
 }

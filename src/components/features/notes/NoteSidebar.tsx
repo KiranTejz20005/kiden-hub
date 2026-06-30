@@ -3,17 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import {
-  Plus, Search, Trash2, MoreVertical, FileText,
+  Plus, Search, Trash2,
   Star, ChevronRight, ChevronDown, Folder, FolderOpen,
-  Settings, History, Share2, MoreHorizontal, Pencil,
-  Copy, Trash, Move, Pin, Archive, PlusCircle
+  MoreHorizontal, Pencil,
+  Copy, Trash, Move, PlusCircle
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { Note, NoteFolder } from '@/lib/types';
 
@@ -41,7 +40,7 @@ const NoteSidebar = ({
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
   const [sidebarWidth, setSidebarWidth] = useState(260);
   const [isResizing, setIsResizing] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     if (!user) return;

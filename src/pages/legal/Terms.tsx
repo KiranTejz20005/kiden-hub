@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+
 import { FileText } from 'lucide-react';
 
 const Terms = () => {

@@ -17,12 +17,12 @@ import { Typography } from '@tiptap/extension-typography';
 import { 
   Bold, Italic, Underline as UnderlineIcon, 
   List, ListOrdered, CheckSquare, Quote, 
-  Code, Image as ImageIcon, Link as LinkIcon,
+  Code, Link as LinkIcon,
   Heading1, Heading2, Heading3, Type,
-  Sparkles, AlignLeft, Palette, Wand2
+  Sparkles, AlignLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 const lowlight = createLowlight(common);
@@ -33,9 +33,7 @@ interface BlockEditorProps {
   isFullWidth?: boolean;
 }
 
-const BlockEditor = ({ content, onChange, isFullWidth }: BlockEditorProps) => {
-  const [isEditable, setIsEditable] = useState(true);
-
+const BlockEditor = ({ content, onChange }: BlockEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({

@@ -1,21 +1,19 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { 
-  Users, UserPlus, Mail, Shield, ShieldCheck, 
-  Trash2, Loader2, Search, MoreVertical, Check,
-  X, User as UserIcon, ShieldAlert, ArrowRight,
+  Users, UserPlus, Mail, ShieldCheck, 
+  Loader2, Search,
+  User as UserIcon,
   Eye, Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/hooks/useWorkspace';
 
@@ -30,7 +28,6 @@ interface Member {
 }
 
 const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
-  const { user } = useAuth();
   const { activeWorkspace } = useWorkspace();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);

@@ -522,7 +522,7 @@ export function normalizeContentPiece(cp: any): any {
     if (cp.video_id && !cp.external_id) return cp;
 
     // Safe JSON parsing with fallback
-    let meta = {};
+    let meta: Record<string, any> = {};
     if (cp.content_metadata) {
       try {
         meta = typeof cp.content_metadata === 'string'
@@ -626,7 +626,7 @@ export async function fetchContentByCategory(
     return { items: [] };
   }
 
-  const items = (data || []).filter(i => !!i) as ContentPiece[];
+  const items = (data || []).filter((i): i is typeof i => !!i) as unknown as ContentPiece[];
   
   // DIVERSITY RE-RANKING: Prevent one creator from dominating the top of the feed (Only for first page)
   let processedItems = items;
@@ -683,7 +683,7 @@ export async function searchContent(
   if (embedding) {
     const { data, error } = await supabase.rpc('hybrid_search', {
       query_text: searchQuery,
-      query_embedding: embedding,
+      query_embedding: JSON.stringify(embedding),
       match_threshold: 0.5,
       match_count: limit,
       category_filter: category && category !== 'All' ? normalizeCategoryForDB(category) : null
@@ -693,7 +693,7 @@ export async function searchContent(
       console.error('Hybrid search error:', error);
       // Fallback to keyword search handled below
     } else {
-      return (data || []) as ContentPiece[];
+      return (data || []) as unknown as ContentPiece[];
     }
   }
 
@@ -712,7 +712,7 @@ export async function searchContent(
   const { data, error } = await query;
   if (error) { console.error('searchContent error:', error); return []; }
   
-  const results = (data || []) as ContentPiece[];
+  const results = (data || []) as unknown as ContentPiece[];
   
   // LIVE FALLBACK: If no results found in DB, fetch directly from YouTube
   if (results.length === 0 && searchQuery.length > 2) {
@@ -787,7 +787,8 @@ export async function getCategoryStats(): Promise<Record<string, number>> {
 
   const counts: Record<string, number> = {};
   for (const row of data) {
-    counts[row.category] = (counts[row.category] || 0) + 1;
+    const cat = row.category ?? 'uncategorized';
+    counts[cat] = (counts[cat] || 0) + 1;
   }
   return counts;
 }

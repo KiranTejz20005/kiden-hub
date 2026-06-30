@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { addHours, startOfDay } from 'date-fns';
 
 export type CalendarView = 'day' | 'week' | 'month' | 'agenda' | 'timeline';
 

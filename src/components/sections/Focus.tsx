@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Timer, CheckCircle2, MoreHorizontal, X, Pause, Play, Eye } from "lucide-react";
+import { Timer, CheckCircle2, MoreHorizontal, X, Pause } from "lucide-react";
 
 const Focus = () => {
   const sectionRef = useRef<HTMLDivElement>(null);

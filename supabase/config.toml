@@ -1,19 +1,37 @@
 project_id = "xjvhxoyoawpasepzpjco"
 
 [functions.chat]
-verify_jwt = false
+verify_jwt = true
 
 [functions.youtube-extract]
-verify_jwt = false
+verify_jwt = true
 
 [functions.transcribe-video]
-verify_jwt = false
+verify_jwt = true
 
 [functions.spotify-auth]
 verify_jwt = false
 
 [functions.spotify-api]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-workspace-invite]
-verify_jwt = false
+verify_jwt = true
+
+[functions.ai-chat]
+verify_jwt = true
+
+[functions.nvidia-chat]
+verify_jwt = true
+
+[functions.rss-parser]
+verify_jwt = true
+
+[functions.generate-embedding]
+verify_jwt = true
+
+[functions.google-calendar-sync]
+verify_jwt = true
+
+[functions.youtube-discovery]
+verify_jwt = true

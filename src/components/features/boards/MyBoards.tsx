@@ -1,16 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { 
-  Plus, Search, FolderKanban, PlusCircle, Loader2, 
-  ChevronDown, Settings, CreditCard, LogOut, 
-  ExternalLink, MoreHorizontal, Link as LinkIcon, 
+  Plus, Search, FolderKanban, Loader2, 
+  Settings, 
+  ExternalLink, Link as LinkIcon, 
   FileText, MessageSquare, Upload, TrendingUp, 
   Sparkles, LayoutTemplate, Trash2,
-  Video, Image as ImageIcon, File, Paperclip,
-  ArrowRight, Heart, Database, Download, Edit2, ChevronRight
+  Video, File,
+  ArrowRight, Database, Download, Edit2, ChevronRight
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import * as ContextMenu from '@radix-ui/react-context-menu';
@@ -23,9 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
-import axios from 'axios';
-import PDFThumbnail from './PDFThumbnail';
-import TextPreview from '../files/TextPreview';
+
 import { useAppCache } from "@/components/providers/CacheProvider";
 import {
   ResizableHandle,
@@ -62,10 +59,8 @@ interface BoardItem {
 const MyBoards = ({ 
   selectedBoard, 
   onBoardSelect, 
-  boards, 
   onBoardsUpdate,
-  onBoardCreateOptimistic,
-  resetCounter = 0 
+  onBoardCreateOptimistic
 }: { 
   selectedBoard: Board | null;
   onBoardSelect: (board: Board) => void;
@@ -75,15 +70,14 @@ const MyBoards = ({
   resetCounter?: number;
 }) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { get, set, invalidate } = useAppCache();
   const [items, setItems] = useState<BoardItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'alphabetical'>('newest');
+  const [sortOrder] = useState<'newest' | 'oldest' | 'alphabetical'>('newest');
   const [selectedSection, setSelectedSection] = useState('ALL');
 
   // Quick Add Modal States
@@ -92,11 +86,10 @@ const MyBoards = ({
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [activeNote, setActiveNote] = useState<BoardItem | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
+  const [, setIsUploading] = useState(false);
+  const [isResizing] = useState(false);
   const [showBoardChat, setShowBoardChat] = useState(false);
   const [boardChatQuery, setBoardChatQuery] = useState('');
-  const [isChatting, setIsChatting] = useState(false);
   const [paneItem, setPaneItem] = useState<BoardItem | null>(null);
   const [editingItem, setEditingItem] = useState<BoardItem | null>(null);
   const [renamingTitle, setRenamingTitle] = useState('');
@@ -427,7 +420,7 @@ const MyBoards = ({
     setIsUploading(false);
   }, [user, selectedBoard, handleAddItem]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+  const { getRootProps, getInputProps } = useDropzone({ 
     onDrop,
     noClick: true,
     noKeyboard: true
@@ -447,25 +440,6 @@ const MyBoards = ({
 
 
 
-
-  const handleDeleteBoard = async () => {
-    if (!selectedBoard || !user) return;
-    if (!confirm('Are you sure you want to delete this board and all its items?')) return;
-    
-    try {
-      const { error } = await supabase
-        .from('research_boards' as any)
-        .delete()
-        .eq('id', selectedBoard.id)
-        .eq('user_id', user.id); // Explicit security check
-      
-      if (error) throw error;
-      toast.success('Board deleted');
-      onBoardsUpdate();
-    } catch (error) {
-      toast.error('Failed to delete board');
-    }
-  };
 
   const openCreateModal = () => {
     setNewBoardTitle('');
@@ -494,7 +468,7 @@ const MyBoards = ({
     toast.success('Board created');
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('research_boards' as any)
         .insert([
           {
@@ -561,8 +535,7 @@ const MyBoards = ({
     toast.success('Sharing link copied to clipboard');
   };
 
-  const [selectedSpace, setSelectedSpace] = useState('Workspace');
-  const spaces = ['Workspace', 'Archive', 'Shared', 'Drafts'];
+  const [selectedSpace] = useState('Workspace');
 
 
   return (

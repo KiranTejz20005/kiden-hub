@@ -1,14 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  X, Plus, ExternalLink, Share2, 
-  MessageSquare, Heart, Bookmark, 
-  TrendingUp, FileText, ChevronRight, Play,
-  Download, ListPlus, Flame, Eye, Sparkles, Youtube,
-  Loader2, Save, Trash2, ArrowLeft, Send, Zap
+  Plus, Share2, 
+  Heart, Bookmark, 
+  TrendingUp, FileText, Sparkles, Youtube,
+  Loader2, Save, ArrowLeft, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
 import { nvidiaService } from '@/services/nvidia-service';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -25,7 +23,7 @@ interface VideoPlayerModalProps {
 
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY || import.meta.env.REACT_APP_YOUTUBE_API_KEY;
 
-export const VideoPlayerModal = ({ video, isOpen, onClose, onAdd, playlists = [], onAddToPlaylist }: VideoPlayerModalProps) => {
+export const VideoPlayerModal = ({ video, isOpen, onClose }: VideoPlayerModalProps) => {
   const [analyzing, setAnalyzing] = useState(false);
   const [insights, setInsights] = useState<{ summary: string; points: string[] } | null>(null);
   const [notes, setNotes] = useState(video?.personal_notes || '');

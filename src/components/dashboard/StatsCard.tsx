@@ -1,6 +1,5 @@
 import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
 
 interface StatsCardProps {
   label: string;

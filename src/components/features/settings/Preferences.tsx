@@ -3,9 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { 
-  Palette, Globe, Bell, Moon, Sun, 
+  Palette, Globe, Bell,
   Layout, Monitor, Smartphone, Mail,
-  Check, Loader2, Sparkles, Zap, Eye
+  Check, Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
   const [notifications, setNotifications] = useState({ email: true, desktop: true, mobile: true });
   const [language, setLanguage] = useState('en');
   const [density, setDensity] = useState('comfortable');
-  const [saving, setSaving] = useState(false);
+  const [, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {

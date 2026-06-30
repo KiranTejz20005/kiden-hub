@@ -432,6 +432,39 @@ export type Database = {
           },
         ]
       }
+      note_folders: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          is_collapsed: boolean
+          name: string
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_collapsed?: boolean
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_collapsed?: boolean
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       note_links: {
         Row: {
           created_at: string
@@ -573,15 +606,271 @@ export type Database = {
           },
         ]
       }
+      activity_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_id: string
+          target_name: string
+          target_type: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id: string
+          target_name: string
+          target_type: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string
+          target_name?: string
+          target_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      content_pieces: {
+        Row: {
+          id: string
+          user_id: string
+          content_type: string
+          source_platform: string
+          external_id: string
+          title: string
+          description: string | null
+          thumbnail_url: string | null
+          high_res_thumbnail: string | null
+          video_url: string | null
+          channel_name: string | null
+          channel_id: string | null
+          channel_avatar: string | null
+          duration_seconds: number | null
+          view_count: number | null
+          like_count: number | null
+          comment_count: number | null
+          subscriber_count: number | null
+          published_at: string | null
+          category: string | null
+          tags: string[] | null
+          virality_score: number | null
+          quality_score: number | null
+          engagement_rate: number | null
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          content_type: string
+          source_platform: string
+          external_id: string
+          title: string
+          description?: string | null
+          thumbnail_url?: string | null
+          high_res_thumbnail?: string | null
+          video_url?: string | null
+          channel_name?: string | null
+          channel_id?: string | null
+          channel_avatar?: string | null
+          duration_seconds?: number | null
+          view_count?: number | null
+          like_count?: number | null
+          comment_count?: number | null
+          subscriber_count?: number | null
+          published_at?: string | null
+          category?: string | null
+          tags?: string[] | null
+          virality_score?: number | null
+          quality_score?: number | null
+          engagement_rate?: number | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          content_type?: string
+          source_platform?: string
+          external_id?: string
+          title?: string
+          description?: string | null
+          thumbnail_url?: string | null
+          high_res_thumbnail?: string | null
+          video_url?: string | null
+          channel_name?: string | null
+          channel_id?: string | null
+          channel_avatar?: string | null
+          duration_seconds?: number | null
+          view_count?: number | null
+          like_count?: number | null
+          comment_count?: number | null
+          subscriber_count?: number | null
+          published_at?: string | null
+          category?: string | null
+          tags?: string[] | null
+          virality_score?: number | null
+          quality_score?: number | null
+          engagement_rate?: number | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      creators: {
+        Row: {
+          avatar_url: string | null
+          channel_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          subscriber_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          channel_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          subscriber_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          channel_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          subscriber_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      files: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          size: number | null
+          type: string | null
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          size?: number | null
+          type?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          size?: number | null
+          type?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      playlist_items: {
+        Row: {
+          created_at: string
+          id: string
+          playlist_id: string
+          position: number
+          updated_at: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          playlist_id: string
+          position: number
+          updated_at?: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          playlist_id?: string
+          position?: number
+          updated_at?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_items_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "user_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          display_density: string | null
           display_name: string | null
           focus_settings: Json | null
           id: string
+          language: string | null
+          notification_settings: Json | null
+          onboarding_completed: boolean | null
           status: string | null
+          theme: string | null
           updated_at: string
           user_id: string
         }
@@ -589,10 +878,15 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          display_density?: string | null
           display_name?: string | null
           focus_settings?: Json | null
           id?: string
+          language?: string | null
+          notification_settings?: Json | null
+          onboarding_completed?: boolean | null
           status?: string | null
+          theme?: string | null
           updated_at?: string
           user_id: string
         }
@@ -600,11 +894,114 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          display_density?: string | null
           display_name?: string | null
           focus_settings?: Json | null
           id?: string
+          language?: string | null
+          notification_settings?: Json | null
+          onboarding_completed?: boolean | null
           status?: string | null
+          theme?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      research_boards: {
+        Row: {
+          created_at: string
+          emoji: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      research_board_items: {
+        Row: {
+          board_id: string
+          content: string
+          created_at: string
+          id: string
+          section: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          board_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          section?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          board_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          section?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_board_items_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "research_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_follows: {
+        Row: {
+          channel_avatar: string | null
+          channel_id: string
+          channel_name: string | null
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          channel_avatar?: string | null
+          channel_id: string
+          channel_name?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          channel_avatar?: string | null
+          channel_id?: string
+          channel_name?: string | null
+          created_at?: string
+          id?: string
           user_id?: string
         }
         Relationships: []
@@ -713,6 +1110,132 @@ export type Database = {
           },
         ]
       }
+      user_content_interactions: {
+        Row: {
+          content_id: string
+          created_at: string
+          id: string
+          interaction_type: string
+          user_id: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string
+          id?: string
+          interaction_type: string
+          user_id: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string
+          id?: string
+          interaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_playlists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_study_videos: {
+        Row: {
+          channel_avatar: string | null
+          channel_name: string | null
+          completed: boolean | null
+          created_at: string
+          duration: number | null
+          id: string
+          is_favorite: boolean | null
+          last_watched_at: string | null
+          notes: string | null
+          personal_notes: string | null
+          playlist_id: string | null
+          position: number | null
+          published_at: string | null
+          subject_tag: string | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+          video_id: string
+          video_url: string | null
+          view_count: number | null
+        }
+        Insert: {
+          channel_avatar?: string | null
+          channel_name?: string | null
+          completed?: boolean | null
+          created_at?: string
+          duration?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          last_watched_at?: string | null
+          notes?: string | null
+          personal_notes?: string | null
+          playlist_id?: string | null
+          position?: number | null
+          published_at?: string | null
+          subject_tag?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          video_id: string
+          video_url?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          channel_avatar?: string | null
+          channel_name?: string | null
+          completed?: boolean | null
+          created_at?: string
+          duration?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          last_watched_at?: string | null
+          notes?: string | null
+          personal_notes?: string | null
+          playlist_id?: string | null
+          position?: number | null
+          published_at?: string | null
+          subject_tag?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          video_id?: string
+          video_url?: string | null
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       workspaces: {
         Row: {
           created_at: string
@@ -745,6 +1268,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      batch_update_video_positions: {
+        Args: { video_ids: string[]; new_positions: number[] }
+        Returns: undefined
+      }
+      hybrid_search: {
+        Args: { query_text: string; query_embedding: string; match_threshold?: number; match_count?: number; category_filter?: string }
+        Returns: {
+          id: string
+          title: string
+          content: string
+          similarity: number
+        }[]
+      }
       user_has_workspace_access: {
         Args: { workspace_uuid: string }
         Returns: boolean

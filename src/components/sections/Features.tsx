@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Zap, Keyboard, Link2, Play, LayoutGrid, Palette } from "lucide-react";
+import { Zap, Keyboard, Link2, Palette } from "lucide-react";
 
 const Features = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -21,27 +21,6 @@ const Features = () => {
 
     return () => observer.disconnect();
   }, []);
-
-  const features = [
-    {
-      icon: Zap,
-      title: "More Deep Work",
-      description:
-        "Block distractions with built-in focus tools. Set a timer, silence notifications, and actually get work done.",
-    },
-    {
-      icon: Keyboard,
-      title: "Work Faster",
-      description:
-        "Lightning-fast interface with full keyboard shortcuts. Navigate projects in milliseconds, not clicks.",
-    },
-    {
-      icon: Link2,
-      title: "Integrations",
-      description:
-        "Sync with your existing workflow. Cursor, calendars, design tools, bring them all into Kiden.",
-    },
-  ];
 
   return (
     <section ref={sectionRef} id="features" className="py-24 md:py-32 relative overflow-hidden">

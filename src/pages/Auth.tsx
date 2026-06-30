@@ -9,12 +9,11 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import kidenLogo from '@/assets/kiden-logo-green.jpg';
-import { Mail, Lock, User, ArrowRight, Loader2, CheckCircle2, Sparkles, Smartphone, KeyRound } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2, CheckCircle2, Sparkles } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
-const phoneSchema = z.string().min(10, 'Phone must be at least 10 digits').regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format');
 
 type AuthMode = 'password' | 'email-otp';
 type ViewState = 'sign-in' | 'verify-otp';

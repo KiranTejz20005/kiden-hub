@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -14,7 +14,6 @@ const GoogleCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       const code = searchParams.get('code');
-      const state = searchParams.get('state');
 
       if (!code) {
         setStatus('error');
@@ -24,7 +23,7 @@ const GoogleCallback = () => {
 
       try {
         // Call the Supabase Edge Function to exchange code for tokens
-        const { data, error: functionError } = await supabase.functions.invoke('google-calendar-sync', {
+        const { error: functionError } = await supabase.functions.invoke('google-calendar-sync', {
           body: { 
             code, 
             redirect_uri: `${window.location.origin}/auth/callback/google` 

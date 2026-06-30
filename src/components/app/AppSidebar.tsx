@@ -5,24 +5,20 @@ import {
   LayoutDashboard,
   MessageSquare,
   FileText,
-  Search,
   Calendar,
   Plus,
   ChevronDown,
   LogOut,
   Settings,
   Columns,
-  ChevronLeft,
   Trash2,
-  Hash,
   Flame,
   Target,
   CreditCard
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -32,7 +28,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -65,15 +60,13 @@ const AppSidebar = ({
   activeView, 
   onViewChange, 
   profile, 
-  onProfileUpdate, 
   isCollapsed, 
-  setIsCollapsed,
   boards,
   selectedBoard,
   onBoardSelect,
   onBoardsUpdate
 }: AppSidebarProps) => {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const [showSearch, setShowSearch] = useState(false);
   const [isBoardsExpanded, setIsBoardsExpanded] = useState(true);
 

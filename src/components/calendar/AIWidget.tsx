@@ -1,7 +1,5 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Brain, Zap, ArrowRight, Focus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Sparkles, Brain, Zap, ArrowRight } from 'lucide-react';
 
 export const AIProductivityWidget = () => {
   return (

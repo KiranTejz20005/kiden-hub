@@ -1,6 +1,4 @@
-import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { Clock, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';

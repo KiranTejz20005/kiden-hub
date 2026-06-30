@@ -1,11 +1,10 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { WorkspaceProvider } from '@/hooks/useWorkspace';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, ActiveView } from '@/lib/types';
 import AppSidebar from '@/components/app/AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useVisibility } from '@/components/providers/VisibilityManager';
 import { useAppCache } from '@/components/providers/CacheProvider';
@@ -22,31 +21,6 @@ import HabitTracker from '@/components/features/habits/HabitTracker';
 import { CommandPalette } from '@/components/app/CommandPalette';
 import { SmartSearch } from '@/components/app/SmartSearch';
 
-// Enhanced placeholder component for new features
-const PlaceholderView = ({ title, icon: Icon }: { title: string, icon: any }) => (
-  <div className="flex-1 flex flex-col items-center justify-center p-12 bg-[var(--bg-1)]">
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-8 max-w-sm text-center"
-    >
-      <div className="w-16 h-16 rounded-2xl bg-[var(--bg-3)] border border-white/[0.06] flex items-center justify-center mx-auto">
-        <Icon className="w-6 h-6 text-[var(--text-tertiary)]" />
-      </div>
-      <div className="space-y-2">
-        <h1 className="text-2xl font-medium text-[var(--text-primary)] tracking-tight">{title}</h1>
-        <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-          We're currently perfecting the <span className="text-[var(--text-primary)] font-medium">{title}</span> module. 
-        </p>
-      </div>
-      <div className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-4)] border border-white/[0.04] text-[9px] font-bold uppercase tracking-widest text-[var(--text-tertiary)] w-fit mx-auto">
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" />
-        Coming Soon
-      </div>
-    </motion.div>
-  </div>
-);
-
 const Dashboard = () => {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const { user, signOut } = useAuth();
@@ -56,13 +30,10 @@ const Dashboard = () => {
   const [selectedBoard, setSelectedBoard] = useState<any | null>(null);
   const { isStale } = useVisibility();
   const { get, set, invalidate } = useAppCache();
-  const [activeNote, setActiveNote] = useState<any | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,11 +80,6 @@ const Dashboard = () => {
   useEffect(() => {
     fetchBoards();
   }, [fetchBoards]);
-  
-  // Track fetch to prevent duplicate requests when tab regains focus
-  const fetchInProgressRef = useRef(false);
-  const lastFetchTimeRef = useRef(0);
-  const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutes - don't refetch if done recently
 
   // 1. Sync URL -> State (Robust derivation)
   useEffect(() => {

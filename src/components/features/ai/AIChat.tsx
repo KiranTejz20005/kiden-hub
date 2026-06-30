@@ -8,20 +8,15 @@ import {
   Send, 
   Paperclip, 
   Trash2, 
-  MessageSquare,
   User as UserIcon,
   Sparkles,
   X,
   FileText,
   Copy,
   Check,
-  ChevronDown,
-  ChevronRight,
   Bot,
-  Zap,
   Loader2,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
@@ -75,7 +70,7 @@ const CopyButton = ({ text }: { text: string }) => {
 };
 
 // --- Message Bubble ---
-const MessageBubble = React.memo(({ msg, isLast }: { msg: any; isLast: boolean }) => {
+const MessageBubble = React.memo(({ msg }: { msg: any; isLast?: boolean }) => {
   const isUser = msg.role === 'user';
   return (
     <motion.div
@@ -184,7 +179,7 @@ const AIChat = () => {
   const [availableFiles, setAvailableFiles] = useState<any[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [showFileSelector, setShowFileSelector] = useState(false);
-  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [, setShowScrollBtn] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

@@ -60,14 +60,6 @@ class ErrorBoundary extends Component<Props, State> {
     window.location.href = '/';
   };
 
-  private handleReset = () => {
-    this.setState({
-      hasError: false,
-      error: null,
-      errorInfo: null,
-    });
-  };
-
   public render() {
     if (this.state.hasError) {
       // If custom fallback provided, use it
