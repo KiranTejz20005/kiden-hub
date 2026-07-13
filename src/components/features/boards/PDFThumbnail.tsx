@@ -25,12 +25,12 @@ const PDFThumbnail: React.FC<PDFThumbnailProps> = ({ url, className }) => {
         
         // Fetch with a timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => { controller.abort(); }, 10000);
         
         const response = await fetch(url, { signal: controller.signal });
         clearTimeout(timeoutId);
         
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {throw new Error(`HTTP error! status: ${response.status}`);}
         const data = await response.arrayBuffer();
         
         const loadingTask = pdfjsLib.getDocument({ 
@@ -47,7 +47,7 @@ const PDFThumbnail: React.FC<PDFThumbnailProps> = ({ url, className }) => {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d', { alpha: false });
 
-        if (!context) throw new Error('Could not get canvas context');
+        if (!context) {throw new Error('Could not get canvas context');}
 
         canvas.height = viewport.height;
         canvas.width = viewport.width;

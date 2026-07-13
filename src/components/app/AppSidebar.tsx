@@ -72,15 +72,15 @@ const AppSidebar = ({
 
   const handleDeleteBoard = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm('Delete this board?')) return;
+    if (!confirm('Delete this board?')) {return;}
     try {
       const { error } = await supabase.from('research_boards' as any).delete().eq('id', id);
-      if (error) throw error;
+      if (error) {throw error;}
       toast.success('Board removed');
       if (selectedBoard?.id === id) {
         onBoardSelect(null as any);
       }
-      if (onBoardsUpdate) onBoardsUpdate();
+      if (onBoardsUpdate) {onBoardsUpdate();}
     } catch (err) {
       toast.error('Failed to delete board');
     }
@@ -94,7 +94,7 @@ const AppSidebar = ({
       }
     };
     document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
+    return () => { document.removeEventListener("keydown", down); };
   }, []);
 
   return (
@@ -145,7 +145,7 @@ const AppSidebar = ({
                 </div>
                 <DropdownMenuSeparator className="bg-white/[0.03] my-1.5" />
                 <DropdownMenuItem 
-                  onClick={() => onViewChange('settings')}
+                  onClick={() => { onViewChange('settings'); }}
                   className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-white/[0.05] rounded-xl transition-all text-[13px] font-medium group"
                 >
                   <Settings className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-white transition-colors" />
@@ -186,7 +186,7 @@ const AppSidebar = ({
                   <div key={item.id} className="space-y-0.5">
                     <motion.div
                       whileHover={{ backgroundColor: "rgba(255,255,255,0.03)" }}
-                      onClick={() => onViewChange(item.id as ActiveView)}
+                      onClick={() => { onViewChange(item.id as ActiveView); }}
                       className={cn(
                         "w-full h-9 flex items-center gap-3 px-3 relative group transition-all rounded-xl cursor-pointer",
                         isActive ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
@@ -249,7 +249,7 @@ const AppSidebar = ({
                               <motion.button
                                 key={board.id}
                                 whileHover={{ x: 4, backgroundColor: "rgba(255,255,255,0.02)" }}
-                                onClick={() => onBoardSelect(board)}
+                                onClick={() => { onBoardSelect(board); }}
                                 className={cn(
                                   "w-full h-8 flex items-center gap-3 px-8 rounded-lg transition-all group",
                                   selectedBoard?.id === board.id 
@@ -316,7 +316,7 @@ const AppSidebar = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <button 
-                  onClick={() => onViewChange('settings')}
+                  onClick={() => { onViewChange('settings'); }}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 text-[var(--text-tertiary)] hover:text-white transition-all group"
                 >
                   <Settings className="w-4 h-4 group-hover:rotate-45 transition-transform" />

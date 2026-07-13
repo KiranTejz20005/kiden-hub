@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error('Error getting session:', error);
-        if (mounted) setLoading(false);
+        if (mounted) {setLoading(false);}
       }
     }
 

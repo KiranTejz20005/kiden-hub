@@ -39,14 +39,14 @@ const Dashboard = () => {
   const location = useLocation();
 
   const fetchBoards = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
     
     // Layer 4: Check cache
     const cacheKey = `boards:${user.id}`;
     const cached = get<any[]>(cacheKey);
     if (cached && boards.length === 0) {
       setBoards(cached);
-      if (cached.length > 0 && !selectedBoard) setSelectedBoard(cached[0]);
+      if (cached.length > 0 && !selectedBoard) {setSelectedBoard(cached[0]);}
       return;
     }
 
@@ -87,7 +87,7 @@ const Dashboard = () => {
     const validViews: ActiveView[] = ['dashboard', 'files', 'chat', 'notes', 'boards', 'calendar', 'focus', 'habits', 'team', 'settings'];
     
     if (path && validViews.includes(path as ActiveView)) {
-      if (path !== activeView) setActiveView(path as ActiveView);
+      if (path !== activeView) {setActiveView(path as ActiveView);}
     } else if (!path || !validViews.includes(path as ActiveView)) {
       // Fallback for invalid or empty sub-routes
       if (activeView !== 'dashboard') {
@@ -116,7 +116,7 @@ const Dashboard = () => {
   };
 
    const initializeData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
     
     // Layer 4: Check cache first
     const profileCacheKey = `profile:${user.id}`;
@@ -128,7 +128,7 @@ const Dashboard = () => {
     if (cachedProfile && cachedBoards) {
       setProfile(cachedProfile);
       setBoards(cachedBoards);
-      if (cachedBoards.length > 0 && !selectedBoard) setSelectedBoard(cachedBoards[0]);
+      if (cachedBoards.length > 0 && !selectedBoard) {setSelectedBoard(cachedBoards[0]);}
       setIsInitialLoading(false);
       return;
     }
@@ -166,7 +166,7 @@ const Dashboard = () => {
   }, [user, navigate, get, set]);
 
   useEffect(() => {
-    if (user) initializeData();
+    if (user) {initializeData();}
   }, [user]);
 
   // Global keyboard shortcuts for palette and search
@@ -186,7 +186,7 @@ const Dashboard = () => {
       }
     };
     document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    return () => { document.removeEventListener('keydown', handler); };
   }, []);
   
   // Layer 1: Centralized Visibility-based revalidation
@@ -268,7 +268,7 @@ const Dashboard = () => {
 
       <SettingsModal 
         isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
+        onClose={() => { setIsSettingsOpen(false); }} 
         profile={profile}
         onProfileUpdate={initializeData}
       />
@@ -282,7 +282,7 @@ const Dashboard = () => {
 
       <SmartSearch
         isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
+        onClose={() => { setIsSearchOpen(false); }}
         onNavigate={handleViewChange}
       />
     </WorkspaceProvider>

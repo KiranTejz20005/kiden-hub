@@ -153,7 +153,7 @@ const Auth = () => {
           return;
         }
         const { error } = await sendEmailOtp(email);
-        if (error) throw error;
+        if (error) {throw error;}
         toast.success(`Code sent to ${email}`);
 
         setOtpToken("");
@@ -306,7 +306,7 @@ const Auth = () => {
 
           {/* Back Button for Verify State */}
           {viewState === 'verify-otp' && (
-            <Button variant="ghost" className="mb-4 pl-0 hover:bg-transparent hover:text-primary" onClick={() => setViewState('sign-in')}>
+            <Button variant="ghost" className="mb-4 pl-0 hover:bg-transparent hover:text-primary" onClick={() => { setViewState('sign-in'); }}>
               ← Back to {isLogin ? 'Sign In' : 'Sign Up'}
             </Button>
           )}
@@ -392,7 +392,7 @@ const Auth = () => {
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
+                        onChange={(e) => { setDisplayName(e.target.value); }}
                         className="pl-10 h-11 bg-secondary/20 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all font-medium"
                         placeholder="John Doe"
                       />
@@ -413,7 +413,7 @@ const Auth = () => {
                       <Input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => { setEmail(e.target.value); }}
                         className="pl-10 h-11 bg-secondary/20 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all font-medium"
                         placeholder="you@example.com"
                         required
@@ -444,7 +444,7 @@ const Auth = () => {
                       <Input
                         type="password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => { setPassword(e.target.value); }}
                         className="pl-10 h-11 bg-secondary/20 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all font-medium"
                         placeholder="••••••••"
                         required
@@ -506,7 +506,7 @@ const Auth = () => {
               <p className="text-sm text-muted-foreground">
                 {isLogin ? "Don't have an account? " : "Already have an account? "}
                 <button
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={() => { setIsLogin(!isLogin); }}
                   className="text-primary hover:underline font-semibold outline-none focus:underline"
                 >
                   {isLogin ? 'Sign up' : 'Sign in'}

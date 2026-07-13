@@ -39,7 +39,7 @@ export const googleCalendarService = {
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (error) return null;
+    if (error) {return null;}
     return data;
   },
 
@@ -52,7 +52,7 @@ export const googleCalendarService = {
       .delete()
       .eq('user_id', userId);
 
-    if (error) throw error;
+    if (error) {throw error;}
     return true;
   },
 
@@ -67,7 +67,7 @@ export const googleCalendarService = {
       .gte('start_time', start.toISOString())
       .lte('end_time', end.toISOString());
 
-    if (error) throw error;
+    if (error) {throw error;}
     return data || [];
   },
 

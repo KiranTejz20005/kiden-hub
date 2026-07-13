@@ -59,7 +59,7 @@ describe('retryWithBackoff', () => {
     let attempts = 0;
     const fn = vi.fn().mockImplementation(() => {
       attempts++;
-      if (attempts < 3) return Promise.reject(new Error('fail'));
+      if (attempts < 3) {return Promise.reject(new Error('fail'));}
       return Promise.resolve('success');
     });
 

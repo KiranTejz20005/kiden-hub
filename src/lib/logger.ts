@@ -34,7 +34,7 @@ class Logger {
   }
 
   private sanitize(data?: Record<string, unknown>): Record<string, unknown> | undefined {
-    if (!data) return undefined;
+    if (!data) {return undefined;}
 
     const sensitiveKeys = ['password', 'token', 'secret', 'key', 'authorization', 'cookie'];
     const sanitized: Record<string, unknown> = {};
@@ -53,7 +53,7 @@ class Logger {
   }
 
   debug(message: string, data?: Record<string, unknown>): void {
-    if (isProduction) return;
+    if (isProduction) {return;}
     const entry = this.createEntry('debug', message, data);
     console.debug(`[${entry.timestamp}] [${entry.level.toUpperCase()}] ${message}`, data ?? '');
   }

@@ -44,7 +44,7 @@ const BlockEditor = ({ content, onChange }: BlockEditorProps) => {
       FloatingMenuExtension,
       Placeholder.configure({
         placeholder: ({ node }) => {
-          if (node.type.name === 'heading') return `Heading ${node.attrs.level}`;
+          if (node.type.name === 'heading') {return `Heading ${node.attrs.level}`;}
           return "Type '/' for commands...";
         },
       }),
@@ -83,7 +83,7 @@ const BlockEditor = ({ content, onChange }: BlockEditorProps) => {
     }
   }, [content, editor]);
 
-  if (!editor) return null;
+  if (!editor) {return null;}
 
   return (
     <div className="relative w-full group/editor">
@@ -116,7 +116,7 @@ const BlockEditor = ({ content, onChange }: BlockEditorProps) => {
           <button
             onClick={() => {
               const url = window.prompt('URL');
-              if (url) editor.chain().focus().setLink({ href: url }).run();
+              if (url) {editor.chain().focus().setLink({ href: url }).run();}
             }}
             className={cn("p-1.5 rounded-lg hover:bg-white/10 transition-colors", editor.isActive('link') ? "text-primary bg-primary/10" : "text-muted-foreground")}
           >

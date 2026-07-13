@@ -14,7 +14,7 @@ export const searchAll = async (
   userId: string,
   query: string
 ): Promise<SearchResult[]> => {
-  if (!query.trim() || query.length < 2) return [];
+  if (!query.trim() || query.length < 2) {return [];}
   const q = query.toLowerCase();
   const results: SearchResult[] = [];
 
@@ -106,13 +106,13 @@ export const searchAll = async (
 };
 
 const getFileIcon = (mimeType: string): string => {
-  if (!mimeType) return '📄';
-  if (mimeType.startsWith('image/')) return '🖼️';
-  if (mimeType.startsWith('video/')) return '🎬';
-  if (mimeType.startsWith('audio/')) return '🎵';
-  if (mimeType.includes('pdf')) return '📕';
-  if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return '📊';
-  if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return '📽️';
-  if (mimeType.includes('word') || mimeType.includes('document')) return '📃';
+  if (!mimeType) {return '📄';}
+  if (mimeType.startsWith('image/')) {return '🖼️';}
+  if (mimeType.startsWith('video/')) {return '🎬';}
+  if (mimeType.startsWith('audio/')) {return '🎵';}
+  if (mimeType.includes('pdf')) {return '📕';}
+  if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) {return '📊';}
+  if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) {return '📽️';}
+  if (mimeType.includes('word') || mimeType.includes('document')) {return '📃';}
   return '📄';
 };

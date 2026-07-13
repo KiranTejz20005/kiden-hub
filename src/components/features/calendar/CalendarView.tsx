@@ -129,7 +129,7 @@ const CalendarView = () => {
   };
 
   const fetchEvents = async () => {
-    if (!user) return;
+    if (!user) {return;}
     setIsLoading(true);
     // Fetch a broader window for day/week/month/agenda views
     const start = startOfWeek(subWeeks(currentDate, 2));
@@ -152,7 +152,7 @@ const CalendarView = () => {
     setIsSyncing(true);
     try {
       const { error } = await supabase.functions.invoke('google-calendar-sync', { body: { action: 'sync' } });
-      if (error) throw error;
+      if (error) {throw error;}
       await fetchEvents();
       toast.success('Calendar synced successfully');
     } catch (error: any) {
@@ -163,7 +163,7 @@ const CalendarView = () => {
   };
 
   const handleDisconnect = async () => {
-    if (!user) return;
+    if (!user) {return;}
     try {
       await googleCalendarService.disconnect(user.id);
       setIsConnected(false);
@@ -182,7 +182,7 @@ const CalendarView = () => {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       toast.success("Event deleted");
       setEvents(events.filter(e => e.id !== id));
@@ -194,10 +194,10 @@ const CalendarView = () => {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, delta } = event;
-    if (!active) return;
+    if (!active) {return;}
 
     const draggedEvent = events.find(e => e.id === active.id);
-    if (!draggedEvent) return;
+    if (!draggedEvent) {return;}
 
     // Calculate new time
     // Each 80px is 1 hour
@@ -216,7 +216,7 @@ const CalendarView = () => {
         .update({ start_time: newStart.toISOString(), end_time: newEnd.toISOString() })
         .eq('id', draggedEvent.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
       toast.success("Event rescheduled");
     } catch (error) {
       setEvents(originalEvents);
@@ -225,14 +225,14 @@ const CalendarView = () => {
   };
 
   const handleMouseDown = (day: Date, hour: number, e: React.MouseEvent) => {
-    if (e.button !== 0) return; // Only left click
+    if (e.button !== 0) {return;} // Only left click
     setIsDraggingNew(true);
     setDragStart({ day, hour, minutes: 0 });
     setDragEnd({ hour: hour + 1, minutes: 0 });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDraggingNew || !dragStart) return;
+    if (!isDraggingNew || !dragStart) {return;}
     
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
@@ -244,7 +244,7 @@ const CalendarView = () => {
   };
 
   const handleMouseUp = () => {
-    if (!isDraggingNew || !dragStart || !dragEnd) return;
+    if (!isDraggingNew || !dragStart || !dragEnd) {return;}
     
     // Correct date-fns parameter ordering: setMinutes(date, minutes), setHours(date, hours)
     const start = setHours(setMinutes(startOfDay(dragStart.day), dragStart.minutes), dragStart.hour);
@@ -267,14 +267,14 @@ const CalendarView = () => {
   };
 
   const handleCreateEvent = async () => {
-    if (!newEvent.title) return toast.error("Enter a title");
+    if (!newEvent.title) {return toast.error("Enter a title");}
     try {
       const { error } = await supabase.from('calendar_events' as any).insert({
         user_id: user?.id, title: newEvent.title,
         start_time: newEvent.start.toISOString(), end_time: newEvent.end.toISOString(),
         source: 'manual'
       });
-      if (error) throw error;
+      if (error) {throw error;}
       toast.success("Event created successfully");
       setCreateModalOpen(false);
       fetchEvents();
@@ -295,14 +295,14 @@ const CalendarView = () => {
     const end = endOfWeek(endOfMonth(currentDate));
     const days = eachDayOfInterval({ start, end });
     const rows = [];
-    for (let i = 0; i < days.length; i += 7) rows.push(days.slice(i, i + 7));
+    for (let i = 0; i < days.length; i += 7) {rows.push(days.slice(i, i + 7));}
     return rows;
   }, [currentDate]);
 
   const navigateDate = (direction: 'prev' | 'next') => {
-    if (view === 'month') setCurrentDate(direction === 'next' ? addMonths(currentDate, 1) : subMonths(currentDate, 1));
-    else if (view === 'week') setCurrentDate(direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1));
-    else setCurrentDate(direction === 'next' ? addDays(currentDate, 1) : subDays(currentDate, 1));
+    if (view === 'month') {setCurrentDate(direction === 'next' ? addMonths(currentDate, 1) : subMonths(currentDate, 1));}
+    else if (view === 'week') {setCurrentDate(direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1));}
+    else {setCurrentDate(direction === 'next' ? addDays(currentDate, 1) : subDays(currentDate, 1));}
   };
 
   return (
@@ -316,22 +316,22 @@ const CalendarView = () => {
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold tracking-tight">{format(currentDate, 'MMMM yyyy')}</h2>
             <div className="flex items-center gap-0.5 bg-white/5 rounded-md p-0.5 border border-white/10 ml-2">
-              <button onClick={() => navigateDate('prev')} className="p-1 hover:bg-white/10 rounded"><ChevronLeft className="w-3.5 h-3.5" /></button>
-              <button onClick={() => setCurrentDate(new Date())} className="px-2 text-[11px] font-bold text-white/80">Today</button>
-              <button onClick={() => navigateDate('next')} className="p-1 hover:bg-white/10 rounded"><ChevronRight className="w-3.5 h-3.5" /></button>
+              <button onClick={() => { navigateDate('prev'); }} className="p-1 hover:bg-white/10 rounded"><ChevronLeft className="w-3.5 h-3.5" /></button>
+              <button onClick={() => { setCurrentDate(new Date()); }} className="px-2 text-[11px] font-bold text-white/80">Today</button>
+              <button onClick={() => { navigateDate('next'); }} className="p-1 hover:bg-white/10 rounded"><ChevronRight className="w-3.5 h-3.5" /></button>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg border border-white/10">
             {['month', 'week', 'day', 'agenda'].map((t) => (
-              <button key={t} onClick={() => setView(t as any)} className={cn("px-3 py-1 rounded-md text-[11px] font-bold transition-all uppercase tracking-wider", view === t ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white")}>
+              <button key={t} onClick={() => { setView(t as any); }} className={cn("px-3 py-1 rounded-md text-[11px] font-bold transition-all uppercase tracking-wider", view === t ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white")}>
                 {t}
               </button>
             ))}
           </div>
           <button onClick={handleSync} disabled={!isConnected} className={cn("w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 text-white/40", !isConnected && "opacity-20 cursor-not-allowed")} title="Sync Google Calendar"><RefreshCw className={cn("w-3.5 h-3.5", isSyncing && "animate-spin")} /></button>
-          <Button onClick={() => setCreateModalOpen(true)} className="h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 shadow-lg shadow-emerald-600/10">New</Button>
+          <Button onClick={() => { setCreateModalOpen(true); }} className="h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 shadow-lg shadow-emerald-600/10">New</Button>
         </div>
       </header>
 
@@ -413,7 +413,7 @@ const CalendarView = () => {
           </AnimatePresence>
 
           {/* Main workspace with framer-motion view transitions */}
-          <main className="flex-1 flex flex-col relative overflow-hidden bg-[#080808]" onClick={() => setSelectedEventId(null)}>
+          <main className="flex-1 flex flex-col relative overflow-hidden bg-[#080808]" onClick={() => { setSelectedEventId(null); }}>
             {isLoading ? (
               <div className="flex-1 flex flex-col items-center justify-center bg-transparent">
                 <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin mb-4" />
@@ -456,7 +456,7 @@ const CalendarView = () => {
                           {hours.map(h => (
                             <div 
                               key={h} 
-                              onMouseDown={(e) => handleMouseDown(currentDate, h, e)}
+                              onMouseDown={(e) => { handleMouseDown(currentDate, h, e); }}
                               className="absolute left-0 right-0 h-20 hover:bg-white/[0.04] cursor-pointer transition-colors z-0 border-b border-white/[0.02]" 
                               style={{ top: `${h * 80}px` }} 
                             />
@@ -498,7 +498,7 @@ const CalendarView = () => {
                                 <DraggableEvent 
                                   event={event} 
                                   view={view} 
-                                  onClick={() => setSelectedEventId(event.id)} 
+                                  onClick={() => { setSelectedEventId(event.id); }} 
                                 />
                               </div>
                             ))}
@@ -553,7 +553,7 @@ const CalendarView = () => {
                               {hours.map(h => (
                                 <div 
                                   key={h} 
-                                  onMouseDown={(e) => handleMouseDown(day, h, e)}
+                                  onMouseDown={(e) => { handleMouseDown(day, h, e); }}
                                   className="absolute left-0 right-0 h-20 hover:bg-white/[0.04] cursor-pointer transition-colors z-0 border-b border-white/[0.02]" 
                                   style={{ top: `${h * 80}px` }} 
                                 />
@@ -603,7 +603,7 @@ const CalendarView = () => {
                                        <DraggableEvent 
                                          event={event} 
                                          view={view} 
-                                         onClick={() => setSelectedEventId(event.id)} 
+                                         onClick={() => { setSelectedEventId(event.id); }} 
                                        />
                                      </div>
                                    );
@@ -640,7 +640,7 @@ const CalendarView = () => {
                               <div className="space-y-1">
                                 {events.filter(e => isSameDay(new Date(e.start_time), day)).slice(0, 4).map(event => (
                                   <div key={event.id} className="h-6">
-                                    <DraggableEvent event={event} view="month" onClick={() => setSelectedEventId(event.id)} />
+                                    <DraggableEvent event={event} view="month" onClick={() => { setSelectedEventId(event.id); }} />
                                   </div>
                                 ))}
                               </div>
@@ -693,7 +693,7 @@ const CalendarView = () => {
                                   </h4>
                                   <div className="space-y-2">
                                     {dayEvents.map(event => (
-                                      <DraggableEvent key={event.id} event={event} view="agenda" onClick={() => setSelectedEventId(event.id)} />
+                                      <DraggableEvent key={event.id} event={event} view="agenda" onClick={() => { setSelectedEventId(event.id); }} />
                                     ))}
                                   </div>
                                 </div>
@@ -720,7 +720,7 @@ const CalendarView = () => {
               >
                 <div className="flex justify-between items-start mb-10">
                   <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20"><CalendarIcon className="w-6 h-6 text-emerald-500" /></div>
-                  <button onClick={() => setSelectedEventId(null)} className="p-2 hover:bg-white/10 rounded-full text-white/40"><X className="w-5 h-5" /></button>
+                  <button onClick={() => { setSelectedEventId(null); }} className="p-2 hover:bg-white/10 rounded-full text-white/40"><X className="w-5 h-5" /></button>
                 </div>
                 <div className="space-y-8">
                   <div>
@@ -775,12 +775,12 @@ const CalendarView = () => {
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-blue-500" />
                   <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-bold">New Event</h2>
-                    <button onClick={() => setCreateModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white/40"><X className="w-4 h-4" /></button>
+                    <button onClick={() => { setCreateModalOpen(false); }} className="p-2 hover:bg-white/5 rounded-full text-white/40"><X className="w-4 h-4" /></button>
                   </div>
                   <div className="space-y-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">Event Title</label>
-                      <input autoFocus value={newEvent.title} onChange={e => setNewEventLocal({...newEvent, title: e.target.value})} placeholder="What's happening?" className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm outline-none transition-all placeholder:text-white/20 font-medium" />
+                      <input autoFocus value={newEvent.title} onChange={e => { setNewEventLocal({...newEvent, title: e.target.value}); }} placeholder="What's happening?" className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm outline-none transition-all placeholder:text-white/20 font-medium" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2"><label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">Start Time</label><div className="h-12 bg-white/5 border border-white/10 rounded-xl px-4 flex items-center text-sm font-medium text-white/60">{format(newEvent.start, 'h:mm a')}</div></div>

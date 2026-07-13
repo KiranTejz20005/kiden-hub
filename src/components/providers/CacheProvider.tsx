@@ -44,7 +44,7 @@ export const CacheProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const get = useCallback(<T,>(key: string): T | null => {
     const entry = cache[key];
-    if (!entry) return null;
+    if (!entry) {return null;}
     
     const now = Date.now();
     if (now - entry.timestamp > entry.ttl) {
@@ -66,7 +66,7 @@ export const CacheProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       delete newCache[key];
       // Also handle prefix invalidation if needed
       Object.keys(newCache).forEach(k => {
-        if (k.startsWith(`${key}:`)) delete newCache[k];
+        if (k.startsWith(`${key}:`)) {delete newCache[k];}
       });
       return newCache;
     });
@@ -81,6 +81,6 @@ export const CacheProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export const useAppCache = () => {
   const context = useContext(CacheContext);
-  if (!context) throw new Error('useAppCache must be used within a CacheProvider');
+  if (!context) {throw new Error('useAppCache must be used within a CacheProvider');}
   return context;
 };

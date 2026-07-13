@@ -46,7 +46,7 @@ export default function FocusTimer() {
   const sessionStartRef = useRef<number>(0);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
     const [sessions, stats] = await Promise.all([
       fetchRecentFocusSessions(user.id, 8),
       fetchWeeklyFocusStats(user.id),
@@ -58,8 +58,8 @@ export default function FocusTimer() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const getDurationForMode = useCallback((m: TimerMode) => {
-    if (m === 'work') return settings.workDuration * 60;
-    if (m === 'short_break') return settings.shortBreakDuration * 60;
+    if (m === 'work') {return settings.workDuration * 60;}
+    if (m === 'short_break') {return settings.shortBreakDuration * 60;}
     return settings.longBreakDuration * 60;
   }, [settings]);
 
@@ -69,7 +69,7 @@ export default function FocusTimer() {
     setTimeLeft(dur);
     setTotalDuration(dur);
     setIsRunning(false);
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (intervalRef.current) {clearInterval(intervalRef.current);}
   }, [getDurationForMode]);
 
   const handleSessionComplete = useCallback(async () => {
@@ -103,9 +103,9 @@ export default function FocusTimer() {
         });
       }, 1000);
     } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {clearInterval(intervalRef.current);}
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => { if (intervalRef.current) {clearInterval(intervalRef.current);} };
   }, [isRunning, handleSessionComplete]);
 
   const handleStart = async () => {
@@ -123,7 +123,7 @@ export default function FocusTimer() {
     setIsRunning(true);
   };
 
-  const handlePause = () => setIsRunning(false);
+  const handlePause = () => { setIsRunning(false); };
 
   const handleReset = () => {
     setIsRunning(false);
@@ -162,7 +162,7 @@ export default function FocusTimer() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowHistory(!showHistory)}
+              onClick={() => { setShowHistory(!showHistory); }}
               className={cn(
                 "flex items-center gap-2 px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all",
                 showHistory ? "bg-white/10 text-white" : "text-white/40 hover:text-white hover:bg-white/5"
@@ -172,7 +172,7 @@ export default function FocusTimer() {
               History
             </button>
             <button
-              onClick={() => setShowSettings(!showSettings)}
+              onClick={() => { setShowSettings(!showSettings); }}
               className={cn(
                 "w-8 h-8 flex items-center justify-center rounded-xl transition-all",
                 showSettings ? "bg-white/10 text-white" : "text-white/40 hover:text-white hover:bg-white/5"
@@ -191,7 +191,7 @@ export default function FocusTimer() {
               {(Object.entries(MODE_CONFIG) as [TimerMode, typeof MODE_CONFIG[TimerMode]][]).map(([key, conf]) => (
                 <button
                   key={key}
-                  onClick={() => switchMode(key)}
+                  onClick={() => { switchMode(key); }}
                   className={cn(
                     "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all",
                     mode === key
@@ -359,12 +359,12 @@ export default function FocusTimer() {
                       <span className="text-[11px] text-white/50">{label}</span>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setSettings(s => ({ ...s, [key]: Math.max(min, s[key] - 1) }))}
+                          onClick={() => { setSettings(s => ({ ...s, [key]: Math.max(min, s[key] - 1) })); }}
                           className="w-6 h-6 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 flex items-center justify-center text-sm font-bold transition-all"
                         >−</button>
                         <span className="text-[13px] font-bold text-white w-6 text-center">{settings[key]}</span>
                         <button
-                          onClick={() => setSettings(s => ({ ...s, [key]: Math.min(max, s[key] + 1) }))}
+                          onClick={() => { setSettings(s => ({ ...s, [key]: Math.min(max, s[key] + 1) })); }}
                           className="w-6 h-6 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 flex items-center justify-center text-sm font-bold transition-all"
                         >+</button>
                       </div>

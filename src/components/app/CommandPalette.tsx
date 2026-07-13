@@ -28,15 +28,15 @@ interface CommandPaletteProps {
 }
 
 const NAV_COMMANDS = (onViewChange: (v: ActiveView) => void): CommandItem[] => [
-  { id: 'nav-dashboard', label: 'Dashboard', description: 'Go to overview', icon: <LayoutDashboard className="w-4 h-4" />, category: 'Navigate', action: () => onViewChange('dashboard') },
-  { id: 'nav-notes', label: 'Notes', description: 'Open notes editor', icon: <FileText className="w-4 h-4" />, category: 'Navigate', action: () => onViewChange('notes') },
-  { id: 'nav-chat', label: 'AI Assistant', description: 'Start AI conversation', icon: <MessageSquare className="w-4 h-4" />, category: 'Navigate', action: () => onViewChange('chat') },
-  { id: 'nav-files', label: 'Asset Library', description: 'Manage files', icon: <Columns className="w-4 h-4" />, category: 'Navigate', action: () => onViewChange('files') },
-  { id: 'nav-calendar', label: 'Calendar', description: 'View schedule', icon: <Calendar className="w-4 h-4" />, category: 'Navigate', action: () => onViewChange('calendar') },
-  { id: 'nav-focus', label: 'Focus Timer', description: 'Pomodoro sessions', icon: <Flame className="w-4 h-4" />, category: 'Navigate', action: () => onViewChange('focus') },
-  { id: 'nav-habits', label: 'Habit Tracker', description: 'Track daily habits', icon: <Target className="w-4 h-4" />, category: 'Navigate', action: () => onViewChange('habits') },
-  { id: 'nav-boards', label: 'My Boards', description: 'Research boards', icon: <Hash className="w-4 h-4" />, category: 'Navigate', action: () => onViewChange('boards') },
-  { id: 'nav-settings', label: 'Settings', description: 'App preferences', icon: <Settings className="w-4 h-4" />, category: 'Navigate', action: () => onViewChange('settings') },
+  { id: 'nav-dashboard', label: 'Dashboard', description: 'Go to overview', icon: <LayoutDashboard className="w-4 h-4" />, category: 'Navigate', action: () => { onViewChange('dashboard'); } },
+  { id: 'nav-notes', label: 'Notes', description: 'Open notes editor', icon: <FileText className="w-4 h-4" />, category: 'Navigate', action: () => { onViewChange('notes'); } },
+  { id: 'nav-chat', label: 'AI Assistant', description: 'Start AI conversation', icon: <MessageSquare className="w-4 h-4" />, category: 'Navigate', action: () => { onViewChange('chat'); } },
+  { id: 'nav-files', label: 'Asset Library', description: 'Manage files', icon: <Columns className="w-4 h-4" />, category: 'Navigate', action: () => { onViewChange('files'); } },
+  { id: 'nav-calendar', label: 'Calendar', description: 'View schedule', icon: <Calendar className="w-4 h-4" />, category: 'Navigate', action: () => { onViewChange('calendar'); } },
+  { id: 'nav-focus', label: 'Focus Timer', description: 'Pomodoro sessions', icon: <Flame className="w-4 h-4" />, category: 'Navigate', action: () => { onViewChange('focus'); } },
+  { id: 'nav-habits', label: 'Habit Tracker', description: 'Track daily habits', icon: <Target className="w-4 h-4" />, category: 'Navigate', action: () => { onViewChange('habits'); } },
+  { id: 'nav-boards', label: 'My Boards', description: 'Research boards', icon: <Hash className="w-4 h-4" />, category: 'Navigate', action: () => { onViewChange('boards'); } },
+  { id: 'nav-settings', label: 'Settings', description: 'App preferences', icon: <Settings className="w-4 h-4" />, category: 'Navigate', action: () => { onViewChange('settings'); } },
 ];
 
 const RECENT_KEY = 'kiden_recent_commands';
@@ -91,7 +91,7 @@ export function CommandPalette({ open, onOpenChange, onViewChange }: CommandPale
       return;
     }
     searchTimeout.current = setTimeout(() => doSearch(query), 250);
-    return () => clearTimeout(searchTimeout.current);
+    return () => { clearTimeout(searchTimeout.current); };
   }, [query, doSearch]);
 
   // Build displayed commands
@@ -112,7 +112,7 @@ export function CommandPalette({ open, onOpenChange, onViewChange }: CommandPale
   if (!query) {
     recentCommands.forEach(c => displayItems.push({ type: 'command', item: c }));
     filteredNav.slice(0, 5).forEach(c => {
-      if (!recentCommands.find(r => r.id === c.id)) displayItems.push({ type: 'command', item: c });
+      if (!recentCommands.find(r => r.id === c.id)) {displayItems.push({ type: 'command', item: c });}
     });
   } else if (query.startsWith('>')) {
     filteredNav.forEach(c => displayItems.push({ type: 'command', item: c }));
@@ -129,7 +129,7 @@ export function CommandPalette({ open, onOpenChange, onViewChange }: CommandPale
     if (e.key === 'Enter' && displayItems[selectedIndex]) {
       handleSelect(displayItems[selectedIndex]);
     }
-    if (e.key === 'Escape') onOpenChange(false);
+    if (e.key === 'Escape') {onOpenChange(false);}
   };
 
   const handleSelect = (item: DisplayItem) => {
@@ -161,7 +161,7 @@ export function CommandPalette({ open, onOpenChange, onViewChange }: CommandPale
           onClick={e => e.target === e.currentTarget && onOpenChange(false)}
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { onOpenChange(false); }} />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: -8 }}
@@ -232,7 +232,7 @@ export function CommandPalette({ open, onOpenChange, onViewChange }: CommandPale
                           </p>
                         )}
                         <motion.button
-                          onClick={() => handleSelect(item)}
+                          onClick={() => { handleSelect(item); }}
                           className={cn(
                             "w-full flex items-center gap-3 px-3 py-2.5 transition-all text-left",
                             isSelected ? "bg-white/[0.07]" : "hover:bg-white/[0.04]"

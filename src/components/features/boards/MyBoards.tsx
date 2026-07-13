@@ -141,7 +141,7 @@ const MyBoards = ({
         .eq('board_id', selectedBoard.id)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {throw error;}
       setItems(data || []);
       // Layer 4: Update cache with 5m TTL
       set(cacheKey, data || []);
@@ -168,7 +168,7 @@ const MyBoards = ({
   const sections = useMemo(() => {
     const s = new Set<string>();
     items.forEach(item => {
-      if (item.section) s.add(item.section);
+      if (item.section) {s.add(item.section);}
     });
     return Array.from(s).sort();
   }, [items]);
@@ -186,27 +186,27 @@ const MyBoards = ({
   }, [fetchItems]);
 
   const handleDeleteItem = async (id: string) => {
-    if (!confirm('Remove this item from board?')) return;
+    if (!confirm('Remove this item from board?')) {return;}
     try {
       const { error } = await supabase.from('research_board_items').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {throw error;}
       setItems(prev => prev.filter(i => i.id !== id));
       toast.success('Item removed');
-      if (paneItem?.id === id) setPaneItem(null);
+      if (paneItem?.id === id) {setPaneItem(null);}
     } catch (err) {
       toast.error('Failed to delete item');
     }
   };
 
   const handleRenameItem = async () => {
-    if (!editingItem || !renamingTitle.trim()) return;
+    if (!editingItem || !renamingTitle.trim()) {return;}
     try {
       const { error } = await supabase
         .from('research_board_items')
         .update({ title: renamingTitle.trim() })
         .eq('id', editingItem.id);
       
-      if (error) throw error;
+      if (error) {throw error;}
       
       const updatedTitle = renamingTitle.trim();
       setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, title: updatedTitle } : i));
@@ -230,7 +230,7 @@ const MyBoards = ({
         .update({ section })
         .eq('id', itemId);
       
-      if (error) throw error;
+      if (error) {throw error;}
       setItems(prev => prev.map(i => i.id === itemId ? { ...i, section } : i));
       toast.success(`Moved to ${section}`);
     } catch (err) {
@@ -239,11 +239,11 @@ const MyBoards = ({
   };
 
   const handleAddItem = async (type: BoardItem['type'], data: any) => {
-    if (!user || !selectedBoard) return;
+    if (!user || !selectedBoard) {return;}
     setIsAddingItem(true);
     try {
       // If it's a link, try to fetch metadata
-      let itemData = { ...data };
+      const itemData = { ...data };
       if (type === 'link' && data.url) {
         const isYoutube = data.url.includes('youtube.com') || data.url.includes('youtu.be');
         if (isYoutube) {
@@ -270,7 +270,7 @@ const MyBoards = ({
           thumbnail_url: itemData.thumbnail_url
         }]);
 
-      if (error) throw error;
+      if (error) {throw error;}
        
        // Layer 4: Invalidate cache
        invalidate(`board-items:${selectedBoard.id}`);
@@ -384,7 +384,7 @@ const MyBoards = ({
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
 
-    if (!user || !selectedBoard) return;
+    if (!user || !selectedBoard) {return;}
     setIsUploading(true);
     
     for (const file of acceptedFiles) {
@@ -400,7 +400,7 @@ const MyBoards = ({
             upsert: true
           });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {throw uploadError;}
 
 
         const { data: { publicUrl } } = supabase.storage
@@ -435,7 +435,7 @@ const MyBoards = ({
     };
 
     window.addEventListener('paste', handlePaste);
-    return () => window.removeEventListener('paste', handlePaste);
+    return () => { window.removeEventListener('paste', handlePaste); };
   }, [handleAddItem]);
 
 
@@ -447,7 +447,7 @@ const MyBoards = ({
   };
 
   const handleCreateBoard = async () => {
-    if (!user || !newBoardTitle.trim()) return;
+    if (!user || !newBoardTitle.trim()) {return;}
 
     const optimisticBoard = {
       id: crypto.randomUUID(),
@@ -480,7 +480,7 @@ const MyBoards = ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
       
       // Silently refresh to get real ID and data
       onBoardsUpdate();
@@ -492,7 +492,7 @@ const MyBoards = ({
   };
 
   const handleSelectTemplate = async (template: any) => {
-    if (!user) return;
+    if (!user) {return;}
     setIsCreating(true);
     try {
       const { data: board, error } = await supabase
@@ -500,7 +500,7 @@ const MyBoards = ({
         .insert([{ user_id: user.id, title: template.title, emoji: template.emoji }])
         .select().single();
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Add template items
       const itemsToAdd = template.items.map((item: any) => ({
@@ -528,7 +528,7 @@ const MyBoards = ({
 
   const handleChatWithBoard = () => {
     setShowBoardChat(!showBoardChat);
-    if (paneItem) setPaneItem(null);
+    if (paneItem) {setPaneItem(null);}
   };
 
   const handleShareBoard = () => {
@@ -567,7 +567,7 @@ const MyBoards = ({
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent className="w-56 bg-[#161616] border-white/10 rounded-2xl p-2 shadow-2xl z-[100]">
-                            <DropdownMenuItem onClick={() => setShowLinkModal(true)} className="flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
+                            <DropdownMenuItem onClick={() => { setShowLinkModal(true); }} className="flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
                               <div className="flex items-center gap-3 text-[11px] font-bold text-white/60">
                                 <Plus className="w-3.5 h-3.5" /> Paste a link
                               </div>
@@ -605,7 +605,7 @@ const MyBoards = ({
                       type="text" 
                       placeholder={`Search in ${selectedBoard.title}...`}
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => { setSearchQuery(e.target.value); }}
                       className="w-full bg-white/[0.03] border border-white/5 hover:border-white/10 focus:border-white/20 rounded-full pl-10 pr-4 py-1.5 text-xs text-white placeholder:text-white/10 focus:ring-0 transition-all outline-none"
                     />
                   </div>
@@ -647,7 +647,7 @@ const MyBoards = ({
                 {/* Section Filter Pills */}
                 <div className="px-6 py-3 flex items-center gap-2 overflow-x-auto scrollbar-hide border-b border-white/5 bg-black/20">
                   <button 
-                    onClick={() => setSelectedSection('ALL')}
+                    onClick={() => { setSelectedSection('ALL'); }}
                     className={cn(
                       "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shrink-0 flex items-center gap-2",
                       selectedSection === 'ALL' ? "bg-white text-black shadow-lg" : "text-white/30 hover:text-white hover:bg-white/5"
@@ -662,7 +662,7 @@ const MyBoards = ({
                     return (
                       <button 
                         key={section}
-                        onClick={() => setSelectedSection(section)}
+                        onClick={() => { setSelectedSection(section); }}
                         className={cn(
                           "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shrink-0 flex items-center gap-2",
                           selectedSection === section ? "bg-white text-black shadow-lg" : "text-white/30 hover:text-white hover:bg-white/5"
@@ -687,7 +687,7 @@ const MyBoards = ({
                                 layout
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                onClick={() => setPaneItem(item)}
+                                onClick={() => { setPaneItem(item); }}
                                 className={cn(
                                   "rounded-3xl border border-white/5 overflow-hidden transition-all duration-500 group flex flex-col relative cursor-pointer",
                                   item.type === 'note' ? "bg-white shadow-xl" : "bg-[#161616] hover:border-emerald-500/30 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]"
@@ -700,7 +700,7 @@ const MyBoards = ({
                             <ContextMenu.Portal>
                               <ContextMenu.Content className="min-w-[220px] bg-[#161616]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] animate-in fade-in zoom-in-95 duration-150">
                                 <ContextMenu.Item 
-                                  onClick={() => setPaneItem(item)}
+                                  onClick={() => { setPaneItem(item); }}
                                   className="flex items-center justify-between px-3 py-2 text-[11px] font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl outline-none cursor-pointer transition-all"
                                 >
                                   <div className="flex items-center gap-3">
@@ -712,7 +712,7 @@ const MyBoards = ({
                                 {item.url && (
                                   <>
                                     <ContextMenu.Item 
-                                      onClick={() => window.open(item.url!, '_blank')}
+                                      onClick={() => window.open(item.url, '_blank')}
                                       className="flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl outline-none cursor-pointer transition-all"
                                     >
                                       <ExternalLink className="w-3.5 h-3.5" /> Open original link
@@ -799,7 +799,7 @@ const MyBoards = ({
                             </div>
                             <Button 
                               variant="ghost" 
-                              onClick={() => setShowTemplatesModal(true)}
+                              onClick={() => { setShowTemplatesModal(true); }}
                               className="h-12 rounded-2xl border border-white/10 bg-white/5 px-5 text-[9px] font-black uppercase tracking-[0.2em] text-white/60 hover:bg-white/10 transition-all shadow-xl"
                             >
                               <LayoutTemplate className="w-4 h-4 mr-2" /> Templates
@@ -808,7 +808,7 @@ const MyBoards = ({
 
                           <div className="space-y-1">
                             {[
-                              { icon: LinkIcon, label: 'Paste a link', shortcut: 'Ctrl V', type: 'link', action: () => setShowLinkModal(true) },
+                              { icon: LinkIcon, label: 'Paste a link', shortcut: 'Ctrl V', type: 'link', action: () => { setShowLinkModal(true); } },
                               { icon: FileText, label: 'Start a document', shortcut: 'D', type: 'note', action: () => handleAddItem('note', { title: 'New Document' }) },
                               { icon: MessageSquare, label: 'Jot quick ideas or drafts', shortcut: 'C', type: 'idea', action: () => handleAddItem('idea', { title: 'Quick Thought' }) },
                               { icon: Upload, label: 'Drop images, PDFs, or files', shortcut: 'DRAG', type: 'file', action: () => toast.info('File drop coming soon') },
@@ -879,8 +879,8 @@ const MyBoards = ({
                       </div>
                     )}
                     <div className="flex items-center gap-2">
-                      {paneItem && paneItem.url && (
-                        <Button variant="ghost" size="icon" onClick={() => window.open(paneItem.url!, '_blank')} className="w-8 h-8 rounded-lg text-white/60 hover:text-white">
+                      {paneItem?.url && (
+                        <Button variant="ghost" size="icon" onClick={() => window.open(paneItem.url, '_blank')} className="w-8 h-8 rounded-lg text-white/60 hover:text-white">
                           <ExternalLink className="w-4 h-4" />
                         </Button>
                       )}
@@ -938,7 +938,7 @@ const MyBoards = ({
                             <input 
                               type="text"
                               value={boardChatQuery}
-                              onChange={(e) => setBoardChatQuery(e.target.value)}
+                              onChange={(e) => { setBoardChatQuery(e.target.value); }}
                               placeholder="Ask your board..."
                               className="w-full bg-white/5 border border-white/5 rounded-2xl pl-4 pr-12 py-3.5 text-xs text-white placeholder:text-white/10 focus:ring-1 focus:ring-emerald-500/50 transition-all outline-none"
                             />
@@ -1038,7 +1038,7 @@ const MyBoards = ({
 
                                 <div className="pt-6 border-t border-white/5 space-y-3">
                                   <Button 
-                                    onClick={() => window.open(paneItem.url!, '_blank')}
+                                    onClick={() => window.open(paneItem.url, '_blank')}
                                     className="w-full h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest shadow-xl"
                                   >
                                     <ExternalLink className="w-4 h-4 mr-2" /> Open Original Post
@@ -1101,7 +1101,7 @@ const MyBoards = ({
               </Button>
               <Button 
                 variant="ghost"
-                onClick={() => setShowTemplatesModal(true)}
+                onClick={() => { setShowTemplatesModal(true); }}
                 className="h-12 rounded-2xl border border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-[11px]"
               >
                 <Sparkles className="w-4 h-4 mr-2" /> Start from Template
@@ -1123,7 +1123,7 @@ const MyBoards = ({
               <Input
                 autoFocus
                 value={newBoardTitle}
-                onChange={(e) => setNewBoardTitle(e.target.value)}
+                onChange={(e) => { setNewBoardTitle(e.target.value); }}
                 placeholder="Enter a board name"
                 className="h-11 rounded-xl border-white/10 bg-white/5 text-sm placeholder:text-white/25 focus-visible:ring-1 focus-visible:ring-emerald-400/30"
               />
@@ -1133,7 +1133,7 @@ const MyBoards = ({
           </div>
 
           <DialogFooter className="gap-3 sm:gap-3">
-            <Button variant="ghost" onClick={() => setShowCreateModal(false)} className="h-11 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
+            <Button variant="ghost" onClick={() => { setShowCreateModal(false); }} className="h-11 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
               Cancel
             </Button>
             <Button onClick={handleCreateBoard} disabled={isCreating || !newBoardTitle.trim()} className="h-11 rounded-xl bg-white text-black hover:bg-white/90 font-medium">
@@ -1154,7 +1154,7 @@ const MyBoards = ({
               <Input
                 autoFocus
                 value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
+                onChange={(e) => { setLinkUrl(e.target.value); }}
                 placeholder="https://example.com"
                 className="h-11 rounded-xl border-white/10 bg-white/5 text-sm placeholder:text-white/25 focus-visible:ring-1 focus-visible:ring-emerald-400/30"
               />
@@ -1163,7 +1163,7 @@ const MyBoards = ({
           </div>
 
           <DialogFooter className="gap-3 sm:gap-3">
-            <Button variant="ghost" onClick={() => setShowLinkModal(false)} className="h-11 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
+            <Button variant="ghost" onClick={() => { setShowLinkModal(false); }} className="h-11 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
               Cancel
             </Button>
             <Button 
@@ -1214,7 +1214,7 @@ const MyBoards = ({
                 </div>
                 <Button 
                   variant="ghost" 
-                  onClick={() => setActiveNote(null)}
+                  onClick={() => { setActiveNote(null); }}
                   className="rounded-2xl hover:bg-white/5 text-white/40"
                 >
                   <Plus className="w-5 h-5 rotate-45" /> Close Canvas
@@ -1246,14 +1246,14 @@ const MyBoards = ({
               <Input
                 autoFocus
                 value={renamingTitle}
-                onChange={(e) => setRenamingTitle(e.target.value)}
+                onChange={(e) => { setRenamingTitle(e.target.value); }}
                 placeholder="Enter new title"
                 className="h-11 rounded-xl border-white/10 bg-white/5 text-sm text-white focus-visible:ring-emerald-400/30"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditingItem(null)} className="h-11 rounded-xl border border-white/10 text-white">Cancel</Button>
+            <Button variant="ghost" onClick={() => { setEditingItem(null); }} className="h-11 rounded-xl border border-white/10 text-white">Cancel</Button>
             <Button onClick={handleRenameItem} className="h-11 rounded-xl bg-white text-black font-bold uppercase tracking-widest text-[10px]">Save Changes</Button>
           </DialogFooter>
         </DialogContent>

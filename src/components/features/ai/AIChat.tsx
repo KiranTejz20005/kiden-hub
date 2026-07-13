@@ -57,7 +57,7 @@ const CopyButton = ({ text }: { text: string }) => {
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => { setCopied(false); }, 2000);
   };
   return (
     <button
@@ -146,7 +146,7 @@ const EmptyState = React.memo(({ onNewChat, onSuggestion }: { onNewChat: () => v
         {SUGGESTIONS.slice(0, 4).map(s => (
           <button
             key={s.text}
-            onClick={() => onSuggestion(s.prompt)}
+            onClick={() => { onSuggestion(s.prompt); }}
             className="flex flex-col gap-3 p-5 rounded-3xl bg-white/[0.01] border border-white/5 hover:bg-white/[0.03] hover:border-white/10 transition-all text-left group shadow-sm"
           >
             <span className="text-xl grayscale opacity-20 group-hover:opacity-100 transition-all duration-500">{s.emoji}</span>
@@ -190,11 +190,11 @@ const AIChat = () => {
   const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 
   const fetchConversations = useCallback(async () => {
-    if (fetchInProgressRef.current) return;
+    if (fetchInProgressRef.current) {return;}
     const now = Date.now();
-    if (now - lastFetchTimeRef.current < FETCH_COOLDOWN) return;
+    if (now - lastFetchTimeRef.current < FETCH_COOLDOWN) {return;}
     
-    if (!user) return;
+    if (!user) {return;}
     fetchInProgressRef.current = true;
     try {
       const { data } = await supabase
@@ -212,23 +212,23 @@ const AIChat = () => {
   }, [user]);
 
   useEffect(() => {
-    if (user && conversations.length === 0) fetchConversations();
+    if (user && conversations.length === 0) {fetchConversations();}
   }, [user]);
   
   // Refetch only on tab visibility change
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') fetchConversations();
+      if (document.visibilityState === 'visible') {fetchConversations();}
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () => { document.removeEventListener('visibilitychange', handleVisibilityChange); };
   }, [fetchConversations]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {return;}
     supabase.from('files').select('id, name, type, size, created_at').eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setAvailableFiles(data); });
+      .then(({ data }) => { if (data) {setAvailableFiles(data);} });
   }, [user]);
 
   // Load messages for active conversation
@@ -242,7 +242,7 @@ const AIChat = () => {
     supabase.from('messages').select('*')
       .eq('conversation_id', activeConv.id)
       .order('created_at', { ascending: true })
-      .then(({ data }) => { if (data) setMessages(data); });
+      .then(({ data }) => { if (data) {setMessages(data);} });
     
     // Subscribe to real-time message updates
     const channel = supabase
@@ -277,7 +277,7 @@ const AIChat = () => {
     } else {
       clearInterval(interval);
     }
-    return () => clearInterval(interval);
+    return () => { clearInterval(interval); };
   }, [loading]);
 
   useEffect(() => {
@@ -285,7 +285,7 @@ const AIChat = () => {
   }, [messages, streamingContent]);
 
   const handleScroll = () => {
-    if (!scrollRef.current) return;
+    if (!scrollRef.current) {return;}
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
     setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 120);
   };
@@ -298,7 +298,7 @@ const AIChat = () => {
   };
 
   const handleNewChat = async () => {
-    if (!user) return;
+    if (!user) {return;}
     const { data } = await supabase.from('conversations')
       .insert([{ user_id: user.id, title: 'New Conversation', last_message_at: new Date().toISOString() }])
       .select().single();
@@ -310,7 +310,7 @@ const AIChat = () => {
   };
 
   const handleSuggestion = async (prompt: string) => {
-    if (!user) return;
+    if (!user) {return;}
     // Create a new conversation
     const { data } = await supabase.from('conversations')
       .insert([{ user_id: user.id, title: prompt.substring(0, 50), last_message_at: new Date().toISOString() }])
@@ -335,7 +335,7 @@ const AIChat = () => {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim() || !activeConv || loading) return;
+    if (!inputValue.trim() || !activeConv || loading) {return;}
 
     const userMessage = inputValue.trim();
     setInputValue('');
@@ -558,7 +558,7 @@ const AIChat = () => {
                           <div key={fileId} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 transition-all">
                             <FileText className="w-3 h-3 text-white/40" />
                             <span className="text-[11px] font-medium text-white/60 truncate max-w-[120px]">{file.name}</span>
-                            <button type="button" onClick={() => setSelectedFiles(prev => prev.filter(id => id !== fileId))}>
+                            <button type="button" onClick={() => { setSelectedFiles(prev => prev.filter(id => id !== fileId)); }}>
                               <X className="w-3 h-3 text-white/20 hover:text-white" />
                             </button>
                           </div>
@@ -605,7 +605,7 @@ const AIChat = () => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setShowFileSelector(!showFileSelector)}
+                      onClick={() => { setShowFileSelector(!showFileSelector); }}
                       className={cn(
                         "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border",
                         selectedFiles.length > 0 
@@ -645,7 +645,7 @@ const AIChat = () => {
             {conversations.map((conv) => (
               <button
                 key={conv.id}
-                onClick={() => setActiveConv(conv)}
+                onClick={() => { setActiveConv(conv); }}
                 className={cn(
                   "w-full group flex flex-col gap-1 p-3 rounded-xl transition-all border text-left",
                   activeConv?.id === conv.id 

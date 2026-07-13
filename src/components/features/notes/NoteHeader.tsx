@@ -94,11 +94,11 @@ const NoteHeader = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem onClick={onDuplicate}><Copy className="w-4 h-4 mr-2" /> Duplicate Note</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onUpdate({ is_full_width: !note.is_full_width })}>
+                <DropdownMenuItem onClick={() => { onUpdate({ is_full_width: !note.is_full_width }); }}>
                   {note.is_full_width ? <Minimize className="w-4 h-4 mr-2" /> : <Maximize className="w-4 h-4 mr-2" />}
                   {note.is_full_width ? 'Default Width' : 'Full Width'}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsChangingCover(true)}><ImageIcon className="w-4 h-4 mr-2" /> Change Cover</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setIsChangingCover(true); }}><ImageIcon className="w-4 h-4 mr-2" /> Change Cover</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onDelete} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Delete Note</DropdownMenuItem>
               </DropdownMenuContent>
@@ -123,7 +123,7 @@ const NoteHeader = ({
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-start justify-end p-6 gap-2">
-              <Button size="sm" variant="secondary" className="h-8 rounded-lg bg-black/40 backdrop-blur-md border-white/10 hover:bg-black/60 text-[10px] font-bold uppercase tracking-wider" onClick={() => setIsChangingCover(true)}>
+              <Button size="sm" variant="secondary" className="h-8 rounded-lg bg-black/40 backdrop-blur-md border-white/10 hover:bg-black/60 text-[10px] font-bold uppercase tracking-wider" onClick={() => { setIsChangingCover(true); }}>
                 Change Cover
               </Button>
               <Button size="sm" variant="secondary" className="h-8 rounded-lg bg-black/40 backdrop-blur-md border-white/10 hover:bg-black/60 text-[10px] font-bold uppercase tracking-wider" onClick={handleRemoveCover}>
@@ -134,7 +134,7 @@ const NoteHeader = ({
         ) : (
           <div className="w-full h-full group">
             <button 
-              onClick={() => setIsChangingCover(true)}
+              onClick={() => { setIsChangingCover(true); }}
               className="absolute bottom-4 left-6 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
             >
               <ImageIcon className="w-3.5 h-3.5" /> Add Cover
@@ -173,7 +173,7 @@ const NoteHeader = ({
           <div className="space-y-4">
             <input
               value={note.title || ''}
-              onChange={(e) => onUpdate({ title: e.target.value })}
+              onChange={(e) => { onUpdate({ title: e.target.value }); }}
               className="w-full bg-transparent border-none focus:outline-none text-4xl font-bold tracking-tight text-white placeholder:text-white/20 transition-all"
               placeholder="Untitled Note"
             />
@@ -205,7 +205,7 @@ const NoteHeader = ({
           <div className="w-full max-w-2xl bg-[#0A0A0A] border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl">
             <div className="p-6 border-b border-white/5 flex items-center justify-between">
               <h2 className="text-xl font-bold text-white">Select Cover Image</h2>
-              <button onClick={() => setIsChangingCover(false)} className="p-2 rounded-full hover:bg-white/5 text-muted-foreground"><X className="w-5 h-5" /></button>
+              <button onClick={() => { setIsChangingCover(false); }} className="p-2 rounded-full hover:bg-white/5 text-muted-foreground"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 grid grid-cols-2 md:grid-cols-3 gap-4 h-[400px] overflow-y-auto">
               {[
@@ -218,7 +218,7 @@ const NoteHeader = ({
               ].map(url => (
                 <button 
                   key={url} 
-                  onClick={() => handleCoverSelect(url)}
+                  onClick={() => { handleCoverSelect(url); }}
                   className="relative aspect-video rounded-xl overflow-hidden hover:scale-105 transition-all group border border-white/5"
                 >
                   <img src={url} className="w-full h-full object-cover" />

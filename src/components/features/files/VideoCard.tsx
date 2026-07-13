@@ -109,7 +109,7 @@ export const VideoCard = React.memo(({
                     {['Math', 'Science', 'Programming', 'Design', 'Other'].map(tag => (
                       <DropdownMenu.Item 
                         key={tag} 
-                        onSelect={() => onUpdateTag?.(tag)}
+                        onSelect={() => { onUpdateTag?.(tag); }}
                         className="p-2 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-500/10 hover:text-emerald-400 transition-all cursor-pointer outline-none"
                       >
                         {tag}
@@ -149,7 +149,7 @@ export const VideoCard = React.memo(({
         {/* Thumbnail */}
         <div 
           className="relative aspect-video mx-4 mb-4 rounded-2xl overflow-hidden bg-black/40 cursor-pointer" 
-          onClick={() => onClick(item)}
+          onClick={() => { onClick(item); }}
         >
           <img 
             src={v.high_res_thumbnail || v.thumbnail_url} 
@@ -195,19 +195,19 @@ export const VideoCard = React.memo(({
               </DropdownMenu.Trigger>
               <DropdownMenu.Portal>
                 <DropdownMenu.Content className="bg-card border border-border/50 rounded-2xl p-2 min-w-[180px] shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
-                  <DropdownMenu.Item onSelect={() => onAdd(item)} className="p-2 rounded-xl text-xs font-bold hover:bg-primary/10 hover:text-primary transition-all cursor-pointer outline-none flex items-center gap-2">
+                  <DropdownMenu.Item onSelect={() => { onAdd(item); }} className="p-2 rounded-xl text-xs font-bold hover:bg-primary/10 hover:text-primary transition-all cursor-pointer outline-none flex items-center gap-2">
                     <Award className="w-3.5 h-3.5"/> Add to Library
                   </DropdownMenu.Item>
                   {playlists.length > 0 && <DropdownMenu.Separator className="h-px bg-white/5 my-1" />}
                   {playlists.map((p: any) => (
-                    <DropdownMenu.Item key={p.id} onSelect={() => onAddToPlaylist(p.id, item)} className="p-2 rounded-xl text-[11px] hover:bg-white/5 transition-all cursor-pointer outline-none flex items-center gap-2">
+                    <DropdownMenu.Item key={p.id} onSelect={() => { onAddToPlaylist(p.id, item); }} className="p-2 rounded-xl text-[11px] hover:bg-white/5 transition-all cursor-pointer outline-none flex items-center gap-2">
                       <List className="w-3.5 h-3.5 opacity-50"/> {p.name}
                     </DropdownMenu.Item>
                   ))}
                 </DropdownMenu.Content>
               </DropdownMenu.Portal>
             </DropdownMenu.Root>
-            <button onClick={() => onClick(item)} className="p-1.5 rounded-xl hover:bg-white/5 transition-all">
+            <button onClick={() => { onClick(item); }} className="p-1.5 rounded-xl hover:bg-white/5 transition-all">
               <ExternalLink className="w-4 h-4 text-muted-foreground"/>
             </button>
           </div>

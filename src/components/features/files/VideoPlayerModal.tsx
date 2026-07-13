@@ -46,7 +46,7 @@ export const VideoPlayerModal = ({ video, isOpen, onClose }: VideoPlayerModalPro
   }, [video?.id]);
 
   const fetchLatestData = async () => {
-    if (!video?.id || video.id.length === 11) return; // Skip if it's just a YT ID
+    if (!video?.id || video.id.length === 11) {return;} // Skip if it's just a YT ID
     
     try {
       const { data, error } = await supabase
@@ -65,7 +65,7 @@ export const VideoPlayerModal = ({ video, isOpen, onClose }: VideoPlayerModalPro
   };
 
   const checkSavedStatus = async () => {
-    if (!video) return;
+    if (!video) {return;}
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const saved = await isVideoInLibrary(user.id, video.video_id || video.id);
@@ -74,7 +74,7 @@ export const VideoPlayerModal = ({ video, isOpen, onClose }: VideoPlayerModalPro
   };
 
   const fetchRelatedVideos = async () => {
-    if (!video || !YOUTUBE_API_KEY) return;
+    if (!video || !YOUTUBE_API_KEY) {return;}
     setIsLoadingRelated(true);
     try {
       const videoId = video.video_id || video.id;
@@ -99,7 +99,7 @@ export const VideoPlayerModal = ({ video, isOpen, onClose }: VideoPlayerModalPro
   };
 
   const handleToggleFavorite = async () => {
-    if (!video?.id) return;
+    if (!video?.id) {return;}
     const newStatus = !isFavorite;
     setIsFavorite(newStatus);
     const { error } = await toggleFavorite(video.id, newStatus);
@@ -112,7 +112,7 @@ export const VideoPlayerModal = ({ video, isOpen, onClose }: VideoPlayerModalPro
   };
 
   const handleSaveNotes = async () => {
-    if (!video?.id) return;
+    if (!video?.id) {return;}
     setIsSavingNotes(true);
     const { error } = await updateNotes(video.id, notes);
     if (error) {
@@ -124,9 +124,9 @@ export const VideoPlayerModal = ({ video, isOpen, onClose }: VideoPlayerModalPro
   };
 
   const handleToggleSave = async () => {
-    if (!video) return;
+    if (!video) {return;}
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {return;}
 
     if (isSaved) {
       const { error } = await deleteVideo(video.id);
@@ -173,7 +173,7 @@ export const VideoPlayerModal = ({ video, isOpen, onClose }: VideoPlayerModalPro
     }
   };
 
-  if (!video) return null;
+  if (!video) {return null;}
 
   // Extract valid YouTube ID
   const videoId = video.video_id || (typeof video.id === 'string' && video.id.length === 11 ? video.id : null) || video.id;
@@ -290,13 +290,13 @@ export const VideoPlayerModal = ({ video, isOpen, onClose }: VideoPlayerModalPro
               {/* Tabs */}
               <div className="flex p-6 border-b border-white/5 gap-4">
                 <button 
-                  onClick={() => setActiveTab('insights')}
+                  onClick={() => { setActiveTab('insights'); }}
                   className={cn("flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'insights' ? "bg-white text-black shadow-xl" : "text-muted-foreground hover:bg-white/5")}
                 >
                   Intelligence
                 </button>
                 <button 
-                  onClick={() => setActiveTab('notes')}
+                  onClick={() => { setActiveTab('notes'); }}
                   className={cn("flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'notes' ? "bg-white text-black shadow-xl" : "text-muted-foreground hover:bg-white/5")}
                 >
                   Personal Notes
@@ -397,7 +397,7 @@ export const VideoPlayerModal = ({ video, isOpen, onClose }: VideoPlayerModalPro
                       {video?.id ? (
                         <textarea 
                           value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
+                          onChange={(e) => { setNotes(e.target.value); }}
                           placeholder="Start jotting down key takeaways, timestamps, or your own research notes..."
                           className="flex-1 w-full bg-white/5 border border-white/5 rounded-3xl p-6 text-sm text-foreground focus:ring-1 focus:ring-emerald-500/50 outline-none scrollbar-hide resize-none leading-relaxed placeholder:text-muted-foreground/30 min-h-[300px]"
                         />

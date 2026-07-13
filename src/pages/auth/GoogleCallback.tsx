@@ -30,7 +30,7 @@ const GoogleCallback = () => {
           }
         });
 
-        if (functionError) throw functionError;
+        if (functionError) {throw functionError;}
 
         setStatus('success');
         toast.success('Google Calendar connected successfully!');
@@ -82,7 +82,7 @@ const GoogleCallback = () => {
 
         {status === 'error' && (
           <button 
-            onClick={() => navigate('/dashboard/calendar')}
+            onClick={() => { navigate('/dashboard/calendar'); }}
             className="mt-8 px-6 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-sm transition-all"
           >
             Try Again

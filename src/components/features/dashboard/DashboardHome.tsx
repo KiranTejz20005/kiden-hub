@@ -33,12 +33,12 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    return () => clearInterval(timer);
+    const timer = setInterval(() => { setCurrentTime(new Date()); }, 60000);
+    return () => { clearInterval(timer); };
   }, []);
 
   const fetchStats = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
     try {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
@@ -94,8 +94,8 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
 
   const greeting = () => {
     const hour = currentTime.getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
+    if (hour < 12) {return 'Good morning';}
+    if (hour < 18) {return 'Good afternoon';}
     return 'Good evening';
   };
 

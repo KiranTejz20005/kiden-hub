@@ -13,7 +13,7 @@ export const fetchRSS = async (url: string): Promise<RSSItem[]> => {
       body: { url }
     });
 
-    if (error) throw error;
+    if (error) {throw error;}
     return data.items || [];
   } catch (error) {
     console.error('RSS Fetch Error:', error);
@@ -35,6 +35,6 @@ export const saveRSSItem = async (userId: string, item: RSSItem) => {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {throw error;}
   return data;
 };

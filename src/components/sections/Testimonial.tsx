@@ -19,9 +19,9 @@ const Testimonial = () => {
     );
 
     const elements = sectionRef.current?.querySelectorAll(".animate-on-scroll");
-    elements?.forEach((el) => observer.observe(el));
+    elements?.forEach((el) => { observer.observe(el); });
 
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); };
   }, []);
 
   return (

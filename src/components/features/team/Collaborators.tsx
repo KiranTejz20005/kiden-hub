@@ -38,7 +38,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchMembers = async () => {
-    if (!activeWorkspace) return;
+    if (!activeWorkspace) {return;}
     setLoading(true);
     try {
       const { data: memberData, error: memberError } = await supabase
@@ -46,7 +46,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
         .select('*')
         .eq('workspace_id', activeWorkspace.id);
 
-      if (memberError) throw memberError;
+      if (memberError) {throw memberError;}
 
       const membersWithProfiles = await Promise.all((memberData || []).map(async (m) => {
         if (m.user_id) {
@@ -82,7 +82,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
   }, [activeWorkspace?.id]);
 
   const handleInvite = async () => {
-    if (!activeWorkspace || !inviteEmail.trim()) return;
+    if (!activeWorkspace || !inviteEmail.trim()) {return;}
     setInviting(true);
     try {
       if (members.some(m => m.email.toLowerCase() === inviteEmail.toLowerCase())) {
@@ -99,7 +99,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
           status: 'pending'
         }]);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       toast.success('Invitation sent successfully');
       setInviteEmail('');
@@ -119,7 +119,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
         .delete()
         .eq('id', memberId);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       toast.success('Collaborator removed');
       setMembers(prev => prev.filter(m => m.id !== memberId));
@@ -135,7 +135,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
         .update({ role: newRole })
         .eq('id', memberId);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       toast.success(`Role updated to ${newRole}`);
       setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: newRole } : m));
@@ -158,7 +158,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
             <p className="text-sm text-muted-foreground mt-1">Manage your team and workspace permissions</p>
           </div>
           <Button 
-            onClick={() => setShowInviteModal(true)}
+            onClick={() => { setShowInviteModal(true); }}
             className="rounded-2xl bg-white text-black hover:bg-white/90 font-black px-8"
           >
             <UserPlus className="w-4 h-4 mr-2" />
@@ -170,7 +170,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
       {isEmbedded && (
         <div className="flex flex-col gap-4">
           <Button 
-            onClick={() => setShowInviteModal(true)}
+            onClick={() => { setShowInviteModal(true); }}
             className="w-full h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-[10px]"
           >
             <UserPlus className="w-4 h-4 mr-2" />
@@ -182,7 +182,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
               placeholder="Search by name or email..." 
               className="pl-12 h-12 bg-white/5 border-white/5 rounded-2xl text-sm"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); }}
             />
           </div>
         </div>
@@ -274,7 +274,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
                   placeholder="name@example.com"
                   className="pl-12 h-14 bg-white/5 border-white/5 rounded-2xl text-sm"
                   value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onChange={(e) => { setInviteEmail(e.target.value); }}
                 />
               </div>
             </div>
@@ -283,7 +283,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Select Role</Label>
               <div className="grid grid-cols-2 gap-3">
                 <button 
-                  onClick={() => setInviteRole('member')}
+                  onClick={() => { setInviteRole('member'); }}
                   className={cn(
                     "flex flex-col gap-2 p-4 rounded-2xl border text-left transition-all",
                     inviteRole === 'member' ? "bg-emerald-500/10 border-emerald-500/30 text-white" : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
@@ -294,7 +294,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
                   <p className="text-[9px] opacity-60">Can edit and manage resources.</p>
                 </button>
                 <button 
-                  onClick={() => setInviteRole('viewer')}
+                  onClick={() => { setInviteRole('viewer'); }}
                   className={cn(
                     "flex flex-col gap-2 p-4 rounded-2xl border text-left transition-all",
                     inviteRole === 'viewer' ? "bg-primary/10 border-primary/30 text-white" : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
@@ -309,7 +309,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
           </div>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowInviteModal(false)} className="rounded-xl font-black uppercase tracking-widest text-[10px]">Cancel</Button>
+            <Button variant="ghost" onClick={() => { setShowInviteModal(false); }} className="rounded-xl font-black uppercase tracking-widest text-[10px]">Cancel</Button>
             <Button 
               onClick={handleInvite}
               disabled={inviting || !inviteEmail.trim()}

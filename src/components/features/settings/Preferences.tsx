@@ -29,19 +29,19 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      if (!user) return;
+      if (!user) {return;}
       const { data } = await supabase.from('profiles').select('notification_settings, language, display_density').eq('user_id', user.id).maybeSingle();
       if (data) {
-        if (data.notification_settings) setNotifications(data.notification_settings);
-        if (data.language) setLanguage(data.language);
-        if (data.display_density) setDensity(data.display_density);
+        if (data.notification_settings) {setNotifications(data.notification_settings);}
+        if (data.language) {setLanguage(data.language);}
+        if (data.display_density) {setDensity(data.display_density);}
       }
     };
     fetchSettings();
   }, [user]);
 
   const handleSave = async (updates: any) => {
-    if (!user) return;
+    if (!user) {return;}
     setSaving(true);
     try {
       const { error } = await supabase
@@ -49,7 +49,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
         .update(updates)
         .eq('user_id', user.id);
       
-      if (error) throw error;
+      if (error) {throw error;}
       toast.success('Preferences updated');
     } catch (error) {
       toast.error('Failed to save preferences');
@@ -85,7 +85,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
           {THEMES.map(t => (
             <button
               key={t.id}
-              onClick={() => setTheme(t.id)}
+              onClick={() => { setTheme(t.id); }}
               className={cn(
                 "group relative flex flex-col gap-3 p-5 rounded-2xl border transition-all text-left overflow-hidden",
                 theme === t.id 
@@ -152,7 +152,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
           ].map(n => (
             <button
               key={n.key}
-              onClick={() => toggleNotification(n.key as any)}
+              onClick={() => { toggleNotification(n.key as any); }}
               className="w-full flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all text-left"
             >
               <div className="flex items-center gap-4">

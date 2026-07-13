@@ -38,7 +38,7 @@ httpClient.interceptors.response.use(
   },
   async (error: AxiosError) => {
     const config = error.config as AxiosRequestConfig & { _retryCount?: number; metadata?: { startTime: number } };
-    if (!config) return Promise.reject(error);
+    if (!config) {return Promise.reject(error);}
 
     const duration = Date.now() - (config.metadata?.startTime ?? Date.now());
     config._retryCount = config._retryCount ?? 0;
@@ -106,12 +106,12 @@ function handleError<T>(error: unknown): ApiResponse<T> {
     const status = error.response.status;
     let code: ErrorCode;
 
-    if (status === 401) code = 'AUTHENTICATION_ERROR';
-    else if (status === 403) code = 'AUTHORIZATION_ERROR';
-    else if (status === 404) code = 'NOT_FOUND';
-    else if (status === 409) code = 'CONFLICT_ERROR';
-    else if (status === 429) code = 'RATE_LIMIT_ERROR';
-    else code = 'INTERNAL_ERROR';
+    if (status === 401) {code = 'AUTHENTICATION_ERROR';}
+    else if (status === 403) {code = 'AUTHORIZATION_ERROR';}
+    else if (status === 404) {code = 'NOT_FOUND';}
+    else if (status === 409) {code = 'CONFLICT_ERROR';}
+    else if (status === 429) {code = 'RATE_LIMIT_ERROR';}
+    else {code = 'INTERNAL_ERROR';}
 
     return {
       success: false,

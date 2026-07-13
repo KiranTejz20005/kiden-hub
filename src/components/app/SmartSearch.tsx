@@ -56,7 +56,7 @@ export function SmartSearch({ isOpen, onClose, onNavigate }: SmartSearchProps) {
     clearTimeout(searchTimeout.current);
     if (!query.trim()) { setResults([]); return; }
     searchTimeout.current = setTimeout(() => doSearch(query), 300);
-    return () => clearTimeout(searchTimeout.current);
+    return () => { clearTimeout(searchTimeout.current); };
   }, [query, doSearch]);
 
   const filtered = activeFilter === 'all'
@@ -66,8 +66,8 @@ export function SmartSearch({ isOpen, onClose, onNavigate }: SmartSearchProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex(i => Math.min(i + 1, filtered.length - 1)); }
     if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(i => Math.max(i - 1, 0)); }
-    if (e.key === 'Enter' && filtered[selectedIndex]) handleOpen(filtered[selectedIndex]);
-    if (e.key === 'Escape') onClose();
+    if (e.key === 'Enter' && filtered[selectedIndex]) {handleOpen(filtered[selectedIndex]);}
+    if (e.key === 'Escape') {onClose();}
   };
 
   const handleOpen = (result: SearchResult) => {
@@ -77,9 +77,9 @@ export function SmartSearch({ isOpen, onClose, onNavigate }: SmartSearchProps) {
   };
 
   function highlightMatch(text: string, q: string): React.ReactNode {
-    if (!q || q.length < 2) return text;
+    if (!q || q.length < 2) {return text;}
     const idx = text.toLowerCase().indexOf(q.toLowerCase());
-    if (idx === -1) return text;
+    if (idx === -1) {return text;}
     return (
       <>
         {text.slice(0, idx)}
@@ -89,10 +89,10 @@ export function SmartSearch({ isOpen, onClose, onNavigate }: SmartSearchProps) {
     );
   }
 
-  const countsPerType = results.reduce((acc, r) => {
+  const countsPerType = results.reduce<Record<string, number>>((acc, r) => {
     acc[r.type] = (acc[r.type] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>);
+  }, {});
 
   return (
     <AnimatePresence>
@@ -127,7 +127,7 @@ export function SmartSearch({ isOpen, onClose, onNavigate }: SmartSearchProps) {
                   <input
                     ref={inputRef}
                     value={query}
-                    onChange={e => setQuery(e.target.value)}
+                    onChange={e => { setQuery(e.target.value); }}
                     onKeyDown={handleKeyDown}
                     placeholder="Search everything..."
                     className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-[13px] text-white placeholder:text-white/20 outline-none focus:border-white/20 transition-colors"
@@ -146,11 +146,11 @@ export function SmartSearch({ isOpen, onClose, onNavigate }: SmartSearchProps) {
                 <div className="flex gap-1.5 mt-3 flex-wrap">
                   {(Object.entries(TYPE_CONFIG) as [FilterType, typeof TYPE_CONFIG[FilterType]][]).map(([key, conf]) => {
                     const count = key === 'all' ? results.length : countsPerType[key] || 0;
-                    if (key !== 'all' && count === 0) return null;
+                    if (key !== 'all' && count === 0) {return null;}
                     return (
                       <button
                         key={key}
-                        onClick={() => setActiveFilter(key)}
+                        onClick={() => { setActiveFilter(key); }}
                         className={cn(
                           "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
                           activeFilter === key
@@ -201,8 +201,8 @@ export function SmartSearch({ isOpen, onClose, onNavigate }: SmartSearchProps) {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.98 }}
                           transition={{ delay: i * 0.03 }}
-                          onClick={() => handleOpen(result)}
-                          onMouseEnter={() => setSelectedIndex(i)}
+                          onClick={() => { handleOpen(result); }}
+                          onMouseEnter={() => { setSelectedIndex(i); }}
                           className={cn(
                             "w-full text-left flex items-start gap-3 p-3 rounded-xl transition-all",
                             isSelected ? "bg-white/[0.07]" : "hover:bg-white/[0.04]"

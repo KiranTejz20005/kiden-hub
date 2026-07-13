@@ -72,7 +72,7 @@ export const DiscoverFeed = () => {
   // ── Callbacks ─────────────────────────────────────────────────────────────
 
   const fetchMyList = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
     setLoadingMyList(true);
     
     try {
@@ -103,13 +103,13 @@ export const DiscoverFeed = () => {
   }, [user, activePlaylist, sort]);
 
   const fetchPlaylists = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
     const { data } = await getPlaylists(user.id);
-    if (data) setPlaylists(data);
+    if (data) {setPlaylists(data);}
   }, [user]);
 
   const loadItems = useCallback(async (reset = false) => {
-    if (loading && !reset) return;
+    if (loading && !reset) {return;}
     setLoading(true);
     
     try {
@@ -139,7 +139,7 @@ export const DiscoverFeed = () => {
   }, [category, sort, loading]);
 
   const handleFollow = useCallback(async (item: any) => {
-    if (!user) return;
+    if (!user) {return;}
     const v = normalizeContentPiece(item);
     const already = follows.includes(v.channel_id);
     try {
@@ -164,7 +164,7 @@ export const DiscoverFeed = () => {
   }, [user, follows]);
 
   const handleAdd = useCallback(async (item: any) => {
-    if (!user) return;
+    if (!user) {return;}
     const v = normalizeContentPiece(item);
     
     try {
@@ -181,7 +181,7 @@ export const DiscoverFeed = () => {
             .select('id').eq('user_id', user.id).eq('video_id', v.video_id).maybeSingle();
           dbId = existing?.id;
         }
-        if (dbId) await addVideoToPlaylist(activePlaylist, dbId);
+        if (dbId) {await addVideoToPlaylist(activePlaylist, dbId);}
       }
 
       if (libError && activePlaylist === 'all') {
@@ -241,7 +241,7 @@ export const DiscoverFeed = () => {
   };
 
   const handleAddToPlaylist = useCallback(async (playlistId: string, item: any) => {
-    if (!user) return;
+    if (!user) {return;}
     const v = normalizeContentPiece(item);
     try {
       const { data: libraryVideo } = await supabase.from('user_study_videos')
@@ -257,13 +257,13 @@ export const DiscoverFeed = () => {
         dbId = data?.id;
       }
 
-      if (!dbId) return;
+      if (!dbId) {return;}
       const { error } = await addVideoToPlaylist(playlistId, dbId);
       if (error) {
         toast.error('Already in this playlist');
       } else {
         toast.success('Saved to playlist ✓');
-        if (activePlaylist === playlistId) fetchMyList();
+        if (activePlaylist === playlistId) {fetchMyList();}
       }
     } catch (err) {
       toast.error('Failed to add to playlist');
@@ -280,34 +280,34 @@ export const DiscoverFeed = () => {
   }, [tab, fetchMyList, fetchPlaylists]);
 
   useEffect(() => { 
-    if (tab === 'Discover' && !searchQuery.trim() && !isSearching) loadItems(true); 
+    if (tab === 'Discover' && !searchQuery.trim() && !isSearching) {loadItems(true);} 
   }, [category, sort, tab, isSearching, searchQuery]);
 
   useEffect(() => {
-    if (tab !== 'Discover') return;
+    if (tab !== 'Discover') {return;}
     
     const handler = setTimeout(async () => {
       handleSearch(searchQuery);
     }, 800);
 
-    return () => clearTimeout(handler);
+    return () => { clearTimeout(handler); };
   }, [searchQuery, category, tab]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {return;}
     supabase.from('user_follows').select('channel_id').eq('user_id', user.id)
-      .then(({ data }) => setFollows(data?.map(f => f.channel_id) || []));
+      .then(({ data }) => { setFollows(data?.map(f => f.channel_id) || []); });
   }, [user]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleScrape = async () => {
-    if (scraping) return;
+    if (scraping) {return;}
     setScraping(true);
     setProgress('Starting discovery engine...');
     const tid = toast.loading('Discovery engine running...');
     try {
-      await scrapeAllPremiumChannels((msg) => setProgress(msg));
+      await scrapeAllPremiumChannels((msg) => { setProgress(msg); });
       await loadItems(true);
       toast.success('Discovery complete!', { id: tid });
     } catch (e: any) { 
@@ -319,7 +319,7 @@ export const DiscoverFeed = () => {
   };
 
   const handleCreatePlaylist = async () => {
-    if (!user || !newPlaylistName.trim()) return;
+    if (!user || !newPlaylistName.trim()) {return;}
     const { error } = await createPlaylist(user.id, newPlaylistName);
     if (error) {
       toast.error('Failed to create playlist');
@@ -332,7 +332,7 @@ export const DiscoverFeed = () => {
   };
 
   const handleDeletePlaylist = async (playlistId: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete the playlist "${name}"?`)) return;
+    if (!confirm(`Are you sure you want to delete the playlist "${name}"?`)) {return;}
     const { error } = await deletePlaylist(playlistId);
     if (error) {
       toast.error('Failed to delete playlist');
@@ -347,7 +347,7 @@ export const DiscoverFeed = () => {
 
   const handleRenamePlaylist = async (playlistId: string, currentName: string) => {
     const newName = prompt('Enter new playlist name:', currentName);
-    if (!newName || !newName.trim() || newName === currentName) return;
+    if (!newName?.trim() || newName === currentName) {return;}
     const { error } = await updatePlaylist(playlistId, { name: newName });
     if (error) {
       toast.error('Failed to rename playlist');
@@ -380,7 +380,7 @@ export const DiscoverFeed = () => {
   };
 
   const handleAddUrl = async () => {
-    if (!urlToAdd.trim() || !user) return;
+    if (!urlToAdd.trim() || !user) {return;}
     setIsAddingUrl(true);
     const tid = toast.loading('Ingesting resource...');
     try {
@@ -415,7 +415,7 @@ export const DiscoverFeed = () => {
       }
       setUrlToAdd('');
       setShowAddUrlModal(false);
-      if (tab === 'My Lists') fetchMyList();
+      if (tab === 'My Lists') {fetchMyList();}
     } catch (err: any) {
       toast.error(err.message, { id: tid });
     } finally {
@@ -459,7 +459,7 @@ export const DiscoverFeed = () => {
           {(['Discover','My Lists'] as const).map(t => (
             <button 
               key={t} 
-              onClick={() => setTab(t)}
+              onClick={() => { setTab(t); }}
               className={cn(
                 'text-2xl font-bold pb-1 transition-all relative', 
                 tab===t ? 'text-foreground' : 'text-muted-foreground/40 hover:text-muted-foreground'
@@ -483,12 +483,12 @@ export const DiscoverFeed = () => {
               type="text"
               placeholder="Search concepts, topics, or creators..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); }}
               className="w-full bg-card border border-border/50 rounded-2xl pl-11 pr-10 py-2.5 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all shadow-sm"
             />
             {searchQuery && (
               <button 
-                onClick={() => setSearchQuery('')}
+                onClick={() => { setSearchQuery(''); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-white/5 text-muted-foreground"
               >
                 <X className="w-3.5 h-3.5" />
@@ -500,13 +500,13 @@ export const DiscoverFeed = () => {
         <div className="ml-auto flex items-center gap-2">
           <select 
             value={sort} 
-            onChange={e => setSort(e.target.value as any)}
+            onChange={e => { setSort(e.target.value as any); }}
             className="bg-card border border-border text-xs font-bold text-muted-foreground rounded-xl px-3 py-2 focus:outline-none focus:border-primary/50 cursor-pointer hover:bg-white/5 transition-colors"
           >
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           <button 
-            onClick={() => setShowAddUrlModal(true)}
+            onClick={() => { setShowAddUrlModal(true); }}
             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all font-bold text-xs"
           >
             <Plus className="w-3.5 h-3.5" /> Ingest URL
@@ -539,7 +539,7 @@ export const DiscoverFeed = () => {
                 autoFocus
                 placeholder="https://..."
                 value={urlToAdd}
-                onChange={e => setUrlToAdd(e.target.value)}
+                onChange={e => { setUrlToAdd(e.target.value); }}
                 className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-all"
                 onKeyDown={e => e.key === 'Enter' && handleAddUrl()}
               />
@@ -560,7 +560,7 @@ export const DiscoverFeed = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowAddUrlModal(false)} className="rounded-xl font-bold">Cancel</Button>
+            <Button variant="ghost" onClick={() => { setShowAddUrlModal(false); }} className="rounded-xl font-bold">Cancel</Button>
             <Button 
               onClick={handleAddUrl} 
               disabled={isAddingUrl || !urlToAdd.trim()}
@@ -588,7 +588,7 @@ export const DiscoverFeed = () => {
                 {CATEGORIES.map(cat => (
                   <button 
                     key={cat} 
-                    onClick={() => setCat(cat)}
+                    onClick={() => { setCat(cat); }}
                     className={cn(
                       'px-3.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all',
                       category===cat 
@@ -632,7 +632,7 @@ export const DiscoverFeed = () => {
               ) : (
                 <VirtuosoGrid
                   data={items}
-                  endReached={() => { if (hasMore && !loading) loadItems(); }}
+                  endReached={() => { if (hasMore && !loading) {loadItems();} }}
                   components={gridComponents}
                   style={{ height: '100%', outline: 'none' }}
                   className="scrollbar-hide px-1"
@@ -678,7 +678,7 @@ export const DiscoverFeed = () => {
               {/* My Lists Content */}
               <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar shrink-0">
                 <button
-                  onClick={() => setActivePlaylist('all')}
+                  onClick={() => { setActivePlaylist('all'); }}
                   className={cn(
                     "px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border",
                     activePlaylist === 'all' 
@@ -691,7 +691,7 @@ export const DiscoverFeed = () => {
                 {playlists.map(p => (
                   <div key={p.id} className="relative group/p">
                     <button
-                      onClick={() => setActivePlaylist(p.id)}
+                      onClick={() => { setActivePlaylist(p.id); }}
                       className={cn(
                         "px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-2 pr-12",
                         activePlaylist === p.id 
@@ -712,7 +712,7 @@ export const DiscoverFeed = () => {
                   </div>
                 ))}
                 <button 
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={() => { setShowCreateModal(true); }}
                   className="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-white/5 border border-dashed border-border/50 text-muted-foreground hover:text-white hover:border-border transition-all flex items-center gap-2"
                 >
                   <Plus className="w-3 h-3" /> New Playlist
@@ -742,7 +742,7 @@ export const DiscoverFeed = () => {
                       autoFocus
                       placeholder="e.g. Machine Learning Deep Dive"
                       value={newPlaylistName}
-                      onChange={(e) => setNewPlaylistName(e.target.value)}
+                      onChange={(e) => { setNewPlaylistName(e.target.value); }}
                       onKeyDown={(e) => e.key === 'Enter' && handleCreatePlaylist()}
                       className="flex-1 bg-white/5 border border-border/50 rounded-xl px-4 py-2 outline-none focus:border-primary transition-all text-sm"
                     />
@@ -753,7 +753,7 @@ export const DiscoverFeed = () => {
                       Create
                     </button>
                     <button 
-                      onClick={() => setShowCreateModal(false)}
+                      onClick={() => { setShowCreateModal(false); }}
                       className="px-4 py-2 rounded-xl hover:bg-white/5 transition-all text-xs font-bold"
                     >
                       Cancel
@@ -785,7 +785,7 @@ export const DiscoverFeed = () => {
                         <GripVertical className="w-5 h-5" />
                       </div>
                       
-                      <div className="w-32 aspect-video rounded-xl overflow-hidden bg-black/40 shrink-0 relative cursor-pointer" onClick={() => setSelected(item)}>
+                      <div className="w-32 aspect-video rounded-xl overflow-hidden bg-black/40 shrink-0 relative cursor-pointer" onClick={() => { setSelected(item); }}>
                         <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                           <Play className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -793,7 +793,7 @@ export const DiscoverFeed = () => {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-[14px] font-bold truncate group-hover:text-primary transition-colors cursor-pointer" onClick={() => setSelected(item)}>{item.title}</h4>
+                        <h4 className="text-[14px] font-bold truncate group-hover:text-primary transition-colors cursor-pointer" onClick={() => { setSelected(item); }}>{item.title}</h4>
                         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                           <p className="text-[12px] text-muted-foreground">{item.channel_name} • {Math.floor((item.duration || 0)/60)}m</p>
                           <DropdownMenu.Root>
@@ -821,7 +821,7 @@ export const DiscoverFeed = () => {
                       </div>
 
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setSelected(item)} title="Preview" className="p-2 rounded-xl hover:bg-white/5 text-muted-foreground hover:text-white transition-all">
+                        <button onClick={() => { setSelected(item); }} title="Preview" className="p-2 rounded-xl hover:bg-white/5 text-muted-foreground hover:text-white transition-all">
                           <ExternalLink className="w-4 h-4" />
                         </button>
                         <button onClick={() => handleRemoveFromList(item)} title="Remove" className="p-2 rounded-xl hover:bg-rose-500/10 text-muted-foreground hover:text-rose-400 transition-all">
@@ -840,7 +840,7 @@ export const DiscoverFeed = () => {
       <VideoPlayerModal 
         isOpen={!!selected} 
         video={selected ? normalizeContentPiece(selected) : null}
-        onClose={() => setSelected(null)} 
+        onClose={() => { setSelected(null); }} 
         onAdd={handleAdd}
       />
     </div>

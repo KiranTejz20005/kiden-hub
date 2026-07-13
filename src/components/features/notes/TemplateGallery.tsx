@@ -252,7 +252,7 @@ export function TemplateGallery({ isOpen, onClose, onSelectTemplate }: TemplateG
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                 <input
                   value={query}
-                  onChange={e => setQuery(e.target.value)}
+                  onChange={e => { setQuery(e.target.value); }}
                   placeholder="Search templates..."
                   className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-[13px] text-white placeholder:text-white/20 outline-none focus:border-white/20 transition-colors"
                   autoFocus
@@ -262,7 +262,7 @@ export function TemplateGallery({ isOpen, onClose, onSelectTemplate }: TemplateG
                 {CATEGORIES.map(cat => (
                   <button
                     key={cat}
-                    onClick={() => setActiveCategory(cat)}
+                    onClick={() => { setActiveCategory(cat); }}
                     className={cn(
                       "px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all",
                       activeCategory === cat
@@ -290,7 +290,7 @@ export function TemplateGallery({ isOpen, onClose, onSelectTemplate }: TemplateG
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04 }}
-                      onClick={() => onSelectTemplate(template)}
+                      onClick={() => { onSelectTemplate(template); }}
                       className={cn(
                         "group text-left p-4 rounded-2xl border transition-all hover:border-white/15 hover:bg-white/[0.04]",
                         preview?.id === template.id

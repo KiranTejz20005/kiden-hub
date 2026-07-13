@@ -69,7 +69,7 @@ export default function HabitTracker() {
   const [streaks, setStreaks] = useState<Record<string, number>>({});
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
     setIsLoading(true);
     const [rawHabits, logs] = await Promise.all([
       fetchHabits(user.id),
@@ -95,7 +95,7 @@ export default function HabitTracker() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleLog = async (habit: HabitWithProgress) => {
-    if (!user || loggingIds.has(habit.id)) return;
+    if (!user || loggingIds.has(habit.id)) {return;}
     setLoggingIds(prev => new Set([...prev, habit.id]));
     const newValue = habit.current + 1;
     const result = await logHabit(user.id, habit.id, newValue);
@@ -113,7 +113,7 @@ export default function HabitTracker() {
   };
 
   const handleSubmit = async () => {
-    if (!user || !form.name.trim()) return;
+    if (!user || !form.name.trim()) {return;}
     if (editingHabit) {
       await updateHabit(editingHabit.id, user.id, {
         name: form.name, icon: form.icon, color: form.color,
@@ -126,7 +126,7 @@ export default function HabitTracker() {
         goal: form.goal, unit: form.unit, description: form.description || null,
         is_active: true
       });
-      if (h) toast.success(`${form.icon} Habit created!`);
+      if (h) {toast.success(`${form.icon} Habit created!`);}
     }
     setForm(EMPTY_FORM);
     setShowForm(false);
@@ -135,7 +135,7 @@ export default function HabitTracker() {
   };
 
   const handleDelete = async (habit: Habit) => {
-    if (!user || !confirm(`Delete "${habit.name}"?`)) return;
+    if (!user || !confirm(`Delete "${habit.name}"?`)) {return;}
     await deleteHabit(habit.id, user.id);
     toast.success('Habit removed');
     loadData();
@@ -345,7 +345,7 @@ export default function HabitTracker() {
                   <h2 className="text-[15px] font-bold text-white">
                     {editingHabit ? 'Edit Habit' : 'New Habit'}
                   </h2>
-                  <button onClick={() => setShowForm(false)} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all">
+                  <button onClick={() => { setShowForm(false); }} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -357,7 +357,7 @@ export default function HabitTracker() {
                     {PRESET_ICONS.map(ic => (
                       <button
                         key={ic}
-                        onClick={() => setForm(f => ({ ...f, icon: ic }))}
+                        onClick={() => { setForm(f => ({ ...f, icon: ic })); }}
                         className={cn(
                           "w-9 h-9 rounded-xl text-xl transition-all",
                           form.icon === ic ? "bg-white/20 ring-1 ring-white/40 scale-110" : "bg-white/5 hover:bg-white/10"
@@ -376,7 +376,7 @@ export default function HabitTracker() {
                     {PRESET_COLORS.map(c => (
                       <button
                         key={c}
-                        onClick={() => setForm(f => ({ ...f, color: c }))}
+                        onClick={() => { setForm(f => ({ ...f, color: c })); }}
                         className={cn("w-7 h-7 rounded-full transition-all", form.color === c && "ring-2 ring-white ring-offset-1 ring-offset-[#111] scale-110")}
                         style={{ backgroundColor: c }}
                       />
@@ -389,7 +389,7 @@ export default function HabitTracker() {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Habit Name</p>
                   <input
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={e => { setForm(f => ({ ...f, name: e.target.value })); }}
                     placeholder="e.g. Morning Run"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[13px] text-white placeholder:text-white/20 outline-none focus:border-white/25 transition-colors"
                     autoFocus
@@ -404,7 +404,7 @@ export default function HabitTracker() {
                       type="number"
                       min={1}
                       value={form.goal}
-                      onChange={e => setForm(f => ({ ...f, goal: Math.max(1, parseInt(e.target.value) || 1) }))}
+                      onChange={e => { setForm(f => ({ ...f, goal: Math.max(1, parseInt(e.target.value) || 1) })); }}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[13px] text-white outline-none focus:border-white/25 transition-colors"
                     />
                   </div>
@@ -412,7 +412,7 @@ export default function HabitTracker() {
                     <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Unit</p>
                     <input
                       value={form.unit}
-                      onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
+                      onChange={e => { setForm(f => ({ ...f, unit: e.target.value })); }}
                       placeholder="times, pages, ml..."
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[13px] text-white placeholder:text-white/20 outline-none focus:border-white/25 transition-colors"
                     />
@@ -421,7 +421,7 @@ export default function HabitTracker() {
 
                 <div className="flex gap-3 pt-2">
                   <button
-                    onClick={() => setShowForm(false)}
+                    onClick={() => { setShowForm(false); }}
                     className="flex-1 py-2.5 rounded-xl bg-white/5 text-white/50 text-[11px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all"
                   >
                     Cancel

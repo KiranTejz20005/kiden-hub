@@ -90,7 +90,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   }, [userId]);
 
   const refreshCollections = useCallback(async () => {
-    if (!userId || !activeWorkspace) return;
+    if (!userId || !activeWorkspace) {return;}
 
     // Fetch collections for the active workspace (RLS handles access control)
     const { data, error } = await supabase
@@ -123,7 +123,7 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
 
   // Set up realtime subscriptions
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {return;}
 
     const workspaceChannel = supabase
       .channel('workspace-changes')

@@ -34,22 +34,22 @@ export const useCalendarStore = create<CalendarState>((set) => ({
   // View State
   view: 'week',
   currentDate: new Date(),
-  setView: (view) => set({ view }),
-  setCurrentDate: (currentDate) => set({ currentDate }),
+  setView: (view) => { set({ view }); },
+  setCurrentDate: (currentDate) => { set({ currentDate }); },
   
   // Selection State
   selectedEventId: null,
-  setSelectedEventId: (selectedEventId) => set({ selectedEventId, isInspectorOpen: !!selectedEventId }),
+  setSelectedEventId: (selectedEventId) => { set({ selectedEventId, isInspectorOpen: !!selectedEventId }); },
   
   // UI State
   isSidebarOpen: true,
-  toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+  toggleSidebar: () => { set((state) => ({ isSidebarOpen: !state.isSidebarOpen })); },
   isInspectorOpen: false,
-  setInspectorOpen: (isInspectorOpen) => set({ isInspectorOpen }),
+  setInspectorOpen: (isInspectorOpen) => { set({ isInspectorOpen }); },
   
   // Create Modal State
   isCreateModalOpen: false,
-  setCreateModalOpen: (isCreateModalOpen) => set({ isCreateModalOpen }),
+  setCreateModalOpen: (isCreateModalOpen) => { set({ isCreateModalOpen }); },
   draftEvent: null,
-  setDraftEvent: (draftEvent) => set({ draftEvent }),
+  setDraftEvent: (draftEvent) => { set({ draftEvent }); },
 }));

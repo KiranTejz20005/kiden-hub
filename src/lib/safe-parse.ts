@@ -5,7 +5,7 @@
 
 export function safeParseDate(dateValue: any, fallback: Date = new Date()): Date {
   try {
-    if (!dateValue) return fallback;
+    if (!dateValue) {return fallback;}
     
     const date = new Date(dateValue);
     // Check if date is valid
@@ -26,7 +26,13 @@ export function safeFormatDate(
   fallback: string = 'Unknown'
 ): string {
   try {
-    const date = safeParseDate(dateValue);
+    if (dateValue === null || dateValue === undefined) {
+      return fallback;
+    }
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) {
+      return fallback;
+    }
     return formatter(date);
   } catch (error) {
     console.warn('Error formatting date:', error);
@@ -38,7 +44,7 @@ export function safeParseJSON<T>(
   jsonString: string | null | undefined,
   fallback: T
 ): T {
-  if (!jsonString) return fallback;
+  if (!jsonString) {return fallback;}
   try {
     return JSON.parse(jsonString) as T;
   } catch (error) {
@@ -61,13 +67,13 @@ export function safeAccess<T>(
 }
 
 export function safeNumberFormat(value: any, fallback: number = 0): number {
-  if (value === null || value === undefined) return fallback;
+  if (value === null || value === undefined) {return fallback;}
   const num = Number(value);
   return isNaN(num) ? fallback : num;
 }
 
 export function safeStringFormat(value: any, fallback: string = ''): string {
-  if (value === null || value === undefined) return fallback;
+  if (value === null || value === undefined) {return fallback;}
   return String(value);
 }
 

@@ -39,7 +39,7 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
   }, [profile]);
 
   const handleSaveProfile = async () => {
-    if (!user) return;
+    if (!user) {return;}
     setIsSaving(true);
     try {
       const { error } = await supabase
@@ -47,7 +47,7 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
         .update({ display_name: displayName })
         .eq('user_id', user.id);
       
-      if (error) throw error;
+      if (error) {throw error;}
       toast.success('Profile updated');
       onProfileUpdate();
     } catch (err) {
@@ -94,7 +94,7 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
                 <Label className="text-[10px] font-bold uppercase tracking-[0.1em] text-text-tertiary">Display Name</Label>
                 <Input 
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  onChange={(e) => { setDisplayName(e.target.value); }}
                   placeholder="Your name"
                   className="h-11 rounded-xl bg-secondary/50 border-none focus-visible:ring-1 focus-visible:ring-primary text-sm text-foreground placeholder:text-text-tertiary"
                 />
@@ -254,7 +254,7 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
                     ].map(t => (
                       <button
                         key={t.id}
-                        onClick={() => setMode(t.id as ModeType)}
+                        onClick={() => { setMode(t.id as ModeType); }}
                         className={cn(
                           "flex items-center gap-2 px-4 py-2 rounded-lg text-[11px] font-bold transition-all",
                           mode === t.id ? "bg-background text-foreground shadow-sm" : "text-text-secondary hover:text-foreground"
@@ -284,7 +284,7 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
                     ].map(t => (
                       <button
                         key={t.id}
-                        onClick={() => setTheme(t.id as any)}
+                        onClick={() => { setTheme(t.id as any); }}
                         className={cn(
                           "flex items-center gap-3 p-3 rounded-xl border transition-all text-left group",
                           theme === t.id 
@@ -311,7 +311,7 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
                     <p className="text-xs text-text-secondary mt-1 leading-relaxed">Automatically insert closing brackets, parentheses, and curly braces when typing an opening one.</p>
                   </div>
                   <button 
-                    onClick={() => setAutoCloseBrackets(!autoCloseBrackets)}
+                    onClick={() => { setAutoCloseBrackets(!autoCloseBrackets); }}
                     className={cn(
                       "w-10 h-5 rounded-full relative transition-all duration-300",
                       autoCloseBrackets ? "bg-primary" : "bg-bg-3"
@@ -374,7 +374,7 @@ export const SettingsModal = ({ isOpen, onClose, profile, onProfileUpdate }: Set
               ].map(tab => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as SettingsTab)}
+                  onClick={() => { setActiveTab(tab.id as SettingsTab); }}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all",
                     activeTab === tab.id 

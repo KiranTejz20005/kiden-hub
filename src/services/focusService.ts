@@ -30,7 +30,7 @@ export const completeFocusSession = async (
     .update({ ended_at: new Date().toISOString(), completed: true, duration_minutes: durationMinutes })
     .eq('id', sessionId)
     .eq('user_id', userId);
-  if (error) console.error('completeFocusSession:', error);
+  if (error) {console.error('completeFocusSession:', error);}
 };
 
 export const fetchRecentFocusSessions = async (
@@ -75,7 +75,7 @@ export const fetchWeeklyFocusStats = async (userId: string): Promise<DailyFocusS
   const map: Record<string, DailyFocusStat> = {};
   (data as any[])?.forEach((s: any) => {
     const date = s.started_at.slice(0, 10);
-    if (!map[date]) map[date] = { date, total_minutes: 0, session_count: 0 };
+    if (!map[date]) {map[date] = { date, total_minutes: 0, session_count: 0 };}
     map[date].total_minutes += s.duration_minutes || 0;
     map[date].session_count += 1;
   });

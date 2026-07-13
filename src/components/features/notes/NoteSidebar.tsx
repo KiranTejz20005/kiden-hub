@@ -43,7 +43,7 @@ const NoteSidebar = ({
   const [, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
     setLoading(true);
     try {
       const [notesRes, foldersRes] = await Promise.all([
@@ -51,7 +51,7 @@ const NoteSidebar = ({
         supabase.from('note_folders').select('*').eq('user_id', user.id).order('name')
       ]);
 
-      if (notesRes.data) setNotes(notesRes.data);
+      if (notesRes.data) {setNotes(notesRes.data);}
       if (foldersRes.data) {
         setFolders(foldersRes.data);
         const collapsed = new Set(foldersRes.data.filter(f => f.is_collapsed).map(f => f.id));
@@ -68,7 +68,7 @@ const NoteSidebar = ({
 
   // Real-time sync
   useEffect(() => {
-    if (!user) return;
+    if (!user) {return;}
     const channel = supabase.channel('note-sidebar-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notes', filter: `user_id=eq.${user.id}` }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'note_folders', filter: `user_id=eq.${user.id}` }, () => fetchData())
@@ -79,8 +79,8 @@ const NoteSidebar = ({
   const toggleFolder = (id: string) => {
     setCollapsedFolders(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {next.delete(id);}
+      else {next.add(id);}
       return next;
     });
     // Update in DB (fire and forget)
@@ -88,7 +88,7 @@ const NoteSidebar = ({
   };
 
   const handleCreateFolder = async (parentId?: string) => {
-    if (!user) return;
+    if (!user) {return;}
     const { data } = await supabase.from('note_folders').insert([{ 
       user_id: user.id, 
       name: 'New Folder',
@@ -108,8 +108,8 @@ const NoteSidebar = ({
     }
   };
 
-  const startResizing = () => setIsResizing(true);
-  const stopResizing = () => setIsResizing(false);
+  const startResizing = () => { setIsResizing(true); };
+  const stopResizing = () => { setIsResizing(false); };
   const resize = (e: MouseEvent) => {
     if (isResizing) {
       const newWidth = Math.max(200, Math.min(450, e.clientX));
@@ -129,7 +129,7 @@ const NoteSidebar = ({
   const favorites = notes.filter(n => n.is_favorite);
   const filteredNotes = notes.filter(n => 
     n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (n.content_text && n.content_text.toLowerCase().includes(searchQuery.toLowerCase()))
+    (n.content_text?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const renderNoteItem = (note: Note) => (
@@ -141,7 +141,7 @@ const NoteSidebar = ({
         "group relative flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition-all",
         activeNoteId === note.id ? "bg-white/5 border border-white/10 shadow-lg" : "hover:bg-white/[0.02]"
       )}
-      onClick={() => onNoteSelect(note)}
+      onClick={() => { onNoteSelect(note); }}
     >
       <div className="w-6 h-6 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-sm shrink-0">
         {note.icon || '📝'}
@@ -163,16 +163,16 @@ const NoteSidebar = ({
         </button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="p-1 rounded-md hover:bg-white/10 text-muted-foreground" onClick={e => e.stopPropagation()}>
+            <button className="p-1 rounded-md hover:bg-white/10 text-muted-foreground" onClick={e => { e.stopPropagation(); }}>
               <MoreHorizontal className="w-3 h-3" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuItem onClick={() => onDuplicateNote(note)}><Copy className="w-4 h-4 mr-2" /> Duplicate</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { onDuplicateNote(note); }}><Copy className="w-4 h-4 mr-2" /> Duplicate</DropdownMenuItem>
             <DropdownMenuItem><Move className="w-4 h-4 mr-2" /> Move to Folder</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onToggleFavorite(note)}><Star className="w-4 h-4 mr-2" /> {note.is_favorite ? 'Unfavorite' : 'Favorite'}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { onToggleFavorite(note); }}><Star className="w-4 h-4 mr-2" /> {note.is_favorite ? 'Unfavorite' : 'Favorite'}</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive" onClick={() => onDeleteNote(note.id)}><Trash className="w-4 h-4 mr-2" /> Delete</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive" onClick={() => { onDeleteNote(note.id); }}><Trash className="w-4 h-4 mr-2" /> Delete</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -192,15 +192,15 @@ const NoteSidebar = ({
             level > 0 && "ml-4"
           )}
         >
-          <button onClick={() => toggleFolder(folder.id)} className="p-0.5 rounded-md hover:bg-white/10 text-muted-foreground">
+          <button onClick={() => { toggleFolder(folder.id); }} className="p-0.5 rounded-md hover:bg-white/10 text-muted-foreground">
             {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
-          <div className="flex items-center gap-2 flex-1 min-w-0" onClick={() => toggleFolder(folder.id)}>
+          <div className="flex items-center gap-2 flex-1 min-w-0" onClick={() => { toggleFolder(folder.id); }}>
             {isCollapsed ? <Folder className="w-4 h-4 text-white/40" /> : <FolderOpen className="w-4 h-4 text-white/40" />}
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 group-hover:text-white/60 truncate">{folder.name}</span>
           </div>
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => onNewNote(folder.id)} className="p-1 rounded-md hover:bg-white/10 text-muted-foreground"><Plus className="w-3 h-3" /></button>
+            <button onClick={() => { onNewNote(folder.id); }} className="p-1 rounded-md hover:bg-white/10 text-muted-foreground"><Plus className="w-3 h-3" /></button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="p-1 rounded-md hover:bg-white/10 text-muted-foreground"><MoreHorizontal className="w-3 h-3" /></button>
@@ -240,7 +240,7 @@ const NoteSidebar = ({
         <div className="flex items-center justify-between">
           <h2 className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Notes Base</h2>
           <button 
-            onClick={() => onNewNote()} 
+            onClick={() => { onNewNote(); }} 
             className="p-2 rounded-lg bg-white/5 border border-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-95"
             title="New Note"
           >
@@ -254,7 +254,7 @@ const NoteSidebar = ({
             placeholder="Search Notes..."
             className="h-10 pl-9 bg-white/5 border-white/5 text-[13px] rounded-xl placeholder:text-muted-foreground/20 focus:ring-1 focus:ring-primary/30 transition-all"
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={e => { setSearchQuery(e.target.value); }}
           />
         </div>
       </div>

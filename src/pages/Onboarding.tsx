@@ -26,8 +26,8 @@ const Onboarding = () => {
 
   useEffect(() => {
     if (step === 1) {
-      const timer = setTimeout(() => setStep(2), 1500);
-      return () => clearTimeout(timer);
+      const timer = setTimeout(() => { setStep(2); }, 1500);
+      return () => { clearTimeout(timer); };
     }
   }, [step]);
 
@@ -105,7 +105,7 @@ const Onboarding = () => {
             accepted_at: new Date().toISOString()
         }]);
       
-      if (memberError) throw memberError;
+      if (memberError) {throw memberError;}
 
       // 3. Update profile
       const { error: profileError } = await supabase
@@ -116,7 +116,7 @@ const Onboarding = () => {
         })
         .eq('user_id', authUser.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {throw profileError;}
 
       toast.success('Workspace launched!');
       navigate('/dashboard');
@@ -190,7 +190,7 @@ const Onboarding = () => {
                   <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Workspace Name</label>
                   <Input 
                     value={workspaceName}
-                    onChange={(e) => setWorkspaceName(e.target.value)}
+                    onChange={(e) => { setWorkspaceName(e.target.value); }}
                     placeholder="Acme Projects"
                     className="h-12 text-lg"
                   />
@@ -216,7 +216,7 @@ const Onboarding = () => {
                 {['Research', 'Writing', 'Design', 'Engineering', 'Personal Notes', 'Team Projects'].map((uc) => (
                   <button
                     key={uc}
-                    onClick={() => toggleUseCase(uc)}
+                    onClick={() => { toggleUseCase(uc); }}
                     className={`p-4 rounded-xl border-2 text-left transition-all ${useCases.includes(uc) ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/50'}`}
                   >
                     <span className="font-bold">{uc}</span>
@@ -224,7 +224,7 @@ const Onboarding = () => {
                 ))}
               </div>
               
-              <Button onClick={() => setStep(4)} className="w-full h-12 text-lg">
+              <Button onClick={() => { setStep(4); }} className="w-full h-12 text-lg">
                 Continue <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </motion.div>
@@ -245,7 +245,7 @@ const Onboarding = () => {
                   <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Team Member Emails</label>
                   <Input 
                     value={emails}
-                    onChange={(e) => setEmails(e.target.value)}
+                    onChange={(e) => { setEmails(e.target.value); }}
                     placeholder="alex@example.com, sam@example.com"
                     className="h-12"
                   />

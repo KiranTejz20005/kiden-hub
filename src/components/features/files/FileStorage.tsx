@@ -42,7 +42,7 @@ const getCfg = (type: string) =>
   FILE_CFG[type?.toLowerCase()] ?? { icon: <File className="w-5 h-5" />, color: 'text-zinc-400', bg: 'bg-zinc-500/10 border-zinc-500/20' };
 
 const fmtSize = (b: number) => {
-  if (!b) return '0 B';
+  if (!b) {return '0 B';}
   const k = 1024, s = ['B','KB','MB','GB'];
   const i = Math.floor(Math.log(b) / Math.log(k));
   return `${parseFloat((b / Math.pow(k, i)).toFixed(1))} ${s[i]}`;
@@ -72,7 +72,7 @@ const PreviewModal = ({ file, onClose }: { file: any; onClose: () => void }) => 
           .from('kiden-files')
           .createSignedUrl(file.storage_path, 3600); // 1 hour
         
-        if (error) throw error;
+        if (error) {throw error;}
         
         if (IS_TEXT(type)) {
           const r = await fetch(data.signedUrl);
@@ -106,7 +106,7 @@ const PreviewModal = ({ file, onClose }: { file: any; onClose: () => void }) => 
         exit={{ scale: 0.92, opacity: 0 }}
         transition={{ duration: 0.2 }}
         className="bg-card border border-border/60 rounded-2xl overflow-hidden max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl"
-        onClick={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border/40 shrink-0">
@@ -180,11 +180,11 @@ const FileStorage = () => {
   const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 
   const fetchFiles = useCallback(async () => {
-    if (fetchInProgressRef.current) return;
+    if (fetchInProgressRef.current) {return;}
     const now = Date.now();
-    if (now - lastFetchTimeRef.current < FETCH_COOLDOWN) return;
+    if (now - lastFetchTimeRef.current < FETCH_COOLDOWN) {return;}
     
-    if (!user) return;
+    if (!user) {return;}
     fetchInProgressRef.current = true;
     try {
       setLoading(true);
@@ -198,20 +198,20 @@ const FileStorage = () => {
   }, [user]);
 
   useEffect(() => {
-    if (user && files.length === 0) fetchFiles();
+    if (user && files.length === 0) {fetchFiles();}
   }, [user]);
   
   // Refetch only on tab visibility change
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') fetchFiles();
+      if (document.visibilityState === 'visible') {fetchFiles();}
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () => { document.removeEventListener('visibilitychange', handleVisibilityChange); };
   }, [user]);
 
   const onDrop = useCallback(async (accepted: File[]) => {
-    if (!user) return;
+    if (!user) {return;}
     setUploading(true);
     for (const file of accepted) {
       if (file.size > FILE_SIZE_LIMIT) { toast.error(`${file.name} exceeds 50MB limit`); continue; }
@@ -219,13 +219,13 @@ const FileStorage = () => {
         const ext  = file.name.split('.').pop() ?? 'bin';
         const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from('kiden-files').upload(path, file);
-        if (upErr) throw upErr;
+        if (upErr) {throw upErr;}
         const { data: { publicUrl } } = supabase.storage.from('kiden-files').getPublicUrl(path);
         const { error: dbErr } = await supabase.from('files').insert([{
           user_id: user.id, name: file.name, size: file.size,
           type: ext, mime_type: file.type, storage_path: path, public_url: publicUrl
         }]);
-        if (dbErr) throw dbErr;
+        if (dbErr) {throw dbErr;}
         
         // Log Activity
         logActivity(user.id, 'upload', file.name, 'file');
@@ -263,7 +263,7 @@ const FileStorage = () => {
     <>
       {/* Preview Modal */}
       <AnimatePresence>
-        {preview && <PreviewModal file={preview} onClose={() => setPreview(null)} />}
+        {preview && <PreviewModal file={preview} onClose={() => { setPreview(null); }} />}
       </AnimatePresence>
 
       {/* Page */}
@@ -290,7 +290,7 @@ const FileStorage = () => {
             {TABS.map(t => (
               <button 
                 key={t} 
-                onClick={() => setTab(t)} 
+                onClick={() => { setTab(t); }} 
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap', 
                   tab === t 
@@ -307,14 +307,14 @@ const FileStorage = () => {
             {(tab !== 'YouTube' && tab !== 'Trending') && (
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <Input placeholder="Search files…" className="pl-9 h-9 w-48 bg-secondary/30 border-border/40 text-sm" value={search} onChange={e => setSearch(e.target.value)} />
+                <Input placeholder="Search files…" className="pl-9 h-9 w-48 bg-secondary/30 border-border/40 text-sm" value={search} onChange={e => { setSearch(e.target.value); }} />
               </div>
             )}
 
             {(tab !== 'YouTube' && tab !== 'Trending') && (
               <div className="flex items-center bg-secondary/40 rounded-lg p-0.5 border border-border/40">
                 {(['grid','list'] as const).map(m => (
-                  <button key={m} onClick={() => setView(m)} className={cn('p-1.5 rounded-md transition-all', view === m ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                  <button key={m} onClick={() => { setView(m); }} className={cn('p-1.5 rounded-md transition-all', view === m ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
                     {m === 'grid' ? <Grid3X3 className="w-3.5 h-3.5" /> : <List className="w-3.5 h-3.5" />}
                   </button>
                 ))}
@@ -387,7 +387,7 @@ const FileStorage = () => {
                         return (
                           <motion.div key={file.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
                             className="group relative bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden hover:border-emerald-500/30 hover:shadow-xl transition-all duration-300 cursor-pointer"
-                            onClick={() => setPreview(file)}
+                            onClick={() => { setPreview(file); }}
                           >
                             <div className={cn('h-40 flex items-center justify-center relative overflow-hidden', (isImg || file.type === 'pdf' || ['md', 'txt', 'js', 'ts', 'tsx'].includes(file.type)) ? 'bg-black/40' : cfg.bg)}>
                               {isImg ? (
@@ -404,11 +404,11 @@ const FileStorage = () => {
                                   <div className="absolute inset-0 opacity-[0.05] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
                                 </div>
                               )}
-                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5" onClick={e => e.stopPropagation()}>
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5" onClick={e => { e.stopPropagation(); }}>
                                 <button onClick={e => { e.stopPropagation(); setPreview(file); }} className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
                                   <ExternalLink className="w-3 h-3" />
                                 </button>
-                                <a href={file.public_url} download={file.name} onClick={e => e.stopPropagation()} className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
+                                <a href={file.public_url} download={file.name} onClick={e => { e.stopPropagation(); }} className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
                                   <Download className="w-3 h-3" />
                                 </a>
                                 <button onClick={e => { e.stopPropagation(); deleteFile(file); }} className="w-7 h-7 rounded-lg bg-red-500/30 hover:bg-red-500/50 flex items-center justify-center text-red-300">
@@ -443,7 +443,7 @@ const FileStorage = () => {
                         return (
                           <motion.div key={file.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             className="grid grid-cols-12 px-4 py-3 items-center border-b border-border/30 last:border-0 hover:bg-secondary/20 transition-colors group cursor-pointer"
-                            onClick={() => setPreview(file)}
+                            onClick={() => { setPreview(file); }}
                           >
                             <div className="col-span-5 flex items-center gap-3 min-w-0">
                               <div className={cn('w-8 h-8 rounded-lg border flex items-center justify-center shrink-0', cfg.bg)}>
@@ -456,7 +456,7 @@ const FileStorage = () => {
                               <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-md border uppercase', cfg.bg, cfg.color)}>{file.type}</span>
                             </div>
                             <div className="col-span-2 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(file.created_at), { addSuffix: true })}</div>
-                            <div className="col-span-1 flex justify-end" onClick={e => e.stopPropagation()}>
+                            <div className="col-span-1 flex justify-end" onClick={e => { e.stopPropagation(); }}>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <button className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-secondary/60 text-muted-foreground transition-all">
@@ -464,7 +464,7 @@ const FileStorage = () => {
                                   </button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => setPreview(file)}><ExternalLink className="w-4 h-4 mr-2" />Preview</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { setPreview(file); }}><ExternalLink className="w-4 h-4 mr-2" />Preview</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => window.open(file.public_url, '_blank')}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
                                   <DropdownMenuItem className="text-destructive" onClick={() => deleteFile(file)}><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
                                 </DropdownMenuContent>

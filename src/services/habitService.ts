@@ -35,7 +35,7 @@ export const updateHabit = async (
     .update(updates)
     .eq('id', habitId)
     .eq('user_id', userId);
-  if (error) console.error('updateHabit:', error);
+  if (error) {console.error('updateHabit:', error);}
 };
 
 export const deleteHabit = async (habitId: string, userId: string): Promise<void> => {
@@ -44,7 +44,7 @@ export const deleteHabit = async (habitId: string, userId: string): Promise<void
     .update({ is_active: false })
     .eq('id', habitId)
     .eq('user_id', userId);
-  if (error) console.error('deleteHabit:', error);
+  if (error) {console.error('deleteHabit:', error);}
 };
 
 export const fetchTodayLogs = async (userId: string): Promise<HabitLog[]> => {
@@ -88,7 +88,7 @@ export const fetchHabitStreaks = async (userId: string, habitId: string): Promis
     .eq('habit_id', habitId)
     .order('date', { ascending: false })
     .limit(60);
-  if (error || !data) return 0;
+  if (error || !data) {return 0;}
 
   let streak = 0;
   const today = new Date();

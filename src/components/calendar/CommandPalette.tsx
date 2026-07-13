@@ -30,16 +30,16 @@ export const CalendarCommandPalette = () => {
       
       // Shortcuts for views
       if (!open) {
-        if (e.key === "d") setView("day");
-        if (e.key === "w") setView("week");
-        if (e.key === "m") setView("month");
-        if (e.key === "a") setView("agenda");
-        if (e.key === "c") setCreateModalOpen(true);
+        if (e.key === "d") {setView("day");}
+        if (e.key === "w") {setView("week");}
+        if (e.key === "m") {setView("month");}
+        if (e.key === "a") {setView("agenda");}
+        if (e.key === "c") {setCreateModalOpen(true);}
       }
     };
 
     document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
+    return () => { document.removeEventListener("keydown", down); };
   }, [open, setView, setCreateModalOpen]);
 
   return (
@@ -50,7 +50,7 @@ export const CalendarCommandPalette = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setOpen(false)}
+            onClick={() => { setOpen(false); }}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
           

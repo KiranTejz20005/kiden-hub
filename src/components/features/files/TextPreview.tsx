@@ -14,7 +14,7 @@ const TextPreview: React.FC<TextPreviewProps> = ({ url, className }) => {
     const fetchContent = async () => {
       try {
         const res = await fetch(url);
-        if (!res.ok) throw new Error('Failed to fetch text content');
+        if (!res.ok) {throw new Error('Failed to fetch text content');}
         const text = await res.text();
         setContent(text.slice(0, 400));
       } catch (err) {

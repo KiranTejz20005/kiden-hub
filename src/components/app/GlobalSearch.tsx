@@ -76,7 +76,7 @@ const GlobalSearch = ({ open, onOpenChange, onViewChange }: GlobalSearchProps) =
     const timer = setTimeout(() => {
       fetchResults(query);
     }, 300);
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); };
   }, [query, fetchResults]);
 
   const handleSelect = (type: 'file' | 'board' | 'nav' | 'note', id: string) => {
@@ -112,7 +112,7 @@ const GlobalSearch = ({ open, onOpenChange, onViewChange }: GlobalSearchProps) =
             {results.files.map((file) => (
               <CommandItem
                 key={file.id}
-                onSelect={() => handleSelect('file', file.id)}
+                onSelect={() => { handleSelect('file', file.id); }}
                 className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.05] rounded-lg"
               >
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
@@ -134,7 +134,7 @@ const GlobalSearch = ({ open, onOpenChange, onViewChange }: GlobalSearchProps) =
             {results.notes.map((note) => (
               <CommandItem
                 key={note.id}
-                onSelect={() => handleSelect('note', note.id)}
+                onSelect={() => { handleSelect('note', note.id); }}
                 className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.05] rounded-lg"
               >
                 <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
@@ -154,7 +154,7 @@ const GlobalSearch = ({ open, onOpenChange, onViewChange }: GlobalSearchProps) =
             {results.boards.map((board) => (
               <CommandItem
                 key={board.id}
-                onSelect={() => handleSelect('board', board.id)}
+                onSelect={() => { handleSelect('board', board.id); }}
                 className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.05] rounded-lg"
               >
                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
@@ -170,15 +170,15 @@ const GlobalSearch = ({ open, onOpenChange, onViewChange }: GlobalSearchProps) =
         )}
 
         <CommandGroup heading="Quick Navigation">
-          <CommandItem onSelect={() => handleSelect('nav', 'dashboard')} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.05] rounded-lg">
+          <CommandItem onSelect={() => { handleSelect('nav', 'dashboard'); }} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.05] rounded-lg">
             <Search className="w-4 h-4 text-[var(--text-tertiary)]" />
             <span className="text-[13px]">Go to Dashboard</span>
           </CommandItem>
-          <CommandItem onSelect={() => handleSelect('nav', 'chat')} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.05] rounded-lg">
+          <CommandItem onSelect={() => { handleSelect('nav', 'chat'); }} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.05] rounded-lg">
             <MessageSquare className="w-4 h-4 text-[var(--text-tertiary)]" />
             <span className="text-[13px]">Open AI Assistant</span>
           </CommandItem>
-          <CommandItem onSelect={() => handleSelect('nav', 'files')} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.05] rounded-lg">
+          <CommandItem onSelect={() => { handleSelect('nav', 'files'); }} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.05] rounded-lg">
             <File className="w-4 h-4 text-[var(--text-tertiary)]" />
             <span className="text-[13px]">Asset Library</span>
           </CommandItem>

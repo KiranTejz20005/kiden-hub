@@ -11,7 +11,7 @@ const Navbar = () => {
       setScrolled(window.scrollY > 50);
     };
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => { window.removeEventListener("scroll", handleScroll); };
   }, []);
 
   const navItems = [
@@ -28,7 +28,7 @@ const Navbar = () => {
         : "top-0 w-full bg-transparent border-transparent py-6 px-4 md:px-6 lg:px-12"
         }`}
     >
-      <div className={`${scrolled ? "w-full" : "container mx-auto"}`}>
+      <div className={scrolled ? "w-full" : "container mx-auto"}>
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">

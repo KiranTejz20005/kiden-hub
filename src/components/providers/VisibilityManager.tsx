@@ -33,7 +33,7 @@ export const VisibilityManager: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () => { document.removeEventListener('visibilitychange', handleVisibilityChange); };
   }, []);
 
   return (
@@ -45,6 +45,6 @@ export const VisibilityManager: React.FC<{ children: React.ReactNode }> = ({ chi
 
 export const useVisibility = () => {
   const context = useContext(VisibilityContext);
-  if (!context) throw new Error('useVisibility must be used within a VisibilityManager');
+  if (!context) {throw new Error('useVisibility must be used within a VisibilityManager');}
   return context;
 };

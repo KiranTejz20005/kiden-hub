@@ -11,7 +11,7 @@ const YOUTUBE_KEYS = [
  * Safe Unicode slicing to avoid cutting in the middle of UTF-16 surrogate pairs (like emojis)
  */
 export function safeSlice(str: string | null | undefined, maxLength: number): string | null {
-  if (!str) return null;
+  if (!str) {return null;}
   return Array.from(str).slice(0, maxLength).join('');
 }
 
@@ -29,7 +29,7 @@ async function ytRequest(action: string, params: any): Promise<any> {
     // FALLBACK: If Edge Function fails/not deployed, try direct call only in DEV
     if (import.meta.env.DEV) {
       const key = import.meta.env.VITE_YOUTUBE_API_KEY;
-      if (!key) throw new Error('No Edge Function and No Local API Key');
+      if (!key) {throw new Error('No Edge Function and No Local API Key');}
       const url = `https://www.googleapis.com/youtube/v3/${action}`;
       return await axios.get(url, { params: { ...params, key } });
     }
@@ -174,7 +174,7 @@ export function calculateViralityScore(
 // ── PARSE ISO 8601 DURATION ──────────────────────────────────────────────────
 export function parseDuration(duration: string): number {
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!match) return 0;
+  if (!match) {return 0;}
   return (parseInt(match[1] || '0') * 3600) +
          (parseInt(match[2] || '0') * 60) +
          parseInt(match[3] || '0');
@@ -238,7 +238,7 @@ async function scrapeChannel(
       channelData = channelRes?.data?.items?.[0];
     }
     
-    if (!channelData) return 0;
+    if (!channelData) {return 0;}
 
     const subscriberCount = parseInt(channelData.statistics?.subscriberCount || '0');
 
@@ -273,7 +273,7 @@ async function scrapeChannel(
       videoIds = searchRes.data.items?.map((i: any) => i.id.videoId).filter((id: string) => id && !seenVideoIds.has(id)).join(',');
     }
 
-    if (!videoIds) return 0;
+    if (!videoIds) {return 0;}
 
     // 3. Get video details
     const detailsRes = await ytRequest('videos', { 
@@ -292,21 +292,21 @@ async function scrapeChannel(
       const commentCount = parseInt(video.statistics.commentCount || '0');
       const engagement  = viewCount > 0 ? (likeCount + commentCount) / viewCount : 0;
 
-      if (seenVideoIds.has(videoId)) continue;
+      if (seenVideoIds.has(videoId)) {continue;}
 
       // Apply quality filters (with fallback)
       const minDuration = useStrictFilters ? QUALITY_THRESHOLDS.MIN_DURATION_SECONDS : QUALITY_THRESHOLDS.FALLBACK_MIN_DURATION;
       const minViews    = useStrictFilters ? QUALITY_THRESHOLDS.MIN_VIEWS : QUALITY_THRESHOLDS.FALLBACK_MIN_VIEWS;
       const minEngage   = useStrictFilters ? QUALITY_THRESHOLDS.MIN_ENGAGEMENT_RATE : 0.005;
 
-      if (duration < minDuration) continue;
-      if (viewCount < minViews) continue;
-      if (engagement < minEngage) continue;
+      if (duration < minDuration) {continue;}
+      if (viewCount < minViews) {continue;}
+      if (engagement < minEngage) {continue;}
 
       const qualityScore  = calculateQualityScore(viewCount, likeCount, commentCount, subscriberCount, video.snippet.publishedAt);
       const viralityScore = calculateViralityScore(viewCount, likeCount, commentCount, video.snippet.publishedAt);
 
-      if (!creatorId) creatorId = await upsertCreator(channelData, subscriberCount);
+      if (!creatorId) {creatorId = await upsertCreator(channelData, subscriberCount);}
 
       seenVideoIds.add(videoId);
       contentToInsert.push({
@@ -352,7 +352,7 @@ async function scrapeChannel(
         .from('content_pieces')
         .upsert(contentToInsert, { onConflict: 'external_id,source_platform' });
 
-      if (error) console.error(`Upsert error for ${channel.name}:`, error.message);
+      if (error) {console.error(`Upsert error for ${channel.name}:`, error.message);}
     }
 
     return contentToInsert.length;
@@ -398,7 +398,7 @@ export async function scrapeAllPremiumChannels(
 
       for (const channel of shuffledChannels) {
         const preFetched = channelMap.get(channel.id);
-        if (!preFetched) continue;
+        if (!preFetched) {continue;}
 
         onProgress?.(`🛰️ ${category} > ${channel.name}...`);
         const count = await scrapeChannel(channel, category, seenVideoIds, true, preFetched);
@@ -437,7 +437,7 @@ export async function scrapeCategory(
 
   const dbCategory = normalizeCategoryForDB(category);
   const channels = PREMIUM_CHANNELS[dbCategory];
-  if (!channels) return 0;
+  if (!channels) {return 0;}
 
   const seenVideoIds = new Set<string>();
   const { data: existing } = await supabase
@@ -464,7 +464,7 @@ export async function scrapeCategory(
 
     for (const channel of shuffledChannels) {
       const preFetched = channelMap.get(channel.id);
-      if (!preFetched) continue;
+      if (!preFetched) {continue;}
 
       onProgress?.(`🛰️ ${category} > ${channel.name}...`);
       const count = await scrapeChannel(channel, dbCategory, seenVideoIds, true, preFetched);
@@ -515,11 +515,11 @@ export interface Creator {
 
 // Normalized view of a video (backward compat with existing VideoPlayerModal)
 export function normalizeContentPiece(cp: any): any {
-  if (!cp) return { title: 'Unknown', channel_name: 'Unknown', published_at: new Date().toISOString() };
+  if (!cp) {return { title: 'Unknown', channel_name: 'Unknown', published_at: new Date().toISOString() };}
   
   try {
     // If it's already normalized or from user_study_videos
-    if (cp.video_id && !cp.external_id) return cp;
+    if (cp.video_id && !cp.external_id) {return cp;}
 
     // Safe JSON parsing with fallback
     let meta: Record<string, any> = {};
@@ -635,7 +635,7 @@ export async function fetchContentByCategory(
     items.forEach(item => {
       const meta = typeof item.content_metadata === 'string' ? JSON.parse(item.content_metadata) : item.content_metadata;
       const creatorKey = item.creator_id || meta?.channel_id || 'unknown';
-      if (!grouped[creatorKey]) grouped[creatorKey] = [];
+      if (!grouped[creatorKey]) {grouped[creatorKey] = [];}
       grouped[creatorKey].push(item);
     });
 
@@ -748,7 +748,7 @@ export async function searchContent(
       // BACKGROUND UPSERT: Save to DB so we don't have to fetch again
       if (ytResults.length > 0) {
         supabase.from('content_pieces').upsert(ytResults, { onConflict: 'external_id' })
-          .then(({ error }) => { if (error) console.error('Cache upsert failed:', error); });
+          .then(({ error }) => { if (error) {console.error('Cache upsert failed:', error);} });
       }
 
       return ytResults;
@@ -783,7 +783,7 @@ export async function getCategoryStats(): Promise<Record<string, number>> {
     .from('content_pieces')
     .select('category');
 
-  if (!data) return {};
+  if (!data) {return {};}
 
   const counts: Record<string, number> = {};
   for (const row of data) {

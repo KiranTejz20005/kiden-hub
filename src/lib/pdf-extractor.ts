@@ -13,7 +13,7 @@ export async function extractPdfText(url: string, maxChars = 12000): Promise<str
     let text = '';
 
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      if (text.length >= maxChars) break;
+      if (text.length >= maxChars) {break;}
       const page = await pdf.getPage(pageNum);
       const content = await page.getTextContent();
       const pageText = content.items

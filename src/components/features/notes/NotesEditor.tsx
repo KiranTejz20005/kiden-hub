@@ -28,7 +28,7 @@ const NotesEditor = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!user) return;
+      if (!user) {return;}
       try {
         // Specifically select columns to avoid potential 406 errors with select(*)
         const { data, error } = await supabase
@@ -46,7 +46,7 @@ const NotesEditor = () => {
               .select('display_name')
               .eq('id', user.id)
               .maybeSingle();
-            if (minimalData) setProfile(minimalData);
+            if (minimalData) {setProfile(minimalData);}
             return;
           }
           throw error;
@@ -61,8 +61,8 @@ const NotesEditor = () => {
             .insert([{ id: user.id, user_id: user.id, display_name: user.email?.split('@')[0] }])
             .select('display_name, avatar_url, bio, focus_settings')
             .maybeSingle();
-          if (newProfile) setProfile(newProfile);
-          if (createError) console.error('Failed to auto-create profile:', createError);
+          if (newProfile) {setProfile(newProfile);}
+          if (createError) {console.error('Failed to auto-create profile:', createError);}
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -72,7 +72,7 @@ const NotesEditor = () => {
   }, [user]);
 
   const saveNote = useCallback(async (noteToSave: Note) => {
-    if (!user) return;
+    if (!user) {return;}
     setIsSaving(true);
     try {
       // Ensure we are only sending fields that exist in the DB
@@ -108,7 +108,7 @@ const NotesEditor = () => {
           .eq('id', noteToSave.id)
           .eq('user_id', user.id);
         
-        if (finalError) throw finalError;
+        if (finalError) {throw finalError;}
       }
     } catch (err: any) {
       console.error('Failed to save note:', err);
@@ -119,12 +119,12 @@ const NotesEditor = () => {
   }, [user]);
 
   const handleUpdateNote = (updates: Partial<Note>) => {
-    if (!activeNote) return;
+    if (!activeNote) {return;}
     const updatedNote = { ...activeNote, ...updates };
     setActiveNote(updatedNote);
 
     // Debounced autosave using the ref to ensure we always have the latest state
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    if (autoSaveTimer.current) {clearTimeout(autoSaveTimer.current);}
     autoSaveTimer.current = setTimeout(() => {
       if (activeNoteRef.current) {
         saveNote(activeNoteRef.current);
@@ -133,7 +133,7 @@ const NotesEditor = () => {
   };
 
   const handleCreateNote = async (folderId?: string, templateContent?: any, templateTitle?: string) => {
-    if (!user) return;
+    if (!user) {return;}
     const { data } = await supabase
       .from('notes')
       .insert([{ 
@@ -156,7 +156,7 @@ const NotesEditor = () => {
     const { error } = await supabase.from('notes').update({ is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', id);
     if (!error) {
       toast.success('Note moved to trash');
-      if (activeNote?.id === id) setActiveNote(null);
+      if (activeNote?.id === id) {setActiveNote(null);}
     }
   };
 
@@ -165,7 +165,7 @@ const NotesEditor = () => {
   };
 
   const handleDuplicateNote = async (note: Note) => {
-    if (!user) return;
+    if (!user) {return;}
     const { data } = await supabase
       .from('notes')
       .insert([{ 
@@ -209,7 +209,7 @@ const NotesEditor = () => {
               onUpdate={handleUpdateNote}
               onDelete={() => handleDeleteNote(activeNote.id)}
               onDuplicate={() => handleDuplicateNote(activeNote)}
-              onToggleFavorite={() => handleToggleFavorite(activeNote)}
+              onToggleFavorite={() => { handleToggleFavorite(activeNote); }}
               onCopyLink={copyNoteLink}
             />
             
@@ -220,7 +220,7 @@ const NotesEditor = () => {
               )}>
                 <BlockEditor 
                   content={activeNote.content}
-                  onChange={(content, wordCount) => handleUpdateNote({ content, word_count: wordCount })}
+                  onChange={(content, wordCount) => { handleUpdateNote({ content, word_count: wordCount }); }}
                   isFullWidth={activeNote.is_full_width}
                 />
               </div>
@@ -264,7 +264,7 @@ const NotesEditor = () => {
                 New Note
               </Button>
               <Button
-                onClick={() => setShowTemplates(true)}
+                onClick={() => { setShowTemplates(true); }}
                 variant="outline"
                 className="h-12 px-8 rounded-2xl border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white font-bold uppercase tracking-[0.15em] text-[10px] transition-all"
               >
@@ -275,7 +275,7 @@ const NotesEditor = () => {
 
             <TemplateGallery
               isOpen={showTemplates}
-              onClose={() => setShowTemplates(false)}
+              onClose={() => { setShowTemplates(false); }}
               onSelectTemplate={(tpl) => {
                 setShowTemplates(false);
                 handleCreateNote(undefined, tpl.content, tpl.name);

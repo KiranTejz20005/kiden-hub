@@ -18,20 +18,20 @@ export function debounce<T extends (...args: any[]) => any>(
 ): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | null = null;
   let previous = 0;
-  let maxWaitTimer: ReturnType<typeof setTimeout> | null = null;
+  const maxWaitTimer: ReturnType<typeof setTimeout> | null = null;
 
   return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
     const now = Date.now();
     const callNow = options.leading && !previous;
 
     if (options.maxWait && now - previous >= options.maxWait) {
-      if (maxWaitTimer) clearTimeout(maxWaitTimer);
+      if (maxWaitTimer) {clearTimeout(maxWaitTimer);}
       previous = now;
       func.apply(this, args);
       return;
     }
 
-    if (timeout) clearTimeout(timeout);
+    if (timeout) {clearTimeout(timeout);}
 
     timeout = setTimeout(() => {
       if (options.trailing !== false) {
@@ -110,7 +110,7 @@ export async function retryWithBackoff<T>(
  * Format bytes to human readable size
  */
 export function formatBytes(bytes: number, decimals = 2): string {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) {return '0 Bytes';}
 
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
@@ -153,9 +153,9 @@ export function safeJsonStringify(obj: any, fallback = '{}'): string {
  * Clone object deeply
  */
 export function deepClone<T>(obj: T): T {
-  if (obj === null || typeof obj !== 'object') return obj;
-  if (obj instanceof Date) return new Date(obj.getTime()) as any;
-  if (obj instanceof Array) return obj.map(item => deepClone(item)) as any;
+  if (obj === null || typeof obj !== 'object') {return obj;}
+  if (obj instanceof Date) {return new Date(obj.getTime()) as any;}
+  if (obj instanceof Array) {return obj.map(item => deepClone(item)) as any;}
   if (obj instanceof Object) {
     const cloned = {} as T;
     for (const key in obj) {
@@ -197,8 +197,8 @@ export function deepMerge<T extends Record<string, any>>(target: T, source: Part
  * Check if object is empty
  */
 export function isEmpty(obj: any): boolean {
-  if (obj === null || obj === undefined) return true;
-  if (Array.isArray(obj)) return obj.length === 0;
-  if (typeof obj === 'object') return Object.keys(obj).length === 0;
+  if (obj === null || obj === undefined) {return true;}
+  if (Array.isArray(obj)) {return obj.length === 0;}
+  if (typeof obj === 'object') {return Object.keys(obj).length === 0;}
   return false;
 }

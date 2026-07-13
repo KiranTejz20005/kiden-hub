@@ -35,13 +35,13 @@ export const YouTubeSearchLibrary = () => {
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
 
   const fetchPlaylists = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
     const { data } = await getPlaylists(user.id);
-    if (data) setPlaylists(data);
+    if (data) {setPlaylists(data);}
   }, [user]);
 
   const fetchLibrary = useCallback(async () => {
-    if (!user) return;
+    if (!user) {return;}
     setIsLibraryLoading(true);
     const { data, error } = await getUserVideos(user.id);
     if (error) {
@@ -60,8 +60,8 @@ export const YouTubeSearchLibrary = () => {
   }, [user, fetchLibrary, fetchPlaylists]);
 
   const handleSearch = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!searchQuery.trim()) return;
+    if (e) {e.preventDefault();}
+    if (!searchQuery.trim()) {return;}
 
     if (!YOUTUBE_API_KEY) {
       toast.error('YouTube API Key missing');
@@ -120,7 +120,7 @@ export const YouTubeSearchLibrary = () => {
   };
 
   const addToLibrary = async (video: any) => {
-    if (!user) return;
+    if (!user) {return;}
     
     const exists = await isVideoInLibrary(user.id, video.id);
     if (exists) {
@@ -158,7 +158,7 @@ export const YouTubeSearchLibrary = () => {
   };
 
   const handleAddToPlaylist = async (playlistId: string, item: any) => {
-    if (!user) return;
+    if (!user) {return;}
     const v = normalizeContentPiece(item);
     try {
       let dbId = userVideos.find(vid => vid && vid.video_id === v.video_id)?.id;
@@ -172,12 +172,12 @@ export const YouTubeSearchLibrary = () => {
           duration_seconds: v.duration_seconds || 0,
           view_count: v.view_count || 0
         });
-        if (error) throw error;
+        if (error) {throw error;}
         dbId = data?.id;
         fetchLibrary();
       }
 
-      if (!dbId) return;
+      if (!dbId) {return;}
 
       const { error } = await addVideoToPlaylist(playlistId, dbId);
       if (error) {
@@ -227,7 +227,7 @@ export const YouTubeSearchLibrary = () => {
                 placeholder="Search concepts, topics, or creators..." 
                 className="pl-14 h-14 bg-transparent border-none text-lg focus-visible:ring-0 placeholder:text-muted-foreground/40"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setSearchQuery(e.target.value); }}
               />
             </div>
             <button 
@@ -326,14 +326,14 @@ export const YouTubeSearchLibrary = () => {
                 placeholder="Filter library..." 
                 className="pl-11 h-10 w-56 bg-secondary/30 border-white/5 rounded-xl text-xs focus:bg-secondary/50 transition-all"
                 value={librarySearch}
-                onChange={(e) => setLibrarySearch(e.target.value)}
+                onChange={(e) => { setLibrarySearch(e.target.value); }}
               />
             </div>
             <div className="flex items-center gap-1.5 bg-secondary/30 p-1.5 rounded-2xl border border-white/5">
               {['All', 'Math', 'Science', 'Programming', 'Design', 'Other'].map(tag => (
                 <button
                   key={tag}
-                  onClick={() => setSelectedFilter(tag)}
+                  onClick={() => { setSelectedFilter(tag); }}
                   className={cn(
                     "px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                     selectedFilter === tag 
@@ -390,7 +390,7 @@ export const YouTubeSearchLibrary = () => {
       <VideoPlayerModal 
         isOpen={!!selectedVideo} 
         video={selectedVideo ? normalizeContentPiece(selectedVideo) : null}
-        onClose={() => setSelectedVideo(null)} 
+        onClose={() => { setSelectedVideo(null); }} 
         onAdd={addToLibrary}
       />
     </div>
