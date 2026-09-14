@@ -12,12 +12,17 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { ActiveView } from '@/lib/types';
+import { ActiveView, Profile } from '@/lib/types';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fetchRecentActivities, ActivityLog } from '@/services/activityService';
 import { fetchTodayFocusMinutes } from '@/services/focusService';
 
-const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => void }) => {
+interface DashboardHomeProps {
+  onViewChange?: (view: ActiveView) => void;
+  profile?: Profile | null;
+}
+
+const DashboardHome = ({ onViewChange, profile }: DashboardHomeProps) => {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     files: 0,
@@ -120,7 +125,7 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
               <span>Workspace Overview</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight leading-tight">
-              {greeting()}, <span className="text-primary">{user?.user_metadata?.full_name?.split(' ')[0] || 'Explorer'}</span>.
+              {greeting()}, <span className="text-primary">{profile?.display_name?.split(' ')[0] || profile?.full_name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Kiran'}</span>.
             </h1>
             <p className="text-muted-foreground text-sm font-medium flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5 text-primary" />
@@ -134,10 +139,10 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
             className="flex items-center gap-3 flex-wrap"
           >
             {/* Theme Toggle */}
-            <ThemeToggle variant="pill" />
+            <ThemeToggle variant="header" />
 
             {/* Live Time Badge */}
-            <div className="flex items-center gap-4 text-muted-foreground bg-card/90 dark:bg-white/[0.03] border border-border/80 dark:border-white/5 px-4 py-2 rounded-xl backdrop-blur-md shadow-sm dark:shadow-2xl">
+            <div className="h-[52px] flex items-center gap-4 text-muted-foreground bg-card/90 dark:bg-white/[0.03] border border-border/80 dark:border-white/5 px-4 py-2 rounded-xl backdrop-blur-md shadow-sm dark:shadow-2xl">
               <div className="flex flex-col items-end">
                 <span className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">Live Time</span>
                 <span className="text-lg font-mono font-bold text-foreground dark:text-white leading-none">{format(currentTime, 'HH:mm')}</span>

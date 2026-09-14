@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 interface ThemeToggleProps {
   className?: string;
-  variant?: 'pill' | 'button' | 'icon';
+  variant?: 'pill' | 'button' | 'icon' | 'header';
 }
 
 export const ThemeToggle: React.FC<ThemeToggleProps> = ({ 
@@ -21,6 +21,39 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     setMode(isDark ? 'light' : 'dark');
   };
 
+  // Header Card Variant (matches Live Time badge height and layout perfectly)
+  if (variant === 'header') {
+    return (
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+        className={cn(
+          "h-[52px] px-3.5 rounded-xl transition-all select-none cursor-pointer flex items-center gap-3",
+          "bg-card/90 dark:bg-white/[0.03] border border-border/80 dark:border-white/5",
+          "hover:border-primary/40 dark:hover:border-white/20 shadow-sm dark:shadow-2xl backdrop-blur-md group",
+          className
+        )}
+      >
+        <div className="flex flex-col items-start text-left">
+          <span className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">Theme</span>
+          <span className="text-[13px] font-semibold text-foreground capitalize">
+            {isDark ? 'Dark Mode' : 'Light Mode'}
+          </span>
+        </div>
+        <div className="w-px h-6 bg-border dark:bg-white/10" />
+        <div className="w-8 h-8 rounded-lg bg-secondary/80 dark:bg-white/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+          {isDark ? (
+            <Moon className="w-4 h-4 text-emerald-400" />
+          ) : (
+            <Sun className="w-4 h-4 text-amber-500" />
+          )}
+        </div>
+      </button>
+    );
+  }
+
+  // Icon Variant (for sidebar footer and compact toolbars)
   if (variant === 'icon') {
     return (
       <TooltipProvider delayDuration={150}>
@@ -32,7 +65,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
               onClick={toggleTheme}
               aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
               className={cn(
-                "relative w-9 h-9 rounded-xl flex items-center justify-center transition-colors",
+                "relative w-9 h-9 rounded-xl flex items-center justify-center transition-colors cursor-pointer",
                 "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground",
                 "border border-border/60 dark:border-white/10 shadow-sm",
                 className
@@ -61,11 +94,11 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     );
   }
 
-  // Pill variant with both Sun and Moon options
+  // Refined Compact Pill Variant
   return (
     <div
       className={cn(
-        "inline-flex items-center p-1 rounded-xl transition-all select-none",
+        "inline-flex items-center p-0.5 rounded-xl transition-all select-none",
         "bg-secondary/70 dark:bg-white/[0.04] border border-border/80 dark:border-white/10",
         "shadow-sm dark:shadow-inner",
         className
@@ -76,7 +109,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         onClick={() => setMode('light')}
         aria-label="Light mode"
         className={cn(
-          "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all z-10",
+          "relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all z-10 cursor-pointer",
           !isDark 
             ? "text-foreground font-bold" 
             : "text-muted-foreground hover:text-foreground"
@@ -98,7 +131,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
         onClick={() => setMode('dark')}
         aria-label="Dark mode"
         className={cn(
-          "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all z-10",
+          "relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all z-10 cursor-pointer",
           isDark 
             ? "text-foreground font-bold" 
             : "text-muted-foreground hover:text-foreground"
@@ -117,5 +150,3 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     </div>
   );
 };
-
-export default ThemeToggle;

@@ -83,19 +83,21 @@ const Dashboard = () => {
 
   // 1. Sync URL -> State (Robust derivation)
   useEffect(() => {
-    const path = location.pathname.split('/dashboard')[1]?.replace('/', '');
+    const match = location.pathname.match(/^\/dashboard(?:\/([a-zA-Z0-9_-]+))?\/?$/);
+    const subRoute = (match ? match[1] : undefined) || 'dashboard';
     const validViews: ActiveView[] = ['dashboard', 'files', 'chat', 'notes', 'boards', 'calendar', 'focus', 'habits', 'team', 'settings'];
     
-    if (path && validViews.includes(path as ActiveView)) {
-      if (path !== activeView) {setActiveView(path as ActiveView);}
-    } else if (!path || !validViews.includes(path as ActiveView)) {
-      // Fallback for invalid or empty sub-routes
+    if (validViews.includes(subRoute as ActiveView)) {
+      if (subRoute !== activeView) {
+        setActiveView(subRoute as ActiveView);
+      }
+    } else {
       if (activeView !== 'dashboard') {
         setActiveView('dashboard');
         navigate('/dashboard', { replace: true });
       }
     }
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, activeView]);
 
   const [resetCounter, setResetCounter] = useState(0);
 
@@ -232,19 +234,19 @@ const Dashboard = () => {
         </div>
 
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-0">
-          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'dashboard' && "hidden")}>
-            <DashboardHome onViewChange={handleViewChange} />
-          </div>
-          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'files' && "hidden")}>
+          {activeView === 'dashboard' && (
+            <DashboardHome profile={profile} onViewChange={handleViewChange} />
+          )}
+          {activeView === 'files' && (
             <FileStorage />
-          </div>
-          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'chat' && "hidden")}>
+          )}
+          {activeView === 'chat' && (
             <AIChat />
-          </div>
-          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'notes' && "hidden")}>
+          )}
+          {activeView === 'notes' && (
             <NotesEditor />
-          </div>
-          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'boards' && "hidden")}>
+          )}
+          {activeView === 'boards' && (
             <MyBoards 
               selectedBoard={selectedBoard} 
               onBoardSelect={setSelectedBoard}
@@ -253,16 +255,16 @@ const Dashboard = () => {
               onBoardCreateOptimistic={addBoardOptimistically}
               resetCounter={resetCounter} 
             />
-          </div>
-          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'calendar' && "hidden")}>
+          )}
+          {activeView === 'calendar' && (
             <CalendarView />
-          </div>
-          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'focus' && "hidden")}>
+          )}
+          {activeView === 'focus' && (
             <FocusTimer />
-          </div>
-          <div className={cn("flex-1 flex flex-col overflow-hidden", activeView !== 'habits' && "hidden")}>
+          )}
+          {activeView === 'habits' && (
             <HabitTracker />
-          </div>
+          )}
         </main>
       </div>
 
