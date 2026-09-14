@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { StatsCard } from '@/components/dashboard/StatsCard';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { 
   FileText, MessageSquare, Layout, Database, 
   Plus, Upload, MessageCircle, FilePlus, 
@@ -100,11 +101,11 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#050505] scrollbar-hide">
+    <div className="flex-1 overflow-y-auto bg-background scrollbar-hide transition-colors duration-300">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="max-w-6xl mx-auto p-8 space-y-10 pb-20"
+        className="max-w-6xl mx-auto p-6 md:p-8 space-y-10 pb-20"
       >
         {/* ── Header ── */}
         <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -118,10 +119,10 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
               <Sparkles className="w-3.5 h-3.5 animate-pulse" />
               <span>Workspace Overview</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-tight">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight leading-tight">
               {greeting()}, <span className="text-primary">{user?.user_metadata?.full_name?.split(' ')[0] || 'Explorer'}</span>.
             </h1>
-            <p className="text-white/50 text-sm font-medium flex items-center gap-2">
+            <p className="text-muted-foreground text-sm font-medium flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5 text-primary" />
               It's {format(currentTime, 'EEEE, MMMM do')}
             </p>
@@ -130,14 +131,20 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-4 text-white/40 bg-white/[0.03] border border-white/5 px-4 py-2 rounded-xl backdrop-blur-md shadow-2xl"
+            className="flex items-center gap-3 flex-wrap"
           >
-            <div className="flex flex-col items-end">
-              <span className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">Live Time</span>
-              <span className="text-lg font-mono font-bold text-white leading-none">{format(currentTime, 'HH:mm')}</span>
+            {/* Theme Toggle */}
+            <ThemeToggle variant="pill" />
+
+            {/* Live Time Badge */}
+            <div className="flex items-center gap-4 text-muted-foreground bg-card/90 dark:bg-white/[0.03] border border-border/80 dark:border-white/5 px-4 py-2 rounded-xl backdrop-blur-md shadow-sm dark:shadow-2xl">
+              <div className="flex flex-col items-end">
+                <span className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">Live Time</span>
+                <span className="text-lg font-mono font-bold text-foreground dark:text-white leading-none">{format(currentTime, 'HH:mm')}</span>
+              </div>
+              <div className="w-px h-6 bg-border dark:bg-white/10" />
+              <Clock className="w-5 h-5 text-primary" />
             </div>
-            <div className="w-px h-6 bg-white/10" />
-            <Clock className="w-5 h-5 text-primary" />
           </motion.div>
         </section>
 
@@ -191,13 +198,16 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           <div className="xl:col-span-8 space-y-6">
             {/* Activity Feed */}
-            <div className="bg-white/[0.02] rounded-2xl border border-white/5 p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider">Recent Activity</h2>
-                <button className="text-[9px] font-bold text-white/30 hover:text-primary uppercase tracking-[0.2em] transition-colors">View All</button>
+            <div className="bg-card dark:bg-white/[0.02] rounded-3xl border border-border/80 dark:border-white/5 p-6 md:p-7 space-y-6 shadow-sm dark:shadow-none backdrop-blur-sm">
+              <div className="flex items-center justify-between pb-2 border-b border-border/40 dark:border-white/5">
+                <div className="flex items-center gap-2.5">
+                  <Activity className="w-4 h-4 text-primary" />
+                  <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Recent Activity</h2>
+                </div>
+                <button className="text-[10px] font-bold text-muted-foreground/80 hover:text-primary dark:text-white/40 dark:hover:text-primary uppercase tracking-[0.2em] transition-colors">View All</button>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {activities.length > 0 ? activities.map((item, i) => {
                   const getActionDetails = (type: string) => {
                     switch (type) {
@@ -220,7 +230,7 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
                       case 'sync_storage': 
                         return { label: 'synced storage', icon: Database, color: 'text-cyan-500' };
                       default: 
-                        return { label: type.replace(/_/g, ' ') + 'ed', icon: Activity, color: 'text-white/40' };
+                        return { label: type.replace(/_/g, ' ') + 'ed', icon: Activity, color: 'text-muted-foreground' };
                     }
                   };
 
@@ -229,27 +239,27 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
                   return (
                     <motion.div 
                       key={item.id}
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.05 * i }}
-                      className="flex items-center gap-3.5 p-2.5 rounded-xl hover:bg-white/[0.04] transition-all group border border-transparent hover:border-white/5"
+                      transition={{ delay: 0.04 * i }}
+                      className="flex items-center gap-3.5 p-3 rounded-2xl hover:bg-muted/50 dark:hover:bg-white/[0.04] transition-all group border border-transparent hover:border-border/60 dark:hover:border-white/5"
                     >
                       <div className={cn(
-                        "w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center shrink-0 transition-all group-hover:scale-105",
-                        "group-hover:bg-white/10"
+                        "w-9 h-9 rounded-xl bg-muted/80 dark:bg-white/5 flex items-center justify-center shrink-0 transition-all group-hover:scale-105 shadow-sm dark:shadow-none",
+                        "group-hover:bg-muted dark:group-hover:bg-white/10"
                       )}>
                         <ActionIcon className={cn("w-4 h-4", color)} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] text-white/60 group-hover:text-white transition-colors truncate">
-                          <span className="font-bold text-white/90">You</span> {label} <span className="font-bold text-white/90">{item.target_name}</span>
+                        <p className="text-[13px] text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                          <span className="font-semibold text-foreground">You</span> {label} <span className="font-semibold text-foreground">{item.target_name}</span>
                         </p>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/20 mt-0.5">{formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60 dark:text-white/20 mt-0.5">{formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}</p>
                       </div>
                     </motion.div>
                   );
                 }) : (
-                  <div className="py-12 text-center text-white/20 text-[10px] font-bold uppercase tracking-[0.2em] italic">No activity detected.</div>
+                  <div className="py-12 text-center text-muted-foreground/50 dark:text-white/20 text-[10px] font-bold uppercase tracking-[0.2em] italic">No activity detected.</div>
                 )}
               </div>
             </div>
@@ -257,39 +267,39 @@ const DashboardHome = ({ onViewChange }: { onViewChange?: (view: ActiveView) => 
 
           {/* Quick Launcher & Status */}
           <div className="xl:col-span-4 space-y-8">
-            <div className="space-y-6">
-              <h2 className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em] px-2">Quick Launcher</h2>
-              <div className="space-y-2">
+            <div className="space-y-4">
+              <h2 className="text-[10px] font-bold text-muted-foreground/80 dark:text-white/40 uppercase tracking-[0.3em] px-2">Quick Launcher</h2>
+              <div className="space-y-2.5">
                 {quickActions.map((action, i) => (
                   <button 
                     key={i}
                     onClick={() => action.view && onViewChange?.(action.view as ActiveView)}
-                    className="w-full flex items-center gap-5 p-4 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 hover:border-white/10 transition-all group"
+                    className="w-full flex items-center gap-4 p-4 rounded-2xl bg-card dark:bg-white/[0.02] hover:bg-muted/50 dark:hover:bg-white/[0.05] border border-border/80 dark:border-white/5 hover:border-primary/30 dark:hover:border-white/10 shadow-sm hover:shadow-md dark:shadow-none transition-all group text-left"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40 group-hover:text-primary group-hover:bg-primary/10 transition-all">
+                    <div className="w-10 h-10 rounded-xl bg-primary/5 dark:bg-white/5 flex items-center justify-center text-primary/70 dark:text-white/40 group-hover:text-primary group-hover:bg-primary/10 transition-all shadow-sm dark:shadow-none shrink-0">
                       <action.icon className="w-5 h-5" />
                     </div>
                     <div className="text-left flex-1 min-w-0">
-                      <p className="text-[14px] font-bold text-white/80 group-hover:text-white transition-colors">{action.label}</p>
-                      <p className="text-xs text-white/30 truncate group-hover:text-white/50 transition-colors">{action.desc}</p>
+                      <p className="text-[14px] font-bold text-foreground group-hover:text-primary dark:group-hover:text-white transition-colors">{action.label}</p>
+                      <p className="text-xs text-muted-foreground truncate group-hover:text-foreground/70 dark:group-hover:text-white/50 transition-colors">{action.desc}</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-6">
-              <h2 className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em] px-2 flex items-center gap-2">
-                System Status <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <div className="space-y-4">
+              <h2 className="text-[10px] font-bold text-muted-foreground/80 dark:text-white/40 uppercase tracking-[0.3em] px-2 flex items-center gap-2">
+                System Status <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               </h2>
-              <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 flex items-center gap-4 group hover:bg-primary/20 transition-all">
-                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                   <Zap className="w-5 h-5 text-primary" />
+              <div className="bg-emerald-500/5 dark:bg-primary/5 border border-emerald-500/20 dark:border-primary/10 rounded-2xl p-5 flex items-center gap-4 group hover:bg-emerald-500/10 dark:hover:bg-primary/10 transition-all shadow-sm dark:shadow-none">
+                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-primary/10 flex items-center justify-center text-emerald-600 dark:text-primary shrink-0">
+                   <Zap className="w-5 h-5" />
                  </div>
                  <div>
-                   <p className="text-[13px] font-bold text-primary">All systems operational</p>
-                   <p className="text-[10px] text-primary/60 uppercase tracking-widest mt-0.5">Latency: 24ms</p>
+                   <p className="text-[13px] font-bold text-emerald-700 dark:text-primary">All systems operational</p>
+                   <p className="text-[10px] text-emerald-600/70 dark:text-primary/60 uppercase tracking-widest mt-0.5">Latency: 24ms</p>
                  </div>
               </div>
             </div>
