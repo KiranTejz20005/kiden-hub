@@ -9,7 +9,7 @@ export interface DailyFocusStat {
 
 export const createFocusSession = async (
   userId: string,
-  session: Omit<FocusSession, 'id' | 'started_at'>
+  session: Omit<FocusSession, 'id' | 'started_at' | 'user_id'>
 ): Promise<FocusSession | null> => {
   const { data, error } = await supabase
     .from('focus_sessions' as any)
@@ -33,6 +33,19 @@ export const completeFocusSession = async (
   if (error) {console.error('completeFocusSession:', error);}
 };
 
+export const cancelFocusSession = async (
+  sessionId: string,
+  userId: string
+): Promise<void> => {
+  const { error } = await supabase
+    .from('focus_sessions' as any)
+    .delete()
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .eq('completed', false);
+  if (error) { console.error('cancelFocusSession:', error); }
+};
+
 export const fetchRecentFocusSessions = async (
   userId: string,
   limit = 10
@@ -41,6 +54,8 @@ export const fetchRecentFocusSessions = async (
     .from('focus_sessions' as any)
     .select('*')
     .eq('user_id', userId)
+    .eq('completed', true)
+    .gt('duration_minutes', 0)
     .order('started_at', { ascending: false })
     .limit(limit);
   if (error) { console.error('fetchRecentFocusSessions:', error); return []; }

@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Profile, ActiveView } from '@/lib/types';
 import AppSidebar from '@/components/app/AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
 import { useVisibility } from '@/components/providers/VisibilityManager';
 import { useAppCache } from '@/components/providers/CacheProvider';
 
@@ -158,8 +157,6 @@ const Dashboard = () => {
           setSelectedBoard(boardsRes.data[0]);
         }
       }
-      
-      lastFetchTimeRef.current = Date.now();
     } catch (err) {
       console.error('Initialization error:', err);
     } finally {
@@ -215,13 +212,13 @@ const Dashboard = () => {
   return (
     <WorkspaceProvider>
       <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden">
-        <div className="relative z-[60]">
+        <div className="relative z-[60] transition-all duration-300">
           <AppSidebar
             activeView={activeView}
             onViewChange={handleViewChange}
             profile={profile}
             onProfileUpdate={initializeData}
-            isCollapsed={isSidebarCollapsed}
+            isCollapsed={activeView === 'focus' ? true : isSidebarCollapsed}
             setIsCollapsed={setIsSidebarCollapsed}
             boards={boards}
             selectedBoard={selectedBoard}
@@ -260,7 +257,10 @@ const Dashboard = () => {
             <CalendarView />
           )}
           {activeView === 'focus' && (
-            <FocusTimer />
+            <FocusTimer 
+              profile={profile}
+              onExitFocus={() => handleViewChange('dashboard')}
+            />
           )}
           {activeView === 'habits' && (
             <HabitTracker />
