@@ -20,6 +20,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const GoogleCallback = lazy(() => import("./pages/auth/GoogleCallback"));
 const Privacy = lazy(() => import("./pages/legal/Privacy"));
 const Terms = lazy(() => import("./pages/legal/Terms"));
+const FocusTimer = lazy(() => import("./components/features/focus/FocusTimer"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,6 +72,14 @@ const App = () => (
                       element={
                         <ProtectedRoute>
                           <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/focus"
+                      element={
+                        <ProtectedRoute>
+                          <FocusTimer isStandalone={true} />
                         </ProtectedRoute>
                       }
                     />

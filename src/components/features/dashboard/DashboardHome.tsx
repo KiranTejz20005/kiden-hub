@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { StatsCard } from '@/components/dashboard/StatsCard';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { 
   FileText, MessageSquare, Layout, Database, 
   Plus, Upload, MessageCircle, FilePlus, 
@@ -138,9 +137,6 @@ const DashboardHome = ({ onViewChange, profile }: DashboardHomeProps) => {
             animate={{ opacity: 1, scale: 1 }}
             className="flex items-center gap-3 flex-wrap"
           >
-            {/* Theme Toggle */}
-            <ThemeToggle variant="header" />
-
             {/* Live Time Badge */}
             <div className="h-[52px] flex items-center gap-4 text-muted-foreground bg-card/90 dark:bg-white/[0.03] border border-border/80 dark:border-white/5 px-4 py-2 rounded-xl backdrop-blur-md shadow-sm dark:shadow-2xl">
               <div className="flex flex-col items-end">
