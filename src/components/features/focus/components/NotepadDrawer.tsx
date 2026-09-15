@@ -10,7 +10,6 @@ import {
   Plus,
   Square,
   Sparkles,
-  RotateCcw,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {

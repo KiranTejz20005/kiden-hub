@@ -40,7 +40,7 @@ export const googleCalendarService = {
       .maybeSingle();
 
     if (error) {return null;}
-    return data;
+    return data as { email?: string; updated_at?: string } | null;
   },
 
   /**

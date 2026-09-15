@@ -97,7 +97,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     if (user) {
       // Store in notification_settings as a temporary persistent store if 'mode' column doesn't exist
       const { data: profile } = await supabase.from('profiles').select('notification_settings').eq('user_id', user.id).single();
-      const settings = { ...(profile?.notification_settings || {}), mode: m };
+      const settings = { ...((profile?.notification_settings as any) || {}), mode: m };
       await supabase
         .from('profiles')
         .update({ notification_settings: settings })

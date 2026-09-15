@@ -211,11 +211,11 @@ async function upsertCreator(channelData: any, subscriberCount: number): Promise
   };
 
   if (existing.data?.id) {
-    await supabase.from('creators').update(creatorPayload).eq('id', existing.data.id);
+    await supabase.from('creators' as any).update(creatorPayload).eq('id', existing.data.id);
     return existing.data.id;
   } else {
-    const { data } = await supabase.from('creators').insert(creatorPayload).select('id').single();
-    return data?.id || null;
+    const { data } = await supabase.from('creators' as any).insert(creatorPayload).select('id').single();
+    return (data as any)?.id || null;
   }
 }
 
@@ -686,7 +686,7 @@ export async function searchContent(
       query_embedding: JSON.stringify(embedding),
       match_threshold: 0.5,
       match_count: limit,
-      category_filter: category && category !== 'All' ? normalizeCategoryForDB(category) : null
+      category_filter: category && category !== 'All' ? (normalizeCategoryForDB(category) ?? undefined) : undefined
     });
 
     if (error) {

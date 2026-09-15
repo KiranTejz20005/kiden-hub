@@ -631,39 +631,40 @@ export const DiscoverFeed = () => {
                 </div>
               ) : (
                 <VirtuosoGrid
-                  data={items}
-                  endReached={() => { if (hasMore && !loading) {loadItems();} }}
-                  components={gridComponents}
-                  style={{ height: '100%', outline: 'none' }}
-                  className="scrollbar-hide px-1"
-                  itemContent={(index, item) => {
-                    // Skip rendering if item is null/undefined
-                    if (!item || typeof item !== 'object') {
-                      return null;
-                    }
-                    return (
-                      <VideoCard 
-                        key={item.id || index} 
-                        item={item}
-                        onAdd={handleAdd} 
-                        onFollow={handleFollow}
-                        playlists={playlists} 
-                        onAddToPlaylist={handleAddToPlaylist}
-                        isFollowing={item && follows.includes(normalizeContentPiece(item).channel_id)}
-                        onClick={setSelected}
-                      />
-                    );
-                  }}
-                  footer={() => (
-                    <div className="h-20 flex items-center justify-center">
-                      {loading && <Loader2 className="w-6 h-6 animate-spin text-primary/50"/>}
-                      {!hasMore && (
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30">
-                          End of Discovery Index · {items.length} units
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  {...({
+                    data: items,
+                    endReached: () => { if (hasMore && !loading) {loadItems();} },
+                    components: gridComponents as any,
+                    style: { height: '100%', outline: 'none' },
+                    className: "scrollbar-hide px-1",
+                    itemContent: (index: number, item: any) => {
+                      if (!item || typeof item !== 'object') {
+                        return null;
+                      }
+                      return (
+                        <VideoCard 
+                          key={item.id || index} 
+                          item={item}
+                          onAdd={handleAdd} 
+                          onFollow={handleFollow}
+                          playlists={playlists} 
+                          onAddToPlaylist={handleAddToPlaylist}
+                          isFollowing={item && follows.includes(normalizeContentPiece(item).channel_id)}
+                          onClick={setSelected}
+                        />
+                      );
+                    },
+                    footer: () => (
+                      <div className="h-20 flex items-center justify-center">
+                        {loading && <Loader2 className="w-6 h-6 animate-spin text-primary/50"/>}
+                        {!hasMore && (
+                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30">
+                            End of Discovery Index · {items.length} units
+                          </p>
+                        )}
+                      </div>
+                    ),
+                  } as any)}
                 />
               )}
             </motion.div>

@@ -126,7 +126,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       updated_at: now,
       factors: [] as any[],
       identities: [],
-      banned_until: null,
       is_anonymous: true,
     };
 

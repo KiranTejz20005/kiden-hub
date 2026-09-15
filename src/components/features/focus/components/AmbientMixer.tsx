@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Slider } from '@/components/ui/slider';
-import { Volume2, VolumeX, Waves, RotateCcw } from 'lucide-react';
+import { Volume2, VolumeX, Waves } from 'lucide-react';
 import { AMBIENT_SOUNDS, ambientManager } from '@/lib/focus/ambient-sounds';
 import { cn } from '@/lib/utils';
 

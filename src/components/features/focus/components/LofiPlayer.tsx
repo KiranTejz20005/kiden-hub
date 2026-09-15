@@ -11,7 +11,6 @@ export function LofiPlayer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [volume, setVolume] = useState(0.6);
   const [progress, setProgress] = useState(0);
-  const [durationSec, setDurationSec] = useState(0);
   const [currentSec, setCurrentSec] = useState(0);
   const howlRef = useRef<Howl | null>(null);
   const rafRef = useRef<number>(0);
@@ -26,9 +25,6 @@ export function LofiPlayer() {
       src: [track.url],
       html5: true,
       volume,
-      onload: () => {
-        setDurationSec(h.duration());
-      },
       onend: () => {
         setCurrentIndex((i) => (i + 1) % LOFI_TRACKS.length);
       },

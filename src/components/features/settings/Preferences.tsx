@@ -32,7 +32,7 @@ const Preferences = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
       if (!user) {return;}
       const { data } = await supabase.from('profiles').select('notification_settings, language, display_density').eq('user_id', user.id).maybeSingle();
       if (data) {
-        if (data.notification_settings) {setNotifications(data.notification_settings);}
+        if (data.notification_settings) {setNotifications(data.notification_settings as any);}
         if (data.language) {setLanguage(data.language);}
         if (data.display_density) {setDensity(data.display_density);}
       }

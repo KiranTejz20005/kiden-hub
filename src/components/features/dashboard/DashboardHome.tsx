@@ -61,7 +61,7 @@ const DashboardHome = ({ onViewChange, profile }: DashboardHomeProps) => {
         fetchTodayFocusMinutes(user.id),
       ]);
 
-      const totalSize = storageSum.data?.reduce((acc, curr) => acc + curr.size, 0) || 0;
+      const totalSize = storageSum.data?.reduce((acc, curr) => acc + (curr.size || 0), 0) || 0;
       const formattedStorage = totalSize > 1024 * 1024 * 1024 
         ? `${(totalSize / (1024 * 1024 * 1024)).toFixed(2)} GB`
         : `${(totalSize / (1024 * 1024)).toFixed(1)} MB`;

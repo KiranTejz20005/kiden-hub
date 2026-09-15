@@ -97,7 +97,7 @@ const Collaborators = ({ isEmbedded = false }: { isEmbedded?: boolean }) => {
           email: inviteEmail.trim().toLowerCase(),
           role: inviteRole,
           status: 'pending'
-        }]);
+        } as any]);
 
       if (error) {throw error;}
 

@@ -3,7 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { Loader2, FileText } from 'lucide-react';
 
 // Configure PDF.js worker using a reliable CDN link
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@5.7.284/build/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@6.3.289/build/pdf.worker.min.mjs`;
 
 interface PDFThumbnailProps {
   url: string;
@@ -59,6 +59,7 @@ const PDFThumbnail: React.FC<PDFThumbnailProps> = ({ url, className }) => {
         await page.render({
           canvasContext: context,
           viewport: viewport,
+          canvas: canvas,
         }).promise;
 
         if (isMounted) {
@@ -67,7 +68,7 @@ const PDFThumbnail: React.FC<PDFThumbnailProps> = ({ url, className }) => {
         }
         
         // Cleanup
-        pdf.destroy();
+        loadingTask.destroy();
       } catch (err) {
         console.error('Final attempt PDF error:', err);
         if (isMounted) {
