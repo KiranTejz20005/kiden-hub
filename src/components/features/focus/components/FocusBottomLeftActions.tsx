@@ -25,7 +25,7 @@ export const FocusBottomLeftActions: React.FC<FocusBottomLeftActionsProps> = ({
         className={cn(
           "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer",
           isMusicOpen
-            ? "bg-violet-600 text-white shadow-md"
+            ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/25"
             : "text-white/70 hover:text-white hover:bg-white/10"
         )}
         title="Lo-Fi Music Player"
@@ -48,7 +48,7 @@ export const FocusBottomLeftActions: React.FC<FocusBottomLeftActionsProps> = ({
         className={cn(
           "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer",
           isNotepadOpen
-            ? "bg-violet-600 text-white shadow-md"
+            ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/25"
             : "text-white/70 hover:text-white hover:bg-white/10"
         )}
         title="Quick Scratchpad"

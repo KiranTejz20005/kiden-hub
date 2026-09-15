@@ -38,54 +38,48 @@ const Dashboard = () => {
   const location = useLocation();
 
   const fetchBoards = useCallback(async () => {
-    if (!user) {return;}
-    
+    if (!user) { return; }
+
     // Layer 4: Check cache
     const cacheKey = `boards:${user.id}`;
     const cached = get<any[]>(cacheKey);
-    if (cached && boards.length === 0) {
+    if (cached && cached.length > 0) {
       setBoards(cached);
-      if (cached.length > 0 && !selectedBoard) {setSelectedBoard(cached[0]);}
+      setSelectedBoard((curr: any) => curr || cached[0]);
       return;
     }
 
-    const { data } = await supabase
-      .from('research_boards' as any)
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    
-    if (data) {
-      setBoards(data);
-      set(cacheKey, data); // 5m TTL
-      
-      // Sync selected board: if current one is gone, pick the first available
-      if (selectedBoard) {
-        const stillExists = data.find(b => b.id === selectedBoard.id);
-        if (!stillExists) {
-          setSelectedBoard(data.length > 0 ? data[0] : null);
-        }
-      } else if (data.length > 0) {
-        setSelectedBoard(data[0]);
+    try {
+      const { data } = await supabase
+        .from('research_boards' as any)
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (data) {
+        setBoards(data);
+        set(cacheKey, data); // 5m TTL
+        setSelectedBoard((curr: any) => {
+          if (curr && data.some((b: any) => b.id === curr.id)) return curr;
+          return data.length > 0 ? data[0] : null;
+        });
       }
+    } catch (err) {
+      console.error('[Dashboard] Error fetching boards:', err);
     }
-  }, [user, get, set, selectedBoard]);
+  }, [user, get, set]);
 
   const addBoardOptimistically = useCallback((newBoard: any) => {
     setBoards(prev => [newBoard, ...prev]);
     setSelectedBoard(newBoard);
   }, []);
 
-  useEffect(() => {
-    fetchBoards();
-  }, [fetchBoards]);
-
   // 1. Sync URL -> State (Robust derivation)
   useEffect(() => {
     const match = location.pathname.match(/^\/dashboard(?:\/([a-zA-Z0-9_-]+))?\/?$/);
     const subRoute = (match ? match[1] : undefined) || 'dashboard';
     const validViews: ActiveView[] = ['dashboard', 'files', 'chat', 'notes', 'boards', 'calendar', 'focus', 'habits', 'team', 'settings'];
-    
+
     if (validViews.includes(subRoute as ActiveView)) {
       if (subRoute !== activeView) {
         setActiveView(subRoute as ActiveView);
@@ -110,30 +104,33 @@ const Dashboard = () => {
     if (view === activeView) {
       setResetCounter(prev => prev + 1);
     }
-    
+
     setActiveView(view);
     const path = view === 'dashboard' ? '/dashboard' : `/dashboard/${view}`;
     navigate(path);
   };
 
-   const initializeData = useCallback(async () => {
-    if (!user) {return;}
-    
+  const initializeData = useCallback(async () => {
+    if (!user) { return; }
+
     // Layer 4: Check cache first
     const profileCacheKey = `profile:${user.id}`;
     const boardsCacheKey = `boards:${user.id}`;
-    
+
     const cachedProfile = get<Profile>(profileCacheKey);
     const cachedBoards = get<any[]>(boardsCacheKey);
 
-    if (cachedProfile && cachedBoards) {
+    if (cachedProfile) {
       setProfile(cachedProfile);
-      setBoards(cachedBoards);
-      if (cachedBoards.length > 0 && !selectedBoard) {setSelectedBoard(cachedBoards[0]);}
+      if (cachedBoards && cachedBoards.length > 0) {
+        setBoards(cachedBoards);
+        setSelectedBoard((curr: any) => curr || cachedBoards[0]);
+      }
       setIsInitialLoading(false);
       return;
     }
 
+    // Only show full-screen initializing loader if there's no profile at all yet
     setIsInitialLoading(true);
     try {
       const [profileRes, boardsRes] = await Promise.all([
@@ -153,9 +150,10 @@ const Dashboard = () => {
       if (boardsRes.data) {
         setBoards(boardsRes.data);
         set(boardsCacheKey, boardsRes.data); // Default 5m TTL
-        if (boardsRes.data.length > 0 && !selectedBoard) {
-          setSelectedBoard(boardsRes.data[0]);
-        }
+        setSelectedBoard((curr: any) => {
+          if (curr && boardsRes.data.some((b: any) => b.id === curr.id)) return curr;
+          return boardsRes.data.length > 0 ? boardsRes.data[0] : null;
+        });
       }
     } catch (err) {
       console.error('Initialization error:', err);
@@ -165,8 +163,10 @@ const Dashboard = () => {
   }, [user, navigate, get, set]);
 
   useEffect(() => {
-    if (user) {initializeData();}
-  }, [user]);
+    if (user) {
+      initializeData();
+    }
+  }, [user, initializeData]);
 
   // Global keyboard shortcuts for palette and search
   useEffect(() => {
@@ -187,16 +187,15 @@ const Dashboard = () => {
     document.addEventListener('keydown', handler);
     return () => { document.removeEventListener('keydown', handler); };
   }, []);
-  
-  // Layer 1: Centralized Visibility-based revalidation
+
+  // Layer 1: Centralized Visibility-based silent revalidation (does NOT unmount the Dashboard)
   useEffect(() => {
-    if (isStale) {
-      console.log('[Dashboard] Revalidating stale data on tab return...');
-      // Only invalidate the board items, profile is longer TTL
-      invalidate(`boards:${user?.id}`);
-      initializeData();
+    if (isStale && user?.id) {
+      console.log('[Dashboard] Silently revalidating stale data on tab return...');
+      invalidate(`boards:${user.id}`);
+      fetchBoards();
     }
-  }, [isStale, user?.id, invalidate, initializeData]);
+  }, [isStale, user?.id, invalidate, fetchBoards]);
 
   if (isInitialLoading) {
     return (

@@ -69,7 +69,7 @@ export function AmbientMixer() {
       {/* Soundscape Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-card border border-border/60 shadow-sm">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/20 to-indigo-500/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-500">
             <Waves className="w-6 h-6" />
           </div>
           <div>
@@ -106,7 +106,7 @@ export function AmbientMixer() {
               className={cn(
                 "group relative p-4 rounded-2xl border transition-all flex flex-col justify-between gap-4",
                 isPlaying
-                  ? "bg-violet-500/[0.07] border-violet-500/40 shadow-sm shadow-violet-500/10"
+                  ? "bg-emerald-500/[0.08] border-emerald-500/40 shadow-sm shadow-emerald-500/10"
                   : "bg-card border-border/60 hover:border-border hover:bg-accent/30"
               )}
             >
@@ -129,7 +129,7 @@ export function AmbientMixer() {
                   className={cn(
                     "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
                     isPlaying
-                      ? "bg-violet-500 text-white shadow-md shadow-violet-500/30"
+                      ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/30 font-bold"
                       : "bg-muted text-muted-foreground hover:text-foreground"
                   )}
                   title={isPlaying ? "Mute" : "Play"}

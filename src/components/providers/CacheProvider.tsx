@@ -37,13 +37,18 @@ export const CacheProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return {};
   });
 
+  const cacheRef = React.useRef<Record<string, CacheEntry<any>>>(cache);
+  useEffect(() => {
+    cacheRef.current = cache;
+  }, [cache]);
+
   // Persist to sessionStorage whenever cache changes
   useEffect(() => {
     sessionStorage.setItem('app-cache', JSON.stringify(cache));
   }, [cache]);
 
   const get = useCallback(<T,>(key: string): T | null => {
-    const entry = cache[key];
+    const entry = cacheRef.current[key];
     if (!entry) {return null;}
     
     const now = Date.now();
@@ -51,13 +56,17 @@ export const CacheProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return null; // Expired
     }
     return entry.data as T;
-  }, [cache]);
+  }, []);
 
   const set = useCallback(<T,>(key: string, data: T, ttl = DEFAULT_TTL) => {
-    setCache(prev => ({
-      ...prev,
-      [key]: { data, timestamp: Date.now(), ttl }
-    }));
+    setCache(prev => {
+      const updated = {
+        ...prev,
+        [key]: { data, timestamp: Date.now(), ttl },
+      };
+      cacheRef.current = updated;
+      return updated;
+    });
   }, []);
 
   const invalidate = useCallback((key: string) => {
@@ -68,12 +77,15 @@ export const CacheProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       Object.keys(newCache).forEach(k => {
         if (k.startsWith(`${key}:`)) {delete newCache[k];}
       });
+      cacheRef.current = newCache;
       return newCache;
     });
   }, []);
 
+  const contextValue = React.useMemo(() => ({ get, set, invalidate }), [get, set, invalidate]);
+
   return (
-    <CacheContext.Provider value={{ get, set, invalidate }}>
+    <CacheContext.Provider value={contextValue}>
       {children}
     </CacheContext.Provider>
   );

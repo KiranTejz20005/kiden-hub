@@ -51,6 +51,7 @@ export default tseslint.config(
       "@typescript-eslint/no-misused-spread": "warn",
       "@typescript-eslint/no-unused-expressions": "warn",
       "@typescript-eslint/prefer-promise-reject-errors": "warn",
+      "@typescript-eslint/no-unnecessary-type-assertion": "warn",
       "no-constant-binary-expression": "warn",
       "no-prototype-builtins": "warn",
       "no-empty": "warn",

@@ -16,7 +16,7 @@ interface WallpaperSelectorProps {
   onOpacityChange: (val: number) => void;
 }
 
-export const WallpaperSelector: React.FC<WallpaperSelectorProps> = ({
+export const WallpaperSelector = ({
   isOpen,
   onClose,
   currentId,
@@ -25,7 +25,7 @@ export const WallpaperSelector: React.FC<WallpaperSelectorProps> = ({
   onBlurChange,
   opacity,
   onOpacityChange,
-}) => {
+}: WallpaperSelectorProps) => {
   const [activeCategory, setActiveCategory] = useState<'all' | 'video' | 'ambient' | 'gradient' | 'minimal'>('all');
 
   if (!isOpen) return null;
@@ -61,7 +61,7 @@ export const WallpaperSelector: React.FC<WallpaperSelectorProps> = ({
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-white/[0.02]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white shadow-sm">
-              <Sparkles className="w-4 h-4 text-violet-300" />
+              <Sparkles className="w-4 h-4 text-emerald-400" />
             </div>
             <div>
               <h2 className="text-base font-bold tracking-tight text-white flex items-center gap-2">
@@ -84,7 +84,7 @@ export const WallpaperSelector: React.FC<WallpaperSelectorProps> = ({
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-semibold">
               <span className="text-white/80 flex items-center gap-1.5">
-                <Sliders className="w-3.5 h-3.5 text-violet-400" />
+                <Sliders className="w-3.5 h-3.5 text-emerald-400" />
                 Background Blur
               </span>
               <span className="text-white/50 font-mono text-[11px]">{blur}px</span>
