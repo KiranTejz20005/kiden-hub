@@ -43,7 +43,7 @@ export function LofiPlayer() {
   useEffect(() => {
     const update = () => {
       if (howlRef.current && playing) {
-        const seek = (howlRef.current.seek() as number) || 0;
+        const seek = howlRef.current.seek() || 0;
         const dur = howlRef.current.duration() || 1;
         setCurrentSec(seek);
         setProgress(dur > 0 ? (seek / dur) * 100 : 0);
@@ -119,7 +119,7 @@ export function LofiPlayer() {
             <div className="absolute inset-3 rounded-full border border-white/5" />
             <div className="absolute inset-7 rounded-full border border-white/5" />
             <div className="absolute inset-11 rounded-full border border-white/5" />
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-inner">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-inner">
               <Disc3 className="w-8 h-8" />
             </div>
           </motion.div>
@@ -135,7 +135,7 @@ export function LofiPlayer() {
         {/* Track info & controls */}
         <div className="flex-1 w-full space-y-5 text-center md:text-left">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 text-[10px] font-bold uppercase tracking-wider mb-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider mb-2">
               <Music className="w-3 h-3" />
               <span>Lo-Fi Chill Stream</span>
             </div>
@@ -147,7 +147,7 @@ export function LofiPlayer() {
           <div className="space-y-1.5">
             <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-200 rounded-full"
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-200 rounded-full"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -169,7 +169,7 @@ export function LofiPlayer() {
               </button>
               <button
                 onClick={togglePlay}
-                className="w-14 h-14 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center shadow-lg shadow-violet-500/25 transition-all"
+                className="w-14 h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-black flex items-center justify-center shadow-lg shadow-emerald-500/25 transition-all"
                 title={playing ? "Pause" : "Play"}
               >
                 {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 translate-x-0.5" />}
@@ -215,7 +215,7 @@ export function LofiPlayer() {
                 className={cn(
                   "flex items-center justify-between p-3 rounded-xl border text-left transition-all",
                   isSelected
-                    ? "bg-violet-500/10 border-violet-500/40 text-violet-600 dark:text-violet-300 font-semibold"
+                    ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-semibold"
                     : "bg-muted/30 border-transparent hover:bg-muted/60 text-foreground"
                 )}
               >

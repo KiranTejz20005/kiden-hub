@@ -67,7 +67,7 @@ export const AmbientModeView: React.FC = () => {
       {/* Soundscape Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-black/40 border border-white/10 backdrop-blur-xl shadow-lg">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-violet-600/30 border border-violet-500/40 flex items-center justify-center text-violet-300">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
             <Waves className="w-6 h-6" />
           </div>
           <div>
@@ -104,7 +104,7 @@ export const AmbientModeView: React.FC = () => {
               className={cn(
                 "group relative p-4 rounded-2xl border transition-all flex flex-col justify-between gap-4 backdrop-blur-xl shadow-md",
                 isPlaying
-                  ? "bg-violet-600/20 border-violet-500/50 shadow-violet-500/20"
+                  ? "bg-emerald-500/15 border-emerald-500/50 shadow-emerald-500/20"
                   : "bg-black/30 border-white/10 hover:border-white/20 hover:bg-black/40"
               )}
             >
@@ -127,7 +127,7 @@ export const AmbientModeView: React.FC = () => {
                   className={cn(
                     "w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer",
                     isPlaying
-                      ? "bg-violet-600 text-white shadow-md shadow-violet-500/30"
+                      ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/30 font-bold"
                       : "bg-white/5 text-white/50 hover:text-white"
                   )}
                   title={isPlaying ? "Mute" : "Play"}

@@ -2,7 +2,17 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { FocusSettings } from '@/lib/types';
-import { createFocusSession, completeFocusSession, cancelFocusSession, fetchRecentFocusSessions, fetchWeeklyFocusStats } from '@/services/focusService';
+import {
+  createFocusSession,
+  completeFocusSession,
+  cancelFocusSession,
+  logCompletedFocusSession,
+  fetchRecentFocusSessions,
+  fetchWeeklyFocusStats,
+  fetchActiveFocusSession,
+  getLocalActiveTimer,
+  setLocalActiveTimer,
+} from '@/services/focusService';
 import { supabase } from '@/integrations/supabase/client';
 import { playAlertSound } from '@/lib/focus/sounds';
 import confetti from 'canvas-confetti';
@@ -82,6 +92,7 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<number>(0);
+  const targetEndTimeRef = useRef<number>(0);
 
   // Sync wallpaper preferences to localStorage
   const handleSelectWallpaper = (id: string) => {
@@ -99,20 +110,9 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
     localStorage.setItem('kiden_focus_opacity', String(v));
   };
 
-  // Load backend stats
+  // Load backend stats (without deleting active uncompleted sessions)
   const loadData = useCallback(async () => {
     if (!user) return;
-    try {
-      // Purge any stale uncompleted sessions left in database
-      await supabase
-        .from('focus_sessions' as any)
-        .delete()
-        .eq('user_id', user.id)
-        .eq('completed', false);
-    } catch (e) {
-      console.warn('Stale session cleanup error:', e);
-    }
-
     const [sessions, stats] = await Promise.all([
       fetchRecentFocusSessions(user.id, 8),
       fetchWeeklyFocusStats(user.id),
@@ -141,16 +141,28 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
       setTimeLeft(dur);
       setTotalTime(dur);
       setIsRunning(false);
+      targetEndTimeRef.current = 0;
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (user) {
+        setLocalActiveTimer(user.id, null);
+      }
     },
-    [getDurationForType]
+    [getDurationForType, user]
   );
 
   const handleSessionComplete = useCallback(async () => {
+    setIsRunning(false);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    targetEndTimeRef.current = 0;
+
     try {
       playAlertSound(selectedAlertSound);
     } catch (e) {
       console.error(e);
+    }
+
+    if (user) {
+      setLocalActiveTimer(user.id, null);
     }
 
     if (sessionType === 'focus') {
@@ -159,7 +171,7 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
           particleCount: 90,
           spread: 80,
           origin: { y: 0.6 },
-          colors: ['#ffffff', '#a78bfa', '#3b82f6', '#10b981'],
+          colors: ['#ffffff', '#34d399', '#3b82f6', '#10b981'],
         });
       } catch {
         // Confetti fallback
@@ -169,11 +181,13 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
         const elapsed = Math.max(1, Math.round((Date.now() - sessionStartRef.current) / 60000)) || settings.workDuration;
         await completeFocusSession(activeSessionId, user.id, elapsed);
         setActiveSessionId(null);
+      } else if (user) {
+        await logCompletedFocusSession(user.id, settings.workDuration, 'work');
       }
       setSessionCount((prev) => prev + 1);
       await loadData();
       toast.success('🔥 Focus session complete!', {
-        description: `${settings.workDuration} minutes of deep focus logged.`,
+        description: `${settings.workDuration} minutes of deep focus logged to database.`,
       });
 
       const nextBreak: FocusSessionType =
@@ -185,53 +199,254 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
     }
   }, [sessionType, selectedAlertSound, activeSessionId, user, sessionCount, settings, switchSessionType, loadData]);
 
-  // Main countdown timer ticker
-  useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current!);
-            setIsRunning(false);
-            handleSessionComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+  const handleCompleteEarly = useCallback(async () => {
+    setIsRunning(false);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    targetEndTimeRef.current = 0;
+
+    const elapsedSecs = totalTime - timeLeft;
+    const elapsedMinutes = Math.max(1, Math.round(elapsedSecs / 60));
+
+    if (user) {
+      setLocalActiveTimer(user.id, null);
     }
+
+    if (activeSessionId && user) {
+      await completeFocusSession(activeSessionId, user.id, elapsedMinutes);
+      setActiveSessionId(null);
+    } else if (user) {
+      await logCompletedFocusSession(user.id, elapsedMinutes, 'work');
+    }
+
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#ffffff', '#34d399', '#3b82f6', '#10b981'],
+      });
+    } catch {
+      // Confetti fallback
+    }
+
+    setSessionCount((prev) => prev + 1);
+    await loadData();
+    toast.success('🎯 Focus session logged early!', {
+      description: `${elapsedMinutes} minute${elapsedMinutes > 1 ? 's' : ''} saved to database.`,
+    });
+
+    const dur = getDurationForType(sessionType);
+    setTimeLeft(dur);
+    setTotalTime(dur);
+  }, [totalTime, timeLeft, activeSessionId, user, sessionType, getDurationForType, loadData]);
+
+  // 1. Cross-Device & Cross-Tab Persistence: Restore Active Timer on Mount
+  useEffect(() => {
+    if (!user) return;
+
+    let isSubscribed = true;
+
+    const restoreSession = async () => {
+      // Step A: Fast restoration from localStorage (instant, zero flicker)
+      const local = getLocalActiveTimer(user.id);
+      if (local && isSubscribed) {
+        if (local.isRunning && local.targetEndTime > 0) {
+          const now = Date.now();
+          const remaining = Math.max(0, Math.ceil((local.targetEndTime - now) / 1000));
+          if (remaining > 0) {
+            setSessionType(local.sessionType);
+            setTotalTime(local.totalDurationSeconds);
+            setTimeLeft(remaining);
+            setIsRunning(true);
+            setActiveSessionId(local.sessionId || null);
+            targetEndTimeRef.current = local.targetEndTime;
+            sessionStartRef.current = local.startTime || (now - (local.totalDurationSeconds - remaining) * 1000);
+          } else {
+            // Expired while offline
+            setLocalActiveTimer(user.id, null);
+          }
+        } else if (!local.isRunning && local.remainingSeconds > 0) {
+          // Paused session
+          setSessionType(local.sessionType);
+          setTotalTime(local.totalDurationSeconds);
+          setTimeLeft(local.remainingSeconds);
+          setIsRunning(false);
+          setActiveSessionId(local.sessionId || null);
+        }
+      }
+
+      // Step B: Cross-device Cloud Check from Supabase (mobile / other tab)
+      try {
+        const cloudSession = await fetchActiveFocusSession(user.id);
+        if (cloudSession && cloudSession.started_at && isSubscribed) {
+          const startedAtMs = new Date(cloudSession.started_at).getTime();
+          const durationSecs = (cloudSession.duration_minutes || settings.workDuration) * 60;
+          const targetEndMs = startedAtMs + durationSecs * 1000;
+          const now = Date.now();
+          const remainingSecs = Math.max(0, Math.ceil((targetEndMs - now) / 1000));
+
+          if (remainingSecs > 0) {
+            const mappedType: FocusSessionType =
+              cloudSession.session_type === 'short_break'
+                ? 'short_break'
+                : cloudSession.session_type === 'long_break'
+                ? 'long_break'
+                : 'focus';
+
+            setSessionType(mappedType);
+            setTotalTime(durationSecs);
+            setTimeLeft(remainingSecs);
+            setIsRunning(true);
+            setActiveSessionId(cloudSession.id);
+            targetEndTimeRef.current = targetEndMs;
+            sessionStartRef.current = startedAtMs;
+
+            setLocalActiveTimer(user.id, {
+              sessionId: cloudSession.id,
+              sessionType: mappedType,
+              totalDurationSeconds: durationSecs,
+              remainingSeconds: remainingSecs,
+              targetEndTime: targetEndMs,
+              startTime: startedAtMs,
+              isRunning: true,
+            });
+          } else {
+            // Elapse occurred on another device
+            await completeFocusSession(cloudSession.id, user.id, cloudSession.duration_minutes || settings.workDuration);
+            setLocalActiveTimer(user.id, null);
+            await loadData();
+          }
+        }
+      } catch (err) {
+        console.warn('[FocusTimer] Cloud active session check failed:', err);
+      }
+    };
+
+    restoreSession();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [user, settings.workDuration, loadData]);
+
+  // 2. Rock-Solid Wall-Clock Countdown & Visibility/Focus Sync
+  useEffect(() => {
+    if (!isRunning) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+
+    const checkWallClock = () => {
+      if (targetEndTimeRef.current <= 0) return;
+      const now = Date.now();
+      const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - now) / 1000));
+      setTimeLeft(remaining);
+
+      if (remaining <= 0) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        setIsRunning(false);
+        handleSessionComplete();
+      }
+    };
+
+    // Check every 500ms for continuous accuracy
+    intervalRef.current = setInterval(checkWallClock, 500);
+
+    // Sync IMMEDIATELY whenever user switches tabs or returns from background
+    const handleSyncOnReturn = () => {
+      if (document.visibilityState === 'visible') {
+        checkWallClock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleSyncOnReturn);
+    window.addEventListener('focus', checkWallClock);
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener('visibilitychange', handleSyncOnReturn);
+      window.removeEventListener('focus', checkWallClock);
     };
   }, [isRunning, handleSessionComplete]);
 
+  // 3. Live Browser Tab Title with Remaining Focus Time
+  useEffect(() => {
+    if (isRunning) {
+      const m = Math.floor(timeLeft / 60);
+      const s = timeLeft % 60;
+      const formatted = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      document.title = `(${formatted}) Kiden Focus`;
+    } else {
+      document.title = 'Kiden Hub';
+    }
+  }, [isRunning, timeLeft]);
+
+  // Handlers for Start, Pause, Reset, Skip
   const handleStart = async () => {
-    if (!isRunning && sessionType === 'focus' && !activeSessionId && user) {
+    const now = Date.now();
+    const durationSecs = timeLeft;
+    const targetEnd = now + durationSecs * 1000;
+    targetEndTimeRef.current = targetEnd;
+    sessionStartRef.current = now;
+
+    let sId = activeSessionId;
+    if (sessionType === 'focus' && user && !sId) {
+      const plannedMinutes = Math.max(1, Math.round(totalTime / 60));
       const session = await createFocusSession(user.id, {
         session_type: 'work',
-        duration_minutes: 0,
+        duration_minutes: plannedMinutes,
         completed: false,
       });
       if (session) {
+        sId = session.id;
         setActiveSessionId(session.id);
-        sessionStartRef.current = Date.now();
       }
     }
+
+    if (user) {
+      setLocalActiveTimer(user.id, {
+        sessionId: sId || undefined,
+        sessionType,
+        totalDurationSeconds: totalTime,
+        remainingSeconds: durationSecs,
+        targetEndTime: targetEnd,
+        startTime: now,
+        isRunning: true,
+      });
+    }
+
     setIsRunning(true);
   };
 
   const handlePause = () => {
     setIsRunning(false);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    targetEndTimeRef.current = 0;
+
+    if (user) {
+      setLocalActiveTimer(user.id, {
+        sessionId: activeSessionId || undefined,
+        sessionType,
+        totalDurationSeconds: totalTime,
+        remainingSeconds: timeLeft,
+        targetEndTime: 0,
+        startTime: sessionStartRef.current,
+        isRunning: false,
+      });
+    }
   };
 
   const handleReset = async () => {
     setIsRunning(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
-    if (activeSessionId && user) {
-      await cancelFocusSession(activeSessionId, user.id);
-      setActiveSessionId(null);
+    targetEndTimeRef.current = 0;
+
+    if (user) {
+      setLocalActiveTimer(user.id, null);
+      if (activeSessionId) {
+        await cancelFocusSession(activeSessionId, user.id);
+        setActiveSessionId(null);
+      }
     }
     const dur = getDurationForType(sessionType);
     setTimeLeft(dur);
@@ -241,9 +456,14 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
   const handleSkip = async () => {
     setIsRunning(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
-    if (activeSessionId && user) {
-      await cancelFocusSession(activeSessionId, user.id);
-      setActiveSessionId(null);
+    targetEndTimeRef.current = 0;
+
+    if (user) {
+      setLocalActiveTimer(user.id, null);
+      if (activeSessionId) {
+        await cancelFocusSession(activeSessionId, user.id);
+        setActiveSessionId(null);
+      }
     }
     if (sessionType === 'focus') {
       const nextBreak: FocusSessionType =
@@ -256,7 +476,9 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
     }
   };
 
-  const todayMinutes = weeklyStats.find((s) => s.date === new Date().toISOString().slice(0, 10))?.total_minutes || 0;
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const todayMinutes = weeklyStats.find((s) => s.date === todayKey)?.total_minutes || 0;
   const weekTotal = weeklyStats.reduce((a, s) => a + (s.total_minutes || 0), 0);
 
   return (
@@ -351,6 +573,7 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
                 onReset={handleReset}
                 onSkip={handleSkip}
                 onSwitchType={switchSessionType}
+                onCompleteEarly={handleCompleteEarly}
               />
             </motion.div>
           )}

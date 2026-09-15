@@ -17,9 +17,10 @@ interface FocusModeViewProps {
   onReset: () => void;
   onSkip: () => void;
   onSwitchType: (type: FocusSessionType) => void;
+  onCompleteEarly?: () => void;
 }
 
-export const FocusModeView: React.FC<FocusModeViewProps> = ({
+export const FocusModeView = ({
   timeLeft,
   totalTime,
   isRunning,
@@ -31,7 +32,8 @@ export const FocusModeView: React.FC<FocusModeViewProps> = ({
   onReset,
   onSkip,
   onSwitchType,
-}) => {
+  onCompleteEarly,
+}: FocusModeViewProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [pipActive, setPipActive] = useState(false);
@@ -74,7 +76,7 @@ export const FocusModeView: React.FC<FocusModeViewProps> = ({
     const endAngle = startAngle + 2 * Math.PI * Math.min(Math.max(progress, 0), 1);
     ctx.beginPath();
     ctx.arc(cx, cy, radius, startAngle, endAngle);
-    ctx.strokeStyle = sessionType === 'focus' ? '#8b5cf6' : sessionType === 'short_break' ? '#10b981' : '#3b82f6';
+    ctx.strokeStyle = sessionType === 'focus' ? '#10b981' : sessionType === 'short_break' ? '#38bdf8' : '#3b82f6';
     ctx.lineWidth = 24;
     ctx.lineCap = 'round';
     ctx.stroke();
@@ -262,9 +264,9 @@ export const FocusModeView: React.FC<FocusModeViewProps> = ({
         <button
           onClick={togglePiP}
           className={cn(
-            "w-11 h-11 rounded-full border flex items-center justify-center backdrop-blur-md transition-all active:scale-95",
+            "w-11 h-11 rounded-full border flex items-center justify-center backdrop-blur-md transition-all active:scale-95 cursor-pointer",
             pipActive
-              ? "bg-violet-600 text-white border-violet-400 shadow-lg shadow-violet-500/30"
+              ? "bg-emerald-500 text-black border-emerald-400 shadow-lg shadow-emerald-500/25"
               : "bg-black/40 hover:bg-black/60 text-white/70 hover:text-white border-white/10"
           )}
           title="Floating mini player (Picture-in-Picture)"
@@ -272,6 +274,18 @@ export const FocusModeView: React.FC<FocusModeViewProps> = ({
           <PictureInPicture2 className="w-4 h-4" />
         </button>
       </motion.div>
+
+      {/* Optional Log Focus Early button if elapsed >= 1 minute */}
+      {sessionType === 'focus' && onCompleteEarly && (totalTime - timeLeft >= 60) && (
+        <motion.button
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={onCompleteEarly}
+          className="px-4 py-1.5 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer backdrop-blur-md shadow-sm"
+        >
+          <span>Finish & Log {Math.max(1, Math.floor((totalTime - timeLeft) / 60))}m Focus</span>
+        </motion.button>
+      )}
     </div>
   );
 };
