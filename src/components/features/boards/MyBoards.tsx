@@ -142,9 +142,9 @@ const MyBoards = ({
         .order('created_at', { ascending: false });
       
       if (error) {throw error;}
-      setItems(data || []);
+      setItems((data as any) || []);
       // Layer 4: Update cache with 5m TTL
-      set(cacheKey, data || []);
+      set(cacheKey, (data as any) || []);
     } catch (error) {
       console.error('Error fetching items:', error);
     } finally {
@@ -495,12 +495,13 @@ const MyBoards = ({
     if (!user) {return;}
     setIsCreating(true);
     try {
-      const { data: board, error } = await supabase
+      const { data, error } = await supabase
         .from('research_boards' as any)
         .insert([{ user_id: user.id, title: template.title, emoji: template.emoji }])
         .select().single();
 
       if (error) {throw error;}
+      const board: any = data;
 
       // Add template items
       const itemsToAdd = template.items.map((item: any) => ({

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw, Play, Pause, SkipForward, PictureInPicture2 } from 'lucide-react';
 import { cn } from '@/lib/utils';

@@ -45,7 +45,7 @@ const CTA = () => {
           </p>
           <div className="animate-on-scroll opacity-0">
             <Link to="/auth">
-              <Button variant="glow" size="lg" className="group rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all">
+              <Button variant="outline" size="lg" className="group rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all">
                 Start for free
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform ml-2" />
               </Button>

@@ -96,12 +96,14 @@ export interface Workspace {
 
 export interface Collection {
   id: string;
-  workspace_id: string;
+  workspace_id?: string | null;
+  user_id?: string;
   name: string;
   color?: string | null;
   icon?: string | null;
   item_count?: number | null;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface FocusSession {

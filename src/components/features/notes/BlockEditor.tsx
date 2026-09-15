@@ -91,7 +91,6 @@ const BlockEditor = ({ content, onChange }: BlockEditorProps) => {
       {editor && (
         <BubbleMenu 
           editor={editor} 
-          tippyOptions={{ duration: 100 }}
           className="flex items-center gap-1 p-1 bg-[#111111] border border-white/10 rounded-xl shadow-2xl backdrop-blur-md"
         >
           <button
@@ -142,7 +141,6 @@ const BlockEditor = ({ content, onChange }: BlockEditorProps) => {
       {editor && (
         <FloatingMenu 
           editor={editor} 
-          tippyOptions={{ duration: 100 }}
           shouldShow={({ editor }) => {
             const { selection } = editor.state;
             const { $from } = selection;

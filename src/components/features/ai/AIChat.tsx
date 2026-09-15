@@ -239,10 +239,10 @@ const AIChat = () => {
     }
     
     // Fetch existing messages
-    supabase.from('messages').select('*')
+    supabase.from('messages' as any).select('*')
       .eq('conversation_id', activeConv.id)
       .order('created_at', { ascending: true })
-      .then(({ data }) => { if (data) {setMessages(data);} });
+      .then(({ data }: any) => { if (data) {setMessages(data);} });
     
     // Subscribe to real-time message updates
     const channel = supabase
@@ -327,7 +327,7 @@ const AIChat = () => {
 
   const deleteConversation = async (convId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    await supabase.from('messages').delete().eq('conversation_id', convId);
+    await supabase.from('messages' as any).delete().eq('conversation_id', convId);
     await supabase.from('conversations').delete().eq('id', convId);
     setConversations(prev => prev.filter(c => c.id !== convId));
     if (activeConv?.id === convId) { setActiveConv(null); setMessages([]); }
@@ -349,27 +349,27 @@ const AIChat = () => {
 
     try {
       // Persist user message
-      await supabase.from('messages').insert([{
+      await supabase.from('messages' as any).insert([{
         conversation_id: activeConv.id, role: 'user', content: userMessage,
         file_refs: selectedFiles.length > 0 ? selectedFiles : null
-      }]);
+      } as any]);
 
       // Build document context — real content extraction
       let documentContext: any[] = [];
       if (selectedFiles.length > 0) {
         const { data: fileData } = await supabase.from('files').select('*').in('id', selectedFiles);
         if (fileData) {
-          documentContext = await Promise.all(fileData.map(async (file) => {
+          documentContext = await Promise.all(fileData.map(async (file: any) => {
             const isPdf = file.mime_type === 'application/pdf' || file.type?.toLowerCase() === 'pdf';
-            const isText = /^text\//i.test(file.mime_type) || /^application\/(json|javascript|xml)/i.test(file.mime_type) ||
+            const isText = /^text\//i.test(file.mime_type || '') || /^application\/(json|javascript|xml)/i.test(file.mime_type || '') ||
               ['ts', 'tsx', 'js', 'jsx', 'py', 'md', 'txt', 'json', 'csv', 'html', 'css'].includes((file.type || '').toLowerCase());
 
-            let extractedContent = `File: "${file.name}" (${file.type?.toUpperCase() || 'unknown'}, ${(file.size / 1024).toFixed(1)} KB)\n`;
+            let extractedContent = `File: "${file.name}" (${file.type?.toUpperCase() || 'unknown'}, ${((file.size || 0) / 1024).toFixed(1)} KB)\n`;
 
             if (isPdf) {
               try {
                 toast.info(`Extracting text from ${file.name}…`, { duration: 2000 });
-                const text = await extractPdfText(file.public_url);
+                const text = await extractPdfText(file.public_url || file.url || '');
                 if (text) {
                   extractedContent += `\nExtracted PDF Content:\n${text}`;
                 } else {
@@ -378,9 +378,9 @@ const AIChat = () => {
               } catch (err: any) {
                 extractedContent += `\n(Could not extract PDF text: ${err.message})`;
               }
-            } else if (isText && file.size < 200 * 1024) {
+            } else if (isText && (file.size || 0) < 200 * 1024) {
               try {
-                const r = await fetch(file.public_url);
+                const r = await fetch(file.public_url || file.url || '');
                 if (r.ok) {
                   extractedContent += `\nFile Content:\n${(await r.text()).substring(0, 12000)}`;
                 }
@@ -388,21 +388,23 @@ const AIChat = () => {
                 extractedContent += `\n(Could not fetch text content.)`;
               }
             } else {
-              extractedContent += `\n(Binary or large file — content not extractable. URL: ${file.public_url})`;
+              extractedContent += `\n(Binary or large file — content not extractable. URL: ${file.public_url || file.url || ''})`;
             }
 
-            return { filename: file.name, content: extractedContent, mimeType: file.mime_type, size: file.size };
+            return { filename: file.name, content: extractedContent, mimeType: file.mime_type || file.type, size: file.size || 0 };
           }));
           
           // Log Activity for analysis
-          fileData.forEach(file => {
-            logActivity(user.id, 'summarize_file', file.name, 'file');
-          });
+          if (user) {
+            fileData.forEach((file: any) => {
+              logActivity(user.id, 'summarize_file', file.name, 'file');
+            });
+          }
         }
       }
 
       // OPTIMIZATION: Fetch history and RAG knowledge in parallel (not sequential)
-      const historyPromise = supabase.from('messages').select('role, content')
+      const historyPromise = (supabase.from('messages' as any).select('role, content') as any)
         .eq('conversation_id', activeConv.id).order('created_at', { ascending: true }).limit(12);
       
       const embeddingPromise = nvidiaService.generateEmbedding(userMessage)
@@ -413,21 +415,22 @@ const AIChat = () => {
 
       // Wait for both in parallel
       const [historyResult, queryEmbedding] = await Promise.all([historyPromise, embeddingPromise]);
-      const history = historyResult.data;
+      const history = (historyResult as any).data;
 
       // RAG: Semantic Knowledge Retrieval (only if embedding succeeded)
       let knowledgeContext: any[] = [];
-      if (queryEmbedding) {
+      if (queryEmbedding && user) {
         try {
-          const { data: knowledge } = await supabase.rpc('match_knowledge', {
+          const { data: knowledge } = await (supabase.rpc as any)('match_knowledge', {
             query_embedding: queryEmbedding,
             match_threshold: 0.5,
             match_count: 5,
             p_user_id: user.id
           });
           
-          if (knowledge && knowledge.length > 0) {
-            knowledgeContext = knowledge.map((k: any) => ({
+          const knowledgeList = knowledge as any[];
+          if (knowledgeList && knowledgeList.length > 0) {
+            knowledgeContext = knowledgeList.map((k: any) => ({
               filename: k.title,
               content: k.content,
               mimeType: k.source_type,
@@ -446,16 +449,16 @@ const AIChat = () => {
       const aiResponse = await nvidiaService.chat(
         userMessage,
         [...documentContext, ...knowledgeContext].length > 0 ? [...documentContext, ...knowledgeContext] : undefined,
-        history?.map(m => ({ role: m.role as any, content: m.content }))
+        (history as any[])?.map(m => ({ role: m.role as any, content: m.content }))
       );
 
       // Replace placeholder with real content
       setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, content: aiResponse, isStreaming: false } : m));
 
       // Persist AI message
-      await supabase.from('messages').insert([{
+      await supabase.from('messages' as any).insert([{
         conversation_id: activeConv.id, role: 'assistant', content: aiResponse
-      }]);
+      } as any]);
 
       // Update conversation title on first message
       if (messages.filter(m => m.role === 'user').length === 0) {

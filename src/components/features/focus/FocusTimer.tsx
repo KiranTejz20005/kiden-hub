@@ -13,7 +13,6 @@ import {
   getLocalActiveTimer,
   setLocalActiveTimer,
 } from '@/services/focusService';
-import { supabase } from '@/integrations/supabase/client';
 import { playAlertSound } from '@/lib/focus/sounds';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';

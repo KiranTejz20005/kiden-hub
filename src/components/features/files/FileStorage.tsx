@@ -240,6 +240,7 @@ const FileStorage = () => {
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({ onDrop, noClick: true, noKeyboard: true });
 
   const deleteFile = async (file: any) => {
+    if (!user) return;
     await supabase.storage.from('kiden-files').remove([file.storage_path]);
     await supabase.from('files').delete().eq('id', file.id).eq('user_id', user.id);
     

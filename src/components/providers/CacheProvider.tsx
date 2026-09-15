@@ -29,7 +29,7 @@ export const CacheProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           Object.entries(parsed).filter(([_, entry]: [any, any]) => 
             now - entry.timestamp < entry.ttl
           )
-        );
+        ) as Record<string, CacheEntry<any>>;
       } catch (e) {
         return {};
       }

@@ -153,7 +153,7 @@ const NotesEditor = () => {
   };
 
   const handleDeleteNote = async (id: string) => {
-    const { error } = await supabase.from('notes').update({ is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await supabase.from('notes').update({ is_deleted: true, deleted_at: new Date().toISOString() } as any).eq('id', id);
     if (!error) {
       toast.success('Note moved to trash');
       if (activeNote?.id === id) {setActiveNote(null);}
