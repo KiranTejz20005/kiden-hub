@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -30,6 +30,17 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { X } from 'lucide-react';
+import { KanbanBoard } from '@/components/features/kanban/KanbanBoard';
+import {
+  DEFAULT_KANBAN_COLUMNS,
+  KANBAN_MARKER_TITLE,
+  isKanbanMarkerContent,
+  normalizeKanbanData,
+  parseContent,
+  toMarkerContent,
+  type KanbanBoardData,
+} from '@/lib/kanban';
+import { saveKanban } from '@/hooks/useKanbanBoard';
 
 
 
@@ -53,14 +64,35 @@ interface BoardItem {
   url?: string;
   thumbnail_url?: string;
   section?: string;
+  /** jsonb — `research_board_items` has no real `section` column in this DB. */
+  metadata?: any;
   created_at: string;
 }
+
+/** Rows written by the Kanban template — never shown in the masonry grid. */
+const isKanbanMarker = (item: BoardItem): boolean => isKanbanMarkerContent(item.content);
+
+/**
+ * Section membership is stored in the row's `metadata` jsonb because the
+ * `section` column from `20260523_add_board_sections.sql` was never applied —
+ * sending it would make PostgREST reject the whole update. The column is still
+ * read first so this keeps working if the migration is ever run.
+ */
+const getItemSection = (item: BoardItem): string | undefined => {
+  const fromMetadata = parseContent(item.metadata).section;
+  if (typeof fromMetadata === 'string' && fromMetadata) {
+    return fromMetadata;
+  }
+  return item.section;
+};
 
 const MyBoards = ({ 
   selectedBoard, 
   onBoardSelect, 
   onBoardsUpdate,
-  onBoardCreateOptimistic
+  onBoardCreateOptimistic,
+  createBoardIntent = false,
+  onCreateBoardHandled
 }: { 
   selectedBoard: Board | null;
   onBoardSelect: (board: Board) => void;
@@ -68,6 +100,8 @@ const MyBoards = ({
   onBoardsUpdate: () => void;
   onBoardCreateOptimistic?: (board: any) => void;
   resetCounter?: number;
+  createBoardIntent?: boolean;
+  onCreateBoardHandled?: () => void;
 }) => {
   const { user } = useAuth();
   const { get, set, invalidate } = useAppCache();
@@ -94,19 +128,16 @@ const MyBoards = ({
   const [editingItem, setEditingItem] = useState<BoardItem | null>(null);
   const [renamingTitle, setRenamingTitle] = useState('');
 
+  // Board templates. The Kanban board is the real component shipped with the app —
+  // selecting it creates a board and renders <KanbanBoard /> inside it.
   const TEMPLATES = [
-    { title: 'Deep Learning Study', emoji: '🧠', items: [
-      { type: 'note', title: 'Curriculum Outline', content: { type: 'doc', content: [] } },
-      { type: 'link', title: 'Fast.ai Course', url: 'https://course.fast.ai' }
-    ]},
-    { title: 'Market Research', emoji: '📈', items: [
-      { type: 'note', title: 'Competitor Analysis', content: { type: 'doc', content: [] } },
-      { type: 'link', title: 'Crunchbase', url: 'https://crunchbase.com' }
-    ]},
-    { title: 'Product Launch', emoji: '🚀', items: [
-      { type: 'note', title: 'Strategy Doc', content: { type: 'doc', content: [] } },
-      { type: 'link', title: 'Product Hunt', url: 'https://producthunt.com' }
-    ]}
+    {
+      title: 'Kanban Board',
+      emoji: '🗂️',
+      kind: 'kanban' as const,
+      description: 'Five columns, drag & drop, WIP limits, tags and keyboard moves.',
+      columns: ['Backlog', 'To Do', 'In Progress', 'Review', 'Done'],
+    },
   ];
 
   useEffect(() => {
@@ -119,18 +150,26 @@ const MyBoards = ({
     }
   }, [location.pathname]);
 
+  // Sidebar "+" button asks for the create-board dialog (intent is cleared on open
+  // so a remount can never re-open it by accident).
+  useEffect(() => {
+    if (!createBoardIntent) { return; }
+    setShowCreateModal(true);
+    onCreateBoardHandled?.();
+  }, [createBoardIntent, onCreateBoardHandled]);
+
   const fetchItems = useCallback(async () => {
     if (!selectedBoard || !user) {
       setItems([]);
       return;
     }
     
-    // Layer 4: Check cache first
+    // Instant paint from cache, then always revalidate — the server is the
+    // source of truth for kanban boards, never localStorage.
     const cacheKey = `board-items:${selectedBoard.id}`;
     const cachedData = get<BoardItem[]>(cacheKey);
-    if (cachedData) {
+    if (cachedData && cachedData.length > 0) {
       setItems(cachedData);
-      return;
     }
 
     setLoading(true);
@@ -153,7 +192,7 @@ const MyBoards = ({
   }, [selectedBoard, user, get, set]);
 
   const sortedItems = useMemo(() => {
-    let result = [...items];
+    let result = items.filter(item => !isKanbanMarker(item));
     if (searchQuery) {
       result = result.filter(item => item.title.toLowerCase().includes(searchQuery.toLowerCase()));
     }
@@ -168,7 +207,8 @@ const MyBoards = ({
   const sections = useMemo(() => {
     const s = new Set<string>();
     items.forEach(item => {
-      if (item.section) {s.add(item.section);}
+      const section = getItemSection(item);
+      if (section && !isKanbanMarker(item)) {s.add(section);}
     });
     return Array.from(s).sort();
   }, [items]);
@@ -176,10 +216,62 @@ const MyBoards = ({
   const filteredItems = useMemo(() => {
     let result = sortedItems;
     if (selectedSection !== 'ALL') {
-      result = result.filter(item => item.section === selectedSection);
+      result = result.filter(item => getItemSection(item) === selectedSection);
     }
     return result;
   }, [sortedItems, selectedSection]);
+
+  /* ── Kanban board support ── */
+  const kanbanItem = useMemo(
+    () => items.find(isKanbanMarker) ?? null,
+    [items],
+  );
+  const isKanbanBoard = !!kanbanItem;
+
+  // Columns + cards are normalised out of the marker row, so legacy rows that
+  // predate stored categories fall back to the default set.
+  const kanbanData = useMemo<KanbanBoardData>(
+    () => (kanbanItem ? normalizeKanbanData(kanbanItem.content) : { columns: DEFAULT_KANBAN_COLUMNS, cards: [] }),
+    [kanbanItem],
+  );
+
+  const kanbanSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const kanbanPendingRef = useRef<{ markerId: string; data: KanbanBoardData } | null>(null);
+
+  const flushKanbanSave = useCallback(async () => {
+    const pending = kanbanPendingRef.current;
+    if (!pending) { return; }
+
+    if (kanbanSaveTimer.current) {
+      clearTimeout(kanbanSaveTimer.current);
+      kanbanSaveTimer.current = null;
+    }
+    kanbanPendingRef.current = null;
+
+    try {
+      await saveKanban(pending.markerId, pending.data);
+    } catch (err) {
+      console.error('Failed to save kanban board:', err);
+      toast.error('Failed to save board changes');
+    }
+  }, []);
+
+  // Optimistic local update + debounced write of `{ columns, cards }` to Postgres.
+  const handleKanbanChange = useCallback((next: KanbanBoardData) => {
+    if (!kanbanItem || !selectedBoard) { return; }
+
+    const content = { kanban: true, columns: next.columns, cards: next.cards };
+    const updatedItems = items.map(i => (i.id === kanbanItem.id ? { ...i, content } : i));
+    setItems(updatedItems);
+    set(`board-items:${selectedBoard.id}`, updatedItems);
+
+    kanbanPendingRef.current = { markerId: kanbanItem.id, data: next };
+    if (kanbanSaveTimer.current) { clearTimeout(kanbanSaveTimer.current); }
+    kanbanSaveTimer.current = setTimeout(() => { void flushKanbanSave(); }, 600);
+  }, [kanbanItem, selectedBoard, items, set, flushKanbanSave]);
+
+  // Never drop the last write when the board unmounts.
+  useEffect(() => () => { void flushKanbanSave(); }, [flushKanbanSave]);
 
   useEffect(() => {
     fetchItems();
@@ -225,15 +317,22 @@ const MyBoards = ({
 
   const handleMoveToSection = async (itemId: string, section: string) => {
     try {
+      // `metadata` is jsonb and always present; the schema's `section` column is not.
+      const current = items.find(i => i.id === itemId);
+      const nextMetadata = { ...parseContent(current?.metadata), section };
+
       const { error } = await supabase
-        .from('research_board_items')
-        .update({ section })
+        .from('research_board_items' as any)
+        // Only send `metadata` — `section` is absent from this database's schema
+        // and PostgREST rejects the entire update when an unknown column is sent.
+        .update({ metadata: nextMetadata } as any)
         .eq('id', itemId);
-      
+
       if (error) {throw error;}
-      setItems(prev => prev.map(i => i.id === itemId ? { ...i, section } : i));
+      setItems(prev => prev.map(i => (i.id === itemId ? { ...i, metadata: nextMetadata, section } : i)));
       toast.success(`Moved to ${section}`);
     } catch (err) {
+      console.error('Failed to move item to section:', err);
       toast.error('Failed to move item');
     }
   };
@@ -293,7 +392,7 @@ const MyBoards = ({
         <div className="w-full bg-white p-6 flex flex-col gap-3 min-h-[160px]">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-bold text-black leading-tight">{item.title}</h3>
-            {item.section && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+            {getItemSection(item) && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
           </div>
           <div className="space-y-2">
             <div className="h-2 w-full bg-black/5 rounded-full" />
@@ -313,7 +412,7 @@ const MyBoards = ({
       const views = Math.floor(Math.random() * 500 + 10) + 'K';
       
       return (
-        <div className="w-full bg-[#161616] flex flex-col group/video">
+        <div className="w-full bg-[#202020] flex flex-col group/video">
           <div className="p-3 flex items-center gap-2">
             <img 
               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${item.id}`} 
@@ -348,7 +447,7 @@ const MyBoards = ({
     if (item.type === 'file') {
       const isPdf = item.title.toLowerCase().endsWith('.pdf');
       return (
-        <div className="w-full bg-[#161616] p-6 flex flex-col gap-4">
+        <div className="w-full bg-[#202020] p-6 flex flex-col gap-4">
           <div className="w-full aspect-[4/3] bg-white/5 rounded-2xl flex flex-col items-center justify-center gap-3 relative group/file">
             {isPdf ? (
               <div className="flex flex-col items-center gap-2">
@@ -373,7 +472,7 @@ const MyBoards = ({
     }
 
     return (
-      <div className="w-full bg-[#161616] p-6">
+      <div className="w-full bg-[#202020] p-6">
         <div className="w-full aspect-square bg-white/5 rounded-2xl flex items-center justify-center text-white/20">
           <LinkIcon className="w-8 h-8" />
         </div>
@@ -491,7 +590,7 @@ const MyBoards = ({
     }
   };
 
-  const handleSelectTemplate = async (template: any) => {
+  const handleSelectTemplate = async (template: typeof TEMPLATES[number]) => {
     if (!user) {return;}
     setIsCreating(true);
     try {
@@ -503,25 +602,38 @@ const MyBoards = ({
       if (error) {throw error;}
       const board: any = data;
 
-      // Add template items
-      const itemsToAdd = template.items.map((item: any) => ({
-        board_id: board.id,
-        user_id: user.id,
-        type: item.type,
-        title: item.title,
-        content: item.content || {},
-        url: item.url
-      }));
+      if (template.kind === 'kanban') {
+        // The marker row flags this board as a kanban board AND stores its cards.
+        // Note: no `section` column on research_board_items in this database
+        // (the 20260523 migration was never applied) — PostgREST rejects the whole
+        // row if it is present, so keep the payload to columns that exist.
+        const marker = {
+          board_id: board.id,
+          user_id: user.id,
+          type: 'note',
+          title: KANBAN_MARKER_TITLE,
+          content: toMarkerContent({ columns: DEFAULT_KANBAN_COLUMNS, cards: [] }) as unknown as string,
+        };
+        const { error: markerError } = await supabase
+          .from('research_board_items')
+          .insert([marker]);
+        if (markerError) {
+          // Non-fatal: keep the board we just created rather than orphaning it.
+          console.error('Kanban marker insert failed:', markerError);
+          toast.error(`Board created, but kanban setup failed: ${markerError.message}`);
+        } else {
+          invalidate(`board-items:${board.id}`);
+        }
+      }
 
-      await supabase.from('research_board_items').insert(itemsToAdd);
-      
-      await onBoardsUpdate();
-      onBoardSelect(board); // Select the new board
+      onBoardCreateOptimistic?.(board);
+      onBoardsUpdate();
+      onBoardSelect(board);
       setShowTemplatesModal(false);
-      toast.success(`${template.title} board instantiated`);
-    } catch (err) {
+      toast.success(`${template.title} created`);
+    } catch (err: any) {
       console.error('Template error:', err);
-      toast.error('Failed to create from template');
+      toast.error(err?.message || 'Failed to create from template');
     } finally {
       setIsCreating(false);
     }
@@ -549,7 +661,7 @@ const MyBoards = ({
           <ResizablePanel defaultSize={(paneItem || showBoardChat) ? 60 : 100} minSize={30}>
             <main 
               {...getRootProps()}
-              className="h-full flex flex-col bg-[#050505] overflow-hidden relative"
+              className="h-full flex flex-col bg-[#181818] overflow-hidden relative"
             >
               <input {...getInputProps()} />
               <div className="flex-1 flex flex-col min-h-0">
@@ -558,56 +670,46 @@ const MyBoards = ({
                   {/* Left: Title & Add */}
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 mb-0.5">{selectedSpace}</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mb-0.5">{selectedSpace}</span>
                       <div className="flex items-center gap-2">
                         <h2 className="text-sm font-bold text-white tracking-tight uppercase">{selectedBoard.title}</h2>
+                        {!isKanbanBoard && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="w-5 h-5 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-white/20 hover:text-white">
+                            <button className="w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all text-white/70 hover:text-white">
                               <Plus className="w-3 h-3" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-56 bg-[#161616] border-white/10 rounded-2xl p-2 shadow-2xl z-[100]">
+                          <DropdownMenuContent className="w-56 bg-[#202020] border border-[#2a2a2a] rounded-2xl p-2 shadow-2xl z-[100]">
                             <DropdownMenuItem onClick={() => { setShowLinkModal(true); }} className="flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
-                              <div className="flex items-center gap-3 text-[11px] font-bold text-white/60">
+                              <div className="flex items-center gap-3 text-[11px] font-bold text-white/90">
                                 <Plus className="w-3.5 h-3.5" /> Paste a link
                               </div>
-                              <span className="text-[9px] font-black text-white/20">⇧L</span>
+                              <span className="text-[9px] font-black text-white/50">⇧L</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleAddItem('note', { title: 'Untitled' })} className="flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
-                              <div className="flex items-center gap-3 text-[11px] font-bold text-white/60">
+                              <div className="flex items-center gap-3 text-[11px] font-bold text-white/90">
                                 <FileText className="w-3.5 h-3.5" /> Create a document
                               </div>
-                              <span className="text-[9px] font-black text-white/20">D</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
-                              <div className="flex items-center gap-3 text-[11px] font-bold text-white/60">
-                                <Database className="w-3.5 h-3.5" /> Create a card
-                              </div>
-                              <span className="text-[9px] font-black text-white/20">C</span>
+                              <span className="text-[9px] font-black text-white/50">D</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-white/5 my-1" />
-                            <DropdownMenuItem className="flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all">
-                              <div className="flex items-center gap-3 text-[11px] font-bold text-white/60">
-                                <Plus className="w-3.5 h-3.5" /> Add section
-                              </div>
-                              <span className="text-[9px] font-black text-white/20">S</span>
-                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   {/* Center: Wide Search */}
                   <div className="flex-1 max-w-[600px] relative group hidden md:block">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/10 group-focus-within:text-white/40 transition-colors" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/60 group-focus-within:text-white transition-colors" />
                     <input 
                       type="text" 
                       placeholder={`Search in ${selectedBoard.title}...`}
                       value={searchQuery}
                       onChange={(e) => { setSearchQuery(e.target.value); }}
-                      className="w-full bg-white/[0.03] border border-white/5 hover:border-white/10 focus:border-white/20 rounded-full pl-10 pr-4 py-1.5 text-xs text-white placeholder:text-white/10 focus:ring-0 transition-all outline-none"
+                      className="w-full bg-white/[0.06] border border-white/15 hover:border-white/30 focus:border-white/40 rounded-full pl-10 pr-4 py-1.5 text-xs text-white placeholder:text-white/60 focus:ring-0 transition-all outline-none"
                     />
                   </div>
 
@@ -618,26 +720,29 @@ const MyBoards = ({
                       variant="ghost" 
                       className={cn(
                         "h-8 text-[10px] font-black uppercase tracking-widest px-3 transition-all",
-                        showBoardChat ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "text-white/40 hover:text-white hover:bg-white/5"
+                        showBoardChat ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "text-white/80 hover:text-white hover:bg-white/10"
                       )}
                     >
                       <Sparkles className="w-3 h-3 mr-2" /> CHAT
                     </Button>
-                    <Button onClick={handleShareBoard} variant="ghost" className="h-8 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/5 px-3">SHARE</Button>
-                    <div className="w-px h-4 bg-white/5 mx-2" />
+                    <Button onClick={handleShareBoard} variant="ghost" className="h-8 text-[10px] font-black uppercase tracking-widest text-white/80 hover:text-white hover:bg-white/10 px-3">SHARE</Button>
+                    <div className="w-px h-4 bg-white/15 mx-2" />
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="p-1.5 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all">
+                        <button className="p-1.5 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-all">
                           <Settings className="w-4 h-4" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-48 bg-[#161616] border-white/10 rounded-2xl p-2 shadow-2xl">
-                        <div className="px-3 py-2 text-[9px] font-black text-white/20 uppercase tracking-widest">Sort By</div>
-                        <DropdownMenuItem className="text-[11px] font-bold text-white/60 hover:text-white rounded-xl">Date Created</DropdownMenuItem>
-                        <DropdownMenuItem className="text-[11px] font-bold text-white/60 hover:text-white rounded-xl">Name</DropdownMenuItem>
-                        <DropdownMenuItem className="text-[11px] font-bold text-white/60 hover:text-white rounded-xl">Item Type</DropdownMenuItem>
+                      <DropdownMenuContent className="w-48 bg-[#202020] border border-[#2a2a2a] rounded-2xl p-2 shadow-2xl">
+                        <div className="px-3 py-2 text-[9px] font-black text-white/50 uppercase tracking-widest">Sort By</div>
+                        <DropdownMenuItem className="text-[11px] font-bold text-white/80 hover:text-white rounded-xl">Date Created</DropdownMenuItem>
+                        <DropdownMenuItem className="text-[11px] font-bold text-white/80 hover:text-white rounded-xl">Name</DropdownMenuItem>
+                        <DropdownMenuItem className="text-[11px] font-bold text-white/80 hover:text-white rounded-xl">Item Type</DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-white/5 my-1" />
-                        <DropdownMenuItem className="text-[11px] font-bold text-white/60 hover:text-white rounded-xl flex items-center gap-2">
+                        <DropdownMenuItem onClick={() => { setShowTemplatesModal(true); }} className="text-[11px] font-bold text-white/80 hover:text-white rounded-xl flex items-center gap-2 cursor-pointer">
+                          <Sparkles className="w-3.5 h-3.5" /> Start from Template
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-[11px] font-bold text-white/80 hover:text-white rounded-xl flex items-center gap-2">
                           <LayoutTemplate className="w-3.5 h-3.5" /> Save as Template
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -646,15 +751,16 @@ const MyBoards = ({
                 </div>
 
                 {/* Section Filter Pills */}
+                {!isKanbanBoard && (
                 <div className="px-6 py-3 flex items-center gap-2 overflow-x-auto scrollbar-hide border-b border-white/5 bg-black/20">
                   <button 
                     onClick={() => { setSelectedSection('ALL'); }}
                     className={cn(
                       "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shrink-0 flex items-center gap-2",
-                      selectedSection === 'ALL' ? "bg-white text-black shadow-lg" : "text-white/30 hover:text-white hover:bg-white/5"
+                      selectedSection === 'ALL' ? "bg-white text-black shadow-lg" : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
-                    <div className={cn("w-1.5 h-1.5 rounded-full", selectedSection === 'ALL' ? "bg-black/20" : "bg-white/20")} />
+                    <div className={cn("w-1.5 h-1.5 rounded-full", selectedSection === 'ALL' ? "bg-black/20" : "bg-white/40")} />
                     All Items
                   </button>
                   {sections.map((section, idx) => {
@@ -666,7 +772,7 @@ const MyBoards = ({
                         onClick={() => { setSelectedSection(section); }}
                         className={cn(
                           "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shrink-0 flex items-center gap-2",
-                          selectedSection === section ? "bg-white text-black shadow-lg" : "text-white/30 hover:text-white hover:bg-white/5"
+                          selectedSection === section ? "bg-white text-black shadow-lg" : "text-white/70 hover:text-white hover:bg-white/10"
                         )}
                       >
                         <div className={cn("w-1.5 h-1.5 rounded-full", selectedSection === section ? "bg-black/20" : color)} />
@@ -675,8 +781,19 @@ const MyBoards = ({
                     );
                   })}
                 </div>
+                )}
 
                 {/* Board Content Area (Masonry) */}
+                {isKanbanBoard ? (
+                  <div className="flex-1 min-h-0 p-4 flex flex-col w-full">
+                    <KanbanBoard
+                      columns={kanbanData.columns}
+                      cards={kanbanData.cards}
+                      onBoardChange={handleKanbanChange}
+                      title={selectedBoard.title}
+                    />
+                  </div>
+                ) : (
                 <ScrollArea className="flex-1">
                   {items.length > 0 ? (
                     <div className="p-8 masonry-grid">
@@ -691,7 +808,7 @@ const MyBoards = ({
                                 onClick={() => { setPaneItem(item); }}
                                 className={cn(
                                   "rounded-3xl border border-white/5 overflow-hidden transition-all duration-500 group flex flex-col relative cursor-pointer",
-                                  item.type === 'note' ? "bg-white shadow-xl" : "bg-[#161616] hover:border-emerald-500/30 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]"
+                                  item.type === 'note' ? "bg-white shadow-xl" : "bg-[#202020] hover:border-emerald-500/30 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]"
                                 )}
                               >
                                 {renderItemPreview(item)}
@@ -699,7 +816,7 @@ const MyBoards = ({
                             </ContextMenu.Trigger>
                             
                             <ContextMenu.Portal>
-                              <ContextMenu.Content className="min-w-[220px] bg-[#161616]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] animate-in fade-in zoom-in-95 duration-150">
+                              <ContextMenu.Content className="min-w-[220px] bg-[#202020] backdrop-blur-xl border border-[#2a2a2a] rounded-2xl p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] animate-in fade-in zoom-in-95 duration-150">
                                 <ContextMenu.Item 
                                   onClick={() => { setPaneItem(item); }}
                                   className="flex items-center justify-between px-3 py-2 text-[11px] font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl outline-none cursor-pointer transition-all"
@@ -759,7 +876,7 @@ const MyBoards = ({
                                     </div>
                                     <ChevronRight className="w-3.5 h-3.5" />
                                   </ContextMenu.SubTrigger>
-                                  <ContextMenu.SubContent className="min-w-[180px] bg-[#161616]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-2xl z-[110]">
+                                  <ContextMenu.SubContent className="min-w-[180px] bg-[#202020] backdrop-blur-xl border border-[#2a2a2a] rounded-2xl p-1.5 shadow-2xl z-[110]">
                                     {['Research', 'Inspiration', 'Resources', 'Drafts'].map(section => (
                                       <ContextMenu.Item 
                                         key={section}
@@ -842,6 +959,7 @@ const MyBoards = ({
                     </div>
                   )}
                 </ScrollArea>
+                )}
               </div>
             </main>
           </ResizablePanel>
@@ -851,7 +969,7 @@ const MyBoards = ({
               <ResizableHandle withHandle className="bg-white/5 hover:bg-primary/20 transition-colors duration-300">
                 <div className="w-[2px] h-8 bg-primary/40 rounded-full animate-pulse" />
               </ResizableHandle>
-              <ResizablePanel defaultSize={40} minSize={20} className="bg-[#0a0a0a] z-50">
+              <ResizablePanel defaultSize={40} minSize={20} className="bg-[#181818] z-50 border-l border-[#2a2a2a]">
                 <div className="h-full flex flex-col relative">
                   {isResizing && (
                     <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-[60] flex items-center justify-center">
@@ -952,7 +1070,7 @@ const MyBoards = ({
                     ) : paneItem && (
                       <div className="flex-1 flex flex-col h-full overflow-hidden">
                         {(paneItem.type === 'file' && (paneItem.url?.toLowerCase().includes('.pdf') || paneItem.title?.toLowerCase().endsWith('.pdf'))) ? (
-                          <div className="flex-1 flex flex-col h-full bg-[#050505] p-2">
+                          <div className="flex-1 flex flex-col h-full bg-[#181818] p-2">
                             <iframe 
                               src={`${paneItem.url}#toolbar=0`}
                               className="w-full h-full border-0 rounded-2xl bg-white shadow-2xl"
@@ -1015,8 +1133,8 @@ const MyBoards = ({
                                   <h2 className="text-2xl font-bold text-white tracking-tight">{paneItem.title}</h2>
                                   <div className="flex flex-wrap gap-2">
                                      <div className="px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[10px] font-bold text-white/40 uppercase tracking-widest">{paneItem.type}</div>
-                                     {paneItem.section && (
-                                       <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500 uppercase tracking-widest">{paneItem.section}</div>
+                                     {getItemSection(paneItem) && (
+                                       <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500 uppercase tracking-widest">{getItemSection(paneItem)}</div>
                                      )}
                                   </div>
                                 </div>
@@ -1077,7 +1195,7 @@ const MyBoards = ({
           )}
         </ResizablePanelGroup>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center p-12 bg-[#050505] text-center">
+        <div className="flex-1 flex flex-col items-center justify-center p-12 bg-[#181818] text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1113,7 +1231,7 @@ const MyBoards = ({
       )}
 
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="max-w-md rounded-3xl border-white/10 bg-[#0a0a0a] p-6">
+        <DialogContent className="max-w-md rounded-3xl border-[#2a2a2a] bg-[#202020] p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-white">Create board</DialogTitle>
           </DialogHeader>
@@ -1134,6 +1252,13 @@ const MyBoards = ({
           </div>
 
           <DialogFooter className="gap-3 sm:gap-3">
+            <Button 
+              variant="ghost" 
+              onClick={() => { setShowCreateModal(false); setShowTemplatesModal(true); }} 
+              className="h-11 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              <LayoutTemplate className="w-4 h-4 mr-2" /> Templates
+            </Button>
             <Button variant="ghost" onClick={() => { setShowCreateModal(false); }} className="h-11 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10">
               Cancel
             </Button>
@@ -1144,7 +1269,7 @@ const MyBoards = ({
         </DialogContent>
       </Dialog>
       <Dialog open={showLinkModal} onOpenChange={setShowLinkModal}>
-        <DialogContent className="max-w-md rounded-3xl border-white/10 bg-[#0a0a0a] p-6 shadow-2xl">
+        <DialogContent className="max-w-md rounded-3xl border-[#2a2a2a] bg-[#202020] p-6 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-white">Add Link</DialogTitle>
           </DialogHeader>
@@ -1178,19 +1303,36 @@ const MyBoards = ({
         </DialogContent>
       </Dialog>
       <Dialog open={showTemplatesModal} onOpenChange={setShowTemplatesModal}>
-        <DialogContent className="max-w-2xl rounded-3xl border-white/10 bg-[#0a0a0a] p-8 shadow-2xl">
+        <DialogContent className="max-w-2xl rounded-3xl border-[#2a2a2a] bg-[#202020] p-8 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-white mb-4">Board Templates</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
+          <div className="grid grid-cols-1 gap-4 py-4">
             {TEMPLATES.map(t => (
               <button 
                 key={t.title}
                 onClick={() => handleSelectTemplate(t)}
-                className="flex flex-col items-center justify-center p-6 rounded-[2rem] bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all gap-4 group"
+                disabled={isCreating}
+                className="flex items-start gap-5 p-6 rounded-[2rem] bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all text-left group disabled:opacity-60 disabled:cursor-wait"
               >
-                <span className="text-4xl group-hover:scale-110 transition-transform">{t.emoji}</span>
-                <span className="text-xs font-bold text-center text-white/60 group-hover:text-white">{t.title}</span>
+                <span className="text-4xl group-hover:scale-110 transition-transform shrink-0">{t.emoji}</span>
+                <span className="flex flex-col gap-2 min-w-0 flex-1">
+                  <span className="text-sm font-bold text-white group-hover:text-white transition-colors">{t.title}</span>
+                  <span className="text-[11px] leading-relaxed text-white/40">{t.description}</span>
+                  <span className="flex flex-wrap gap-1.5 pt-1">
+                    {t.columns.map(col => (
+                      <span
+                        key={col}
+                        className="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-white/5 border border-white/5 text-white/35"
+                      >
+                        {col}
+                      </span>
+                    ))}
+                  </span>
+                </span>
+                <span className="shrink-0 self-center text-[9px] font-black uppercase tracking-widest text-white/20 group-hover:text-emerald-400 transition-colors">
+                  {isCreating ? 'Creating…' : 'Use'}
+                </span>
               </button>
             ))}
           </div>
@@ -1205,7 +1347,7 @@ const MyBoards = ({
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xl flex items-center justify-center p-8"
           >
-            <div className="w-full h-full max-w-6xl bg-[#080808] border border-white/10 rounded-[3rem] shadow-2xl flex flex-col overflow-hidden">
+            <div className="w-full h-full max-w-6xl bg-[#181818] border border-[#2a2a2a] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden">
               <div className="h-20 flex items-center justify-between px-10 border-b border-white/5">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
@@ -1237,7 +1379,7 @@ const MyBoards = ({
       </AnimatePresence>
 
       <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
-        <DialogContent className="max-w-md rounded-3xl border-white/10 bg-[#0a0a0a] p-6">
+        <DialogContent className="max-w-md rounded-3xl border-[#2a2a2a] bg-[#202020] p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-white">Rename item</DialogTitle>
           </DialogHeader>
