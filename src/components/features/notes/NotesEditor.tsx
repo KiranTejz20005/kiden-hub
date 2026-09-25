@@ -190,7 +190,7 @@ const NotesEditor = () => {
   };
 
   return (
-    <div className="flex h-full bg-[#050505] overflow-hidden rounded-2xl border border-white/5">
+    <div className="flex h-full bg-[#181818] overflow-hidden rounded-2xl border border-[#2a2a2a]">
       <NoteSidebar 
         activeNoteId={activeNote?.id || null}
         onNoteSelect={setActiveNote}
@@ -200,7 +200,7 @@ const NotesEditor = () => {
         onDuplicateNote={handleDuplicateNote}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 bg-background relative overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 bg-[#181818] relative overflow-hidden">
         {activeNote ? (
           <div className="flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-hide">
             <NoteHeader 

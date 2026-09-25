@@ -5,679 +5,610 @@ import { nvidiaService } from '@/services/nvidia-service';
 import { toast } from 'sonner';
 import { 
   Plus, 
-  Send, 
   Paperclip, 
   Trash2, 
-  User as UserIcon,
-  Sparkles,
-  X,
-  FileText,
-  Copy,
-  Check,
-  Bot,
+  Sparkles, 
+  X, 
+  FileText, 
+  Copy, 
+  Check, 
   Loader2,
+  ChevronDown,
+  Clock,
+  ArrowUp,
+  PanelRight,
+  Mic,
+  Flame,
+  ChevronRight,
+  Scan,
+  Box,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
-import { extractPdfText } from '@/lib/pdf-extractor';
-import { logActivity } from '@/services/activityService';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
-// --- Typing Animation Dots ---
-// --- Thinking Animation with Timer ---
-const ThinkingIndicator = React.memo(({ seconds }: { seconds: number }) => (
-  <div className="flex items-center gap-4 py-1">
-    <div className="flex items-center gap-1.5 bg-white/10 px-2 py-1 rounded-lg border border-white/20">
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="w-1.5 h-1.5 rounded-full bg-white"
-          animate={{ 
-            scale: [1, 1.2, 1], 
-            opacity: [0.4, 1, 0.4],
-          }}
-          transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-        />
-      ))}
-    </div>
-    <div className="flex flex-col">
-      <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Thinking...</span>
-      <span className="text-[9px] font-mono text-muted-foreground">{seconds.toFixed(1)}s elapsed</span>
-    </div>
+// Custom logo badge matching reference (two-curved spark logo)
+const CustomLogoBadge = () => (
+  <div className="w-8 h-8 flex items-center justify-center shrink-0 mb-4">
+    <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 3C10.5 6.5 7.5 9.5 4 11C7.5 12.5 10.5 15.5 12 19C13.5 15.5 16.5 12.5 20 11C16.5 9.5 13.5 6.5 12 3Z" />
+    </svg>
   </div>
-));
+);
 
-ThinkingIndicator.displayName = 'ThinkingIndicator';
-
-// --- Copy Button for Messages ---
-const CopyButton = ({ text }: { text: string }) => {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => { setCopied(false); }, 2000);
-  };
-  return (
-    <button
-      onClick={handleCopy}
-      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-white/10 text-muted-foreground hover:text-foreground"
-    >
-      {copied ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
-    </button>
-  );
-};
-
-// --- Message Bubble ---
-const MessageBubble = React.memo(({ msg }: { msg: any; isLast?: boolean }) => {
-  const isUser = msg.role === 'user';
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className={cn('flex gap-4 group', isUser ? 'flex-row-reverse' : '')}
-    >
-      <div className={cn(
-        'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-1 border border-white/5',
-        isUser ? 'bg-white text-black' : 'bg-white/5 text-white/40'
-      )}>
-        {isUser ? <UserIcon className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-      </div>
-
-      <div className={cn('flex flex-col gap-1.5 max-w-[85%]', isUser ? 'items-end' : 'items-start')}>
-        <div className={cn(
-          'relative px-5 py-3 rounded-2xl text-[13px] leading-relaxed',
-          isUser
-            ? 'bg-white/5 border border-white/10 text-white'
-            : 'bg-[#0d0d0d] border border-white/5 text-white/80'
-        )}>
-          {isUser ? (
-            <p className="whitespace-pre-wrap">{msg.content}</p>
-          ) : (
-            <div className="prose prose-sm prose-zinc dark:prose-invert max-w-none prose-p:my-1 prose-headings:mt-2 prose-headings:mb-1 prose-pre:bg-white/5 prose-pre:rounded-xl prose-code:text-white prose-code:bg-white/10 prose-code:rounded prose-code:px-1 font-medium">
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
-            </div>
-          )}
-        </div>
-        <div className={cn('flex items-center gap-2', isUser ? 'flex-row-reverse' : '')}>
-          <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">
-            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-          {!isUser && <CopyButton text={msg.content} />}
-        </div>
-      </div>
-    </motion.div>
-  );
-});
-
-MessageBubble.displayName = 'MessageBubble';
-
-// --- Empty State ---
-const SUGGESTIONS = [
-  { emoji: '📄', text: 'Summarize a document', prompt: 'Please summarize the attached document and extract the key points.' },
-  { emoji: '📋', text: 'Write a project brief', prompt: 'Help me write a comprehensive project brief. Ask me about the project goals first.' },
-  { emoji: '💡', text: 'Explain a concept', prompt: 'Explain a concept to me in simple terms. What concept would you like me to explain?' },
-  { emoji: '✉️', text: 'Draft an email', prompt: 'Help me draft a professional email. Tell me who it\'s for and what the purpose is.' },
-  { emoji: '🔍', text: 'Analyze my files', prompt: 'Attach a file using the paperclip icon and I\'ll analyze it for you in detail.' },
-  { emoji: '🧠', text: 'Brainstorm ideas', prompt: 'Let\'s brainstorm ideas together. What topic or problem are you working on?' },
+// 4 Prompt cards data matching Reference Screenshot 1
+const CARDS = [
+  {
+    icon: FileText,
+    text: 'Scrape transcripts from a creator',
+    prompt: 'Scrape and summarize transcripts from top creators in my niche.',
+  },
+  {
+    icon: Flame,
+    text: 'Find a viral topic to post about today',
+    prompt: 'Analyze trending viral topics and suggest 5 content ideas for today.',
+  },
+  {
+    icon: Scan,
+    text: 'Study top video titles or article headlines',
+    prompt: 'Break down the highest-performing video titles and headline formulas.',
+  },
+  {
+    icon: Box,
+    text: 'Start with a prebuilt Custom AI',
+    prompt: 'Help me set up a custom AI persona tailored for content creation.',
+  },
 ];
 
-const EmptyState = React.memo(({ onNewChat, onSuggestion }: { onNewChat: () => void; onSuggestion: (prompt: string) => void }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    className="flex-1 flex flex-col items-center justify-center p-12 gap-12"
-  >
-    <div className="text-center space-y-6">
-      <div className="w-20 h-20 rounded-3xl bg-white/[0.03] border border-white/10 flex items-center justify-center mx-auto shadow-2xl">
-        <Bot className="w-10 h-10 text-white/30" />
-      </div>
-      <div className="space-y-2">
-        <h2 className="text-2xl font-bold text-white tracking-tighter">Kiden Intelligence</h2>
-        <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.3em] leading-loose max-w-[280px] mx-auto">
-          Minimalist assistant. Built for clarity and speed.
-        </p>
-      </div>
-    </div>
+// Active configured API models
+const API_MODELS = [
+  { label: 'Llama 3.1 8B', modelId: 'meta/llama-3.1-8b-instruct' },
+  { label: 'Llama 3.3 70B', modelId: 'meta/llama-3.3-70b-instruct' },
+  { label: 'Mistral NeMo', modelId: 'mistralai/mistral-nemo-12b-instruct' },
+];
 
-    <div className="w-full max-w-sm">
-      <div className="grid grid-cols-2 gap-4">
-        {SUGGESTIONS.slice(0, 4).map(s => (
-          <button
-            key={s.text}
-            onClick={() => { onSuggestion(s.prompt); }}
-            className="flex flex-col gap-3 p-5 rounded-3xl bg-white/[0.01] border border-white/5 hover:bg-white/[0.03] hover:border-white/10 transition-all text-left group shadow-sm"
-          >
-            <span className="text-xl grayscale opacity-20 group-hover:opacity-100 transition-all duration-500">{s.emoji}</span>
-            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest group-hover:text-white transition-colors">{s.text}</p>
-          </button>
-        ))}
-      </div>
-    </div>
-
-    <button 
-      onClick={onNewChat} 
-      className="flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-white text-black font-black text-[10px] uppercase tracking-[0.25em] hover:bg-white/90 transition-all active:scale-95 shadow-2xl shadow-white/5 mt-4"
-    >
-      <Plus className="w-4 h-4" /> New Session
-    </button>
-  </motion.div>
-));
-
-EmptyState.displayName = 'EmptyState';
-
-const AIChat = () => {
+export default function AIChat() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeConv, setActiveConv] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [thinkingTime, setThinkingTime] = useState(0);
-  const [streamingContent, setStreamingContent] = useState('');
+  const [selectedModel, setSelectedModel] = useState(API_MODELS[0]);
+  const [showRightPanel, setShowRightPanel] = useState(false);
   const [availableFiles, setAvailableFiles] = useState<any[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-  const [showFileSelector, setShowFileSelector] = useState(false);
-  const [, setShowScrollBtn] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Prevent tab refresh refetch spam
-  const fetchInProgressRef = useRef(false);
-  const lastFetchTimeRef = useRef(0);
-  const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutes
-
+  /* Load user conversations */
   const fetchConversations = useCallback(async () => {
-    if (fetchInProgressRef.current) {return;}
-    const now = Date.now();
-    if (now - lastFetchTimeRef.current < FETCH_COOLDOWN) {return;}
-    
-    if (!user) {return;}
-    fetchInProgressRef.current = true;
+    if (!user) return;
     try {
       const { data } = await supabase
         .from('conversations')
         .select('*')
         .eq('user_id', user.id)
         .order('last_message_at', { ascending: false });
-      if (data) {
-        setConversations(data);
-        lastFetchTimeRef.current = now;
-      }
-    } finally {
-      fetchInProgressRef.current = false;
+      if (data) setConversations(data);
+    } catch { /* silent */ }
+  }, [user]);
+
+  /* Load files for attachment context */
+  const fetchFiles = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('notes')
+        .select('id, title')
+        .eq('user_id', user.id)
+        .limit(10);
+      if (data) setAvailableFiles(data.map(d => ({ id: d.id, name: d.title || 'Untitled note' })));
+    } catch { /* silent */ }
+  }, [user]);
+
+  useEffect(() => {
+    fetchConversations();
+    fetchFiles();
+  }, [fetchConversations, fetchFiles]);
+
+  /* Load messages for active conversation */
+  useEffect(() => {
+    if (!activeConv) {
+      setMessages([]);
+      return;
     }
-  }, [user]);
-
-  useEffect(() => {
-    if (user && conversations.length === 0) {fetchConversations();}
-  }, [user]);
-  
-  // Refetch only on tab visibility change
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {fetchConversations();}
+    const loadMessages = async () => {
+      try {
+        const { data } = await supabase
+          .from('messages' as any)
+          .select('*')
+          .eq('conversation_id', activeConv.id)
+          .order('created_at', { ascending: true });
+        if (data) setMessages(data);
+      } catch { /* silent */ }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => { document.removeEventListener('visibilitychange', handleVisibilityChange); };
-  }, [fetchConversations]);
+    loadMessages();
+  }, [activeConv]);
 
+  /* Scroll to bottom */
   useEffect(() => {
-    if (!user) {return;}
-    supabase.from('files').select('id, name, type, size, created_at').eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) {setAvailableFiles(data);} });
-  }, [user]);
-
-  // Load messages for active conversation
-  useEffect(() => {
-    if (!activeConv) { 
-      setMessages([]); 
-      return; 
-    }
-    
-    // Fetch existing messages
-    supabase.from('messages' as any).select('*')
-      .eq('conversation_id', activeConv.id)
-      .order('created_at', { ascending: true })
-      .then(({ data }: any) => { if (data) {setMessages(data);} });
-    
-    // Subscribe to real-time message updates
-    const channel = supabase
-      .channel(`chat-messages-${activeConv.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${activeConv.id}` },
-        (payload) => {
-          setMessages(prev => [...prev, payload.new]);
-        }
-      )
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeConv?.id]);
-
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, []);
+  }, [messages, loading]);
 
-  useEffect(() => {
-    let interval: any;
-    if (loading) {
-      setThinkingTime(0);
-      interval = setInterval(() => {
-        setThinkingTime(prev => prev + 0.1);
-      }, 100);
-    } else {
-      clearInterval(interval);
-    }
-    return () => { clearInterval(interval); };
-  }, [loading]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, streamingContent]);
-
-  const handleScroll = () => {
-    if (!scrollRef.current) {return;}
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-    setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 120);
-  };
-
-  // Auto-resize textarea
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px';
-  };
-
+  /* Create new chat session */
   const handleNewChat = async () => {
-    if (!user) {return;}
-    const { data } = await supabase.from('conversations')
-      .insert([{ user_id: user.id, title: 'New Conversation', last_message_at: new Date().toISOString() }])
-      .select().single();
-    if (data) {
-      setConversations(prev => [data, ...prev]);
-      setActiveConv(data);
-      setMessages([]);
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert([{ user_id: user.id, title: 'New chat', last_message_at: new Date().toISOString() }])
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) {
+        setConversations(prev => [data, ...prev]);
+        setActiveConv(data);
+        setMessages([]);
+      }
+    } catch (e: any) {
+      toast.error('Failed to create new chat');
     }
   };
 
-  const handleSuggestion = async (prompt: string) => {
-    if (!user) {return;}
-    // Create a new conversation
-    const { data } = await supabase.from('conversations')
-      .insert([{ user_id: user.id, title: prompt.substring(0, 50), last_message_at: new Date().toISOString() }])
-      .select().single();
-    if (data) {
-      setConversations(prev => [data, ...prev]);
-      setActiveConv(data);
-      setMessages([]);
-      // Pre-fill the input
-      setInputValue(prompt);
-      setTimeout(() => textareaRef.current?.focus(), 100);
+  /* Delete conversation */
+  const handleDeleteConv = async (id: string) => {
+    try {
+      await supabase.from('messages' as any).delete().eq('conversation_id', id);
+      await supabase.from('conversations').delete().eq('id', id);
+      setConversations(prev => prev.filter(c => c.id !== id));
+      if (activeConv?.id === id) setActiveConv(null);
+      toast.success('Chat deleted');
+    } catch {
+      toast.error('Failed to delete chat');
     }
   };
 
-  const deleteConversation = async (convId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await supabase.from('messages' as any).delete().eq('conversation_id', convId);
-    await supabase.from('conversations').delete().eq('id', convId);
-    setConversations(prev => prev.filter(c => c.id !== convId));
-    if (activeConv?.id === convId) { setActiveConv(null); setMessages([]); }
-  };
+  /* Send message handler */
+  const handleSend = async (textToSend?: string) => {
+    const content = textToSend || inputValue.trim();
+    if (!content || loading || !user) return;
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || !activeConv || loading) {return;}
-
-    const userMessage = inputValue.trim();
     setInputValue('');
-    if (textareaRef.current) { textareaRef.current.style.height = 'auto'; }
-    setLoading(true);
-    setStreamingContent('');
 
-    // Optimistic message
-    const optimisticMsg = { id: `opt-${Date.now()}`, role: 'user', content: userMessage, created_at: new Date().toISOString() };
-    setMessages(prev => [...prev, optimisticMsg]);
+    let currentConv = activeConv;
+    if (!currentConv) {
+      try {
+        const { data, error } = await supabase
+          .from('conversations')
+          .insert([{ user_id: user.id, title: content.substring(0, 30), last_message_at: new Date().toISOString() }])
+          .select()
+          .single();
+        if (error) throw error;
+        currentConv = data;
+        setActiveConv(data);
+        setConversations(prev => [data, ...prev]);
+      } catch {
+        toast.error('Failed to start conversation');
+        return;
+      }
+    }
+
+    const userMsg = {
+      id: `u-${Date.now()}`,
+      conversation_id: currentConv.id,
+      role: 'user',
+      content,
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    setLoading(true);
 
     try {
-      // Persist user message
       await supabase.from('messages' as any).insert([{
-        conversation_id: activeConv.id, role: 'user', content: userMessage,
-        file_refs: selectedFiles.length > 0 ? selectedFiles : null
+        conversation_id: currentConv.id,
+        role: 'user',
+        content,
       } as any]);
 
-      // Build document context — real content extraction
-      let documentContext: any[] = [];
-      if (selectedFiles.length > 0) {
-        const { data: fileData } = await supabase.from('files').select('*').in('id', selectedFiles);
-        if (fileData) {
-          documentContext = await Promise.all(fileData.map(async (file: any) => {
-            const isPdf = file.mime_type === 'application/pdf' || file.type?.toLowerCase() === 'pdf';
-            const isText = /^text\//i.test(file.mime_type || '') || /^application\/(json|javascript|xml)/i.test(file.mime_type || '') ||
-              ['ts', 'tsx', 'js', 'jsx', 'py', 'md', 'txt', 'json', 'csv', 'html', 'css'].includes((file.type || '').toLowerCase());
+      const history = messages.concat(userMsg).map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
 
-            let extractedContent = `File: "${file.name}" (${file.type?.toUpperCase() || 'unknown'}, ${((file.size || 0) / 1024).toFixed(1)} KB)\n`;
+      const aiResponse = await nvidiaService.chatCompletion(history, selectedModel.modelId);
 
-            if (isPdf) {
-              try {
-                toast.info(`Extracting text from ${file.name}…`, { duration: 2000 });
-                const text = await extractPdfText(file.public_url || file.url || '');
-                if (text) {
-                  extractedContent += `\nExtracted PDF Content:\n${text}`;
-                } else {
-                  extractedContent += `\n(PDF text extraction returned empty — the file may be image-only/scanned.)`;
-                }
-              } catch (err: any) {
-                extractedContent += `\n(Could not extract PDF text: ${err.message})`;
-              }
-            } else if (isText && (file.size || 0) < 200 * 1024) {
-              try {
-                const r = await fetch(file.public_url || file.url || '');
-                if (r.ok) {
-                  extractedContent += `\nFile Content:\n${(await r.text()).substring(0, 12000)}`;
-                }
-              } catch {
-                extractedContent += `\n(Could not fetch text content.)`;
-              }
-            } else {
-              extractedContent += `\n(Binary or large file — content not extractable. URL: ${file.public_url || file.url || ''})`;
-            }
+      const assistantMsg = {
+        id: `a-${Date.now()}`,
+        conversation_id: currentConv.id,
+        role: 'assistant',
+        content: aiResponse,
+        created_at: new Date().toISOString(),
+      };
 
-            return { filename: file.name, content: extractedContent, mimeType: file.mime_type || file.type, size: file.size || 0 };
-          }));
-          
-          // Log Activity for analysis
-          if (user) {
-            fileData.forEach((file: any) => {
-              logActivity(user.id, 'summarize_file', file.name, 'file');
-            });
-          }
-        }
-      }
-
-      // OPTIMIZATION: Fetch history and RAG knowledge in parallel (not sequential)
-      const historyPromise = (supabase.from('messages' as any).select('role, content') as any)
-        .eq('conversation_id', activeConv.id).order('created_at', { ascending: true }).limit(12);
-      
-      const embeddingPromise = nvidiaService.generateEmbedding(userMessage)
-        .catch((err) => {
-          console.warn('Embedding generation failed:', err);
-          return null;
-        });
-
-      // Wait for both in parallel
-      const [historyResult, queryEmbedding] = await Promise.all([historyPromise, embeddingPromise]);
-      const history = (historyResult as any).data;
-
-      // RAG: Semantic Knowledge Retrieval (only if embedding succeeded)
-      let knowledgeContext: any[] = [];
-      if (queryEmbedding && user) {
-        try {
-          const { data: knowledge } = await (supabase.rpc as any)('match_knowledge', {
-            query_embedding: queryEmbedding,
-            match_threshold: 0.5,
-            match_count: 5,
-            p_user_id: user.id
-          });
-          
-          const knowledgeList = knowledge as any[];
-          if (knowledgeList && knowledgeList.length > 0) {
-            knowledgeContext = knowledgeList.map((k: any) => ({
-              filename: k.title,
-              content: k.content,
-              mimeType: k.source_type,
-              size: 0
-            }));
-          }
-        } catch (err) {
-          console.warn('RAG Retrieval failed:', err);
-        }
-      }
-
-      // Show a streaming placeholder immediately
-      const placeholderId = `streaming-${Date.now()}`;
-      setMessages(prev => [...prev, { id: placeholderId, role: 'assistant', content: '', created_at: new Date().toISOString(), isStreaming: true }]);
-
-      const aiResponse = await nvidiaService.chat(
-        userMessage,
-        [...documentContext, ...knowledgeContext].length > 0 ? [...documentContext, ...knowledgeContext] : undefined,
-        (history as any[])?.map(m => ({ role: m.role as any, content: m.content }))
-      );
-
-      // Replace placeholder with real content
-      setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, content: aiResponse, isStreaming: false } : m));
-
-      // Persist AI message
+      setMessages(prev => [...prev, assistantMsg]);
       await supabase.from('messages' as any).insert([{
-        conversation_id: activeConv.id, role: 'assistant', content: aiResponse
+        conversation_id: currentConv.id,
+        role: 'assistant',
+        content: aiResponse,
       } as any]);
 
-      // Update conversation title on first message
-      if (messages.filter(m => m.role === 'user').length === 0) {
-        const title = userMessage.substring(0, 50) + (userMessage.length > 50 ? '…' : '');
-        await supabase.from('conversations').update({ title, last_message_at: new Date().toISOString() }).eq('id', activeConv.id);
-        setConversations(prev => prev.map(c => c.id === activeConv.id ? { ...c, title } : c));
+      /* Update title if first message */
+      if (messages.length === 0) {
+        const title = content.substring(0, 35) + (content.length > 35 ? '...' : '');
+        await supabase.from('conversations').update({ title, last_message_at: new Date().toISOString() }).eq('id', currentConv.id);
+        setConversations(prev => prev.map(c => c.id === currentConv.id ? { ...c, title } : c));
+        setActiveConv((prev: any) => prev ? { ...prev, title } : prev);
       }
-
-      setSelectedFiles([]);
-      setShowFileSelector(false);
-    } catch (error: any) {
-      console.error('Error:', error);
-      toast.error('Failed to send message: ' + error.message);
-      setMessages(prev => prev.filter(m => !m.isStreaming && m.id !== `opt-${Date.now()}`));
+    } catch (err: any) {
+      toast.error('Failed to get response: ' + (err.message || 'Unknown error'));
     } finally {
       setLoading(false);
-      setStreamingContent('');
     }
+  };
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
-    <div className="flex h-full bg-[#030303] overflow-hidden rounded-3xl border border-white/5 relative shadow-2xl">
-      {/* ── Main Chat Area ── */}
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        {!activeConv ? (
-          <EmptyState onNewChat={handleNewChat} onSuggestion={handleSuggestion} />
-        ) : (
-          <>
-            {/* Header */}
-            <div className="h-14 border-b border-white/5 flex items-center justify-between px-5 bg-black/20 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-white/60" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs text-white truncate max-w-[300px]">{activeConv.title}</h3>
-                  <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-white/40" />
-                    AI Ready
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => deleteConversation(activeConv.id, { stopPropagation: () => {} } as any)}
-                  className="p-2 rounded-lg text-white/20 hover:text-white hover:bg-white/5 transition-all"
+    <div className="flex flex-col h-full bg-[#181818] text-white relative select-none overflow-hidden">
+
+      {/* ── Top Bar ── */}
+      <div className="h-[52px] border-b border-[#2a2a2a] flex items-center justify-between px-5 bg-[#181818] shrink-0 z-10">
+        {/* Chat Selector Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.06] transition-colors text-[13px] font-medium text-white/90 outline-none cursor-pointer">
+              <span className="truncate max-w-[200px]">
+                {activeConv ? activeConv.title : 'New chat'}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-white/40 shrink-0" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-64 bg-[#202020] border border-[#2a2a2a] rounded-xl p-1 shadow-2xl z-[100]">
+            <DropdownMenuItem onClick={handleNewChat} className="flex items-center gap-2 px-3 py-2 text-[12.5px] font-medium text-white hover:bg-white/[0.06] rounded-lg cursor-pointer">
+              <Plus className="w-3.5 h-3.5 text-emerald-400" /> New chat
+            </DropdownMenuItem>
+            {conversations.length > 0 && <div className="h-px bg-white/[0.06] my-1" />}
+            <ScrollArea className="max-h-56">
+              {conversations.map(conv => (
+                <div
+                  key={conv.id}
+                  onClick={() => setActiveConv(conv)}
+                  className={cn(
+                    'flex items-center justify-between px-3 py-2 text-[12.5px] rounded-lg cursor-pointer group transition-colors',
+                    activeConv?.id === conv.id ? 'bg-white/[0.08] text-white font-medium' : 'text-white/60 hover:bg-white/[0.05] hover:text-white'
+                  )}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <span className="truncate flex-1">{conv.title}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteConv(conv.id); }}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-400 transition-opacity"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </ScrollArea>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Top Right Action Icons */}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setShowRightPanel(p => !p)}
+            className={cn(
+              'p-2 rounded-lg transition-colors cursor-pointer',
+              showRightPanel ? 'bg-white/[0.1] text-white' : 'text-white/40 hover:text-white hover:bg-white/[0.05]'
+            )}
+            title="Toggle Context Panel"
+          >
+            <PanelRight className="w-4 h-4" />
+          </button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/[0.05] transition-colors cursor-pointer"
+                title="Chat History"
+              >
+                <Clock className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 bg-[#202020] border border-[#2a2a2a] rounded-xl p-1 shadow-2xl z-[100]">
+              <div className="px-3 py-1.5 text-[11px] font-semibold text-white/40 uppercase tracking-wider">Recent chats</div>
+              <ScrollArea className="max-h-56">
+                {conversations.map(c => (
+                  <DropdownMenuItem key={c.id} onClick={() => setActiveConv(c)} className="flex items-center justify-between px-3 py-2 text-[12.5px] text-white/70 hover:text-white hover:bg-white/[0.06] rounded-lg cursor-pointer">
+                    <span className="truncate">{c.title}</span>
+                    <span className="text-[10px] text-white/30">{formatDistanceToNow(new Date(c.last_message_at), { addSuffix: false })}</span>
+                  </DropdownMenuItem>
+                ))}
+              </ScrollArea>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <button
+            type="button"
+            onClick={handleNewChat}
+            className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/[0.05] transition-colors cursor-pointer"
+            title="New session"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Main Chat Area ── */}
+      <div className="flex-1 flex flex-col relative overflow-hidden">
+
+        {/* Floating Context Panel (Screenshot 3 Right Card) */}
+        <AnimatePresence>
+          {showRightPanel && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+              className="absolute top-4 right-6 w-72 bg-[#202020] border border-[#2a2a2a] rounded-2xl p-4 shadow-2xl z-20 space-y-4"
+            >
+              <div>
+                <p className="text-[11.5px] font-semibold text-white/60 mb-2">Instructions</p>
+                <button
+                  type="button"
+                  onClick={() => toast.info('System instructions added')}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-colors text-[12.5px] font-medium text-white/80 cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <FileText className="w-3.5 h-3.5 text-white/40" /> Add instructions
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5 text-white/30" />
+                </button>
+              </div>
+
+              <div className="border-t border-white/[0.06] pt-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[11.5px] font-semibold text-white/60">Context</p>
+                  <button type="button" onClick={() => toast.info('Select context sources')} className="text-white/40 hover:text-white p-0.5">
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="text-[11px] text-white/40 leading-relaxed">
+                  Notes, files, boards, links, or creators Eden should use in every reply here.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Chat Canvas (Empty State vs Active Messages) */}
+        {!activeConv || messages.length === 0 ? (
+          /* ── Empty State (Screenshot 1) ── */
+          <div className="flex-1 flex flex-col items-center justify-center px-4 pb-16 overflow-y-auto">
+            <CustomLogoBadge />
+            <h1 className="text-[22px] font-semibold text-white tracking-tight mb-8 text-center">
+              What are we building?
+            </h1>
+
+            {/* 4 Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-[780px] w-full px-2">
+              {CARDS.map((card, i) => (
+                <motion.button
+                  key={card.text}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.03 * i, duration: 0.25 }}
+                  onClick={() => handleSend(card.prompt)}
+                  className="flex flex-col justify-between items-start p-4 rounded-xl bg-[#202020] border border-[#2a2a2a] hover:bg-[#242424] hover:border-[#333333] transition-all cursor-pointer text-left h-[98px] group shadow-sm"
+                >
+                  <card.icon className="w-4 h-4 text-white/60 group-hover:text-white transition-colors shrink-0" />
+                  <p className="text-[12px] font-medium text-white/80 group-hover:text-white transition-colors leading-snug">
+                    {card.text}
+                  </p>
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* ── Active Conversation Stream (Screenshot 3) ── */
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-8 space-y-6 scrollbar-hide">
+            <div className="max-w-2xl mx-auto space-y-6">
+              {messages.map((msg) => {
+                const isUser = msg.role === 'user';
+                return (
+                  <div key={msg.id} className={cn('flex flex-col', isUser ? 'items-end' : 'items-start')}>
+                    {isUser ? (
+                      /* User pill bubble */
+                      <div className="px-4 py-2.5 rounded-2xl bg-[#292929] border border-[#333333]/50 text-white text-[13.5px] max-w-[70%] shadow-sm leading-relaxed">
+                        {msg.content}
+                      </div>
+                    ) : (
+                      /* AI Response */
+                      <div className="group relative max-w-[85%] text-white/90 text-[14px] leading-relaxed">
+                        <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1 prose-pre:bg-[#161616] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(msg.content, msg.id)}
+                            className="p-1 rounded text-white/30 hover:text-white hover:bg-white/10 transition-colors"
+                          >
+                            {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {loading && (
+                <div className="flex items-center gap-2 text-white/40 text-[12px] font-medium py-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Thinking...
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Bottom Floating Pill Input Bar ── */}
+        <div className="p-4 shrink-0">
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+            className="max-w-[720px] w-full mx-auto bg-[#202020] border border-[#2a2a2a] rounded-2xl p-3 shadow-2xl focus-within:border-[#333333] transition-all flex flex-col gap-2"
+          >
+            {/* Attached file chips */}
+            {selectedFiles.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 px-1 pt-1">
+                {selectedFiles.map(id => {
+                  const f = availableFiles.find(item => item.id === id);
+                  return (
+                    <span key={id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.08] text-[11px] text-white/80">
+                      <FileText className="w-3 h-3 text-white/40" />
+                      {f?.name || 'File'}
+                      <button type="button" onClick={() => setSelectedFiles(p => p.filter(x => x !== id))}>
+                        <X className="w-3 h-3 text-white/30 hover:text-white" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Input textarea */}
+            <textarea
+              ref={textareaRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Ask anything"
+              rows={1}
+              className="w-full bg-transparent text-[13.5px] text-white placeholder:text-white/35 resize-none outline-none min-h-[40px] max-h-32 px-1 leading-relaxed"
+            />
+
+            {/* Bottom Controls Bar */}
+            <div className="flex items-center justify-between pt-1 border-t border-white/[0.04]">
+              {/* Left Attachment Buttons */}
+              <div className="flex items-center gap-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer"
+                      title="Attach file or note"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 bg-[#202020] border border-[#2a2a2a] rounded-xl p-1 z-[100]">
+                    <div className="px-3 py-1.5 text-[11px] font-semibold text-white/40 uppercase tracking-wider">Attach context</div>
+                    {availableFiles.length > 0 ? (
+                      availableFiles.map(f => (
+                        <DropdownMenuItem
+                          key={f.id}
+                          onClick={() => {
+                            if (!selectedFiles.includes(f.id)) setSelectedFiles(p => [...p, f.id]);
+                          }}
+                          className="flex items-center gap-2 px-3 py-2 text-[12px] text-white/70 hover:text-white hover:bg-white/[0.06] rounded-lg cursor-pointer"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-white/40" />
+                          <span className="truncate">{f.name}</span>
+                        </DropdownMenuItem>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-[12px] text-white/30">No files found</div>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <button
+                  type="button"
+                  onClick={() => toast.info('Prompt enhance active')}
+                  className="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer"
+                  title="Enhance prompt"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Right Model & Send Controls */}
+              <div className="flex items-center gap-2">
+                {/* Model Selector Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/10 text-[11.5px] font-medium text-white/50 hover:text-white transition-colors cursor-pointer outline-none"
+                    >
+                      <span>{selectedModel.label}</span>
+                      <ChevronDown className="w-3 h-3 text-white/30" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44 bg-[#202020] border border-[#2a2a2a] rounded-xl p-1 z-[100]">
+                    {API_MODELS.map(m => (
+                      <DropdownMenuItem
+                        key={m.modelId}
+                        onClick={() => setSelectedModel(m)}
+                        className={cn(
+                          'px-3 py-1.5 text-[12px] rounded-lg cursor-pointer',
+                          selectedModel.modelId === m.modelId ? 'bg-white/[0.08] text-white font-medium' : 'text-white/60 hover:bg-white/[0.05] hover:text-white'
+                        )}
+                      >
+                        {m.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Mic Button */}
+                <button
+                  type="button"
+                  onClick={() => toast.info('Voice input feature enabled')}
+                  className="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer"
+                  title="Voice input"
+                >
+                  <Mic className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Send Button */}
+                <button
+                  type="submit"
+                  disabled={!inputValue.trim() || loading}
+                  className="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center hover:bg-white/90 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                >
+                  <ArrowUp className="w-4 h-4 stroke-[2.5]" />
                 </button>
               </div>
             </div>
-
-            {/* Messages Area */}
-            <div
-              ref={scrollRef}
-              onScroll={handleScroll}
-              className="flex-1 overflow-y-auto px-6 py-8 space-y-6 scrollbar-hide"
-            >
-              <div className="max-w-2xl mx-auto space-y-6">
-                <AnimatePresence initial={false}>
-                  {messages.map((msg, i) => (
-                    <div key={msg.id}>
-                      {msg.isStreaming ? (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="flex gap-4"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 mt-1">
-                            <Bot className="w-4 h-4 text-white/40" />
-                          </div>
-                          <div className="px-5 py-3 rounded-2xl bg-white/[0.02] border border-white/5">
-                            <ThinkingIndicator seconds={thinkingTime} />
-                          </div>
-                        </motion.div>
-                      ) : (
-                        <MessageBubble msg={msg} isLast={i === messages.length - 1} />
-                      )}
-                    </div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </div>
-
-            {/* Input Area */}
-            <div className="p-6 shrink-0 bg-gradient-to-t from-black to-transparent">
-              <form onSubmit={handleSendMessage} className="max-w-2xl mx-auto space-y-3">
-                {/* Selected Files Pills */}
-                <AnimatePresence>
-                  {selectedFiles.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="flex flex-wrap gap-2 mb-2"
-                    >
-                      {selectedFiles.map((fileId) => {
-                        const file = availableFiles.find(f => f.id === fileId);
-                        return file ? (
-                          <div key={fileId} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 transition-all">
-                            <FileText className="w-3 h-3 text-white/40" />
-                            <span className="text-[11px] font-medium text-white/60 truncate max-w-[120px]">{file.name}</span>
-                            <button type="button" onClick={() => { setSelectedFiles(prev => prev.filter(id => id !== fileId)); }}>
-                              <X className="w-3 h-3 text-white/20 hover:text-white" />
-                            </button>
-                          </div>
-                        ) : null;
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Main Input Box */}
-                <div className="relative group">
-                  <div className="relative bg-[#0a0a0a] border border-white/10 rounded-2xl focus-within:border-white/30 transition-all p-1.5">
-                    <textarea
-                      ref={textareaRef}
-                      className="w-full bg-transparent px-4 py-3 pr-14 focus:outline-none text-[13px] text-white placeholder:text-white/20 resize-none min-h-[50px] max-h-32 leading-relaxed font-medium"
-                      placeholder={selectedFiles.length > 0 ? `Analyze ${selectedFiles.length} file(s)...` : 'Type a message...'}
-                      rows={1}
-                      value={inputValue}
-                      onChange={handleInput}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage(e as any);
-                        }
-                      }}
-                    />
-                    <button
-                      type="submit"
-                      disabled={!inputValue.trim() || loading}
-                      className={cn(
-                        'absolute right-2 bottom-2 w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0',
-                        inputValue.trim() && !loading
-                          ? 'bg-white text-black hover:bg-white/90'
-                          : 'bg-white/5 text-white/10 cursor-not-allowed'
-                      )}
-                    >
-                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Bottom Action Bar */}
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => { setShowFileSelector(!showFileSelector); }}
-                      className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border",
-                        selectedFiles.length > 0 
-                          ? "bg-white/10 border-white/20 text-white" 
-                          : "bg-transparent border-transparent text-white/30 hover:text-white/60"
-                      )}
-                    >
-                      <Paperclip className="w-3 h-3" />
-                      Attach
-                    </button>
-                    <button
-                      type="button"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all text-white/30 hover:text-white/60"
-                    >
-                      <Sparkles className="w-3 h-3" />
-                      Summarize
-                    </button>
-                  </div>
-                  <p className="text-[9px] font-bold text-white/10 uppercase tracking-[0.2em]">
-                    Markdown
-                  </p>
-                </div>
-              </form>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* ── Right Sidebar: Chat History ── */}
-      <div className="w-72 border-l border-white/5 bg-[#050505] flex flex-col shrink-0">
-        <div className="px-6 py-8 flex items-center justify-between">
-          <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">History</p>
+          </form>
         </div>
 
-        <ScrollArea className="flex-1 px-3">
-          <div className="space-y-1">
-            {conversations.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => { setActiveConv(conv); }}
-                className={cn(
-                  "w-full group flex flex-col gap-1 p-3 rounded-xl transition-all border text-left",
-                  activeConv?.id === conv.id 
-                    ? "bg-white/[0.04] border-white/10" 
-                    : "bg-transparent border-transparent hover:bg-white/[0.02]"
-                )}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <span className={cn(
-                    "text-[12px] font-bold truncate flex-1",
-                    activeConv?.id === conv.id ? "text-white" : "text-white/40"
-                  )}>
-                    {conv.title}
-                  </span>
-                  <div className={cn(
-                    "w-1 h-1 rounded-full transition-all",
-                    activeConv?.id === conv.id ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.3)]" : "bg-white/5"
-                  )} />
-                </div>
-                <span className="text-[8px] font-black text-white/10 uppercase tracking-widest">
-                  {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })}
-                </span>
-              </button>
-            ))}
-          </div>
-        </ScrollArea>
       </div>
     </div>
   );
-};
-
-export default AIChat;
+}

@@ -1,98 +1,24 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Pause, SkipForward, SkipBack, Music, Volume2, Disc3 } from 'lucide-react';
-import { Howl } from 'howler';
 import { Slider } from '@/components/ui/slider';
-import { LOFI_TRACKS, type LofiTrack } from '@/lib/focus/lofi-tracks';
+import { LOFI_TRACKS } from '@/lib/focus/lofi-tracks';
 import { cn } from '@/lib/utils';
+import { useLofiAudio } from '@/lib/focus/lofiAudioStore';
 
 export function LofiPlayer() {
-  const [playing, setPlaying] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [volume, setVolume] = useState(0.6);
-  const [progress, setProgress] = useState(0);
-  const [currentSec, setCurrentSec] = useState(0);
-  const howlRef = useRef<Howl | null>(null);
-  const rafRef = useRef<number>(0);
-
-  const current = LOFI_TRACKS[currentIndex];
-
-  const loadAndPlay = useCallback((track: LofiTrack, autoPlay: boolean = true) => {
-    if (howlRef.current) {
-      howlRef.current.unload();
-    }
-    const h = new Howl({
-      src: [track.url],
-      html5: true,
-      volume,
-      onend: () => {
-        setCurrentIndex((i) => (i + 1) % LOFI_TRACKS.length);
-      },
-    });
-    howlRef.current = h;
-    if (autoPlay) {
-      h.play();
-      setPlaying(true);
-    }
-  }, [volume]);
-
-  useEffect(() => {
-    const update = () => {
-      if (howlRef.current && playing) {
-        const seek = howlRef.current.seek() || 0;
-        const dur = howlRef.current.duration() || 1;
-        setCurrentSec(seek);
-        setProgress(dur > 0 ? (seek / dur) * 100 : 0);
-      }
-      rafRef.current = requestAnimationFrame(update);
-    };
-    if (playing) {
-      rafRef.current = requestAnimationFrame(update);
-    }
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [playing]);
-
-  useEffect(() => {
-    if (howlRef.current) {
-      howlRef.current.volume(volume);
-    }
-  }, [volume]);
-
-  useEffect(() => {
-    if (playing) {
-      loadAndPlay(LOFI_TRACKS[currentIndex], true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex]);
-
-  useEffect(() => {
-    return () => {
-      howlRef.current?.unload();
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
-
-  const togglePlay = () => {
-    if (!howlRef.current) {
-      loadAndPlay(current, true);
-      return;
-    }
-    if (playing) {
-      howlRef.current.pause();
-      setPlaying(false);
-    } else {
-      howlRef.current.play();
-      setPlaying(true);
-    }
-  };
-
-  const nextTrack = () => {
-    setCurrentIndex((i) => (i + 1) % LOFI_TRACKS.length);
-  };
-
-  const prevTrack = () => {
-    setCurrentIndex((i) => (i - 1 + LOFI_TRACKS.length) % LOFI_TRACKS.length);
-  };
+  const {
+    playing,
+    currentIndex,
+    volume,
+    progress,
+    currentSec,
+    currentTrack: current,
+    togglePlay,
+    nextTrack,
+    prevTrack,
+    selectTrack,
+    setVolume,
+  } = useLofiAudio();
 
   const formatSec = (s: number) => {
     const m = Math.floor(s / 60);
@@ -205,8 +131,7 @@ export function LofiPlayer() {
               <button
                 key={track.id}
                 onClick={() => {
-                  setCurrentIndex(idx);
-                  loadAndPlay(track, true);
+                  selectTrack(idx);
                 }}
                 className={cn(
                   "flex items-center justify-between p-3 rounded-xl border text-left transition-all",

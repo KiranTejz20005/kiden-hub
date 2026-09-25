@@ -572,7 +572,9 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
                 onReset={handleReset}
                 onSkip={handleSkip}
                 onSwitchType={switchSessionType}
+                onSetSessionCount={(cnt) => setSessionCount(cnt)}
                 onCompleteEarly={handleCompleteEarly}
+                onOpenMusicModal={() => setIsMusicOpen(true)}
               />
             </motion.div>
           )}
@@ -627,7 +629,7 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
           <FocusBottomNav
             currentMode={appMode}
             onSelectMode={setAppMode}
-            streak={1}
+            streak={Math.max(1, sessionCount)}
           />
         </div>
       </footer>
@@ -658,7 +660,17 @@ export default function FocusTimer({ isStandalone = false, profile, onExitFocus 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         settings={settings}
-        onSaveSettings={setSettings}
+        onSaveSettings={(newSettings) => {
+          setSettings(newSettings);
+          if (!isRunning) {
+            const dur = sessionType === 'focus' ? newSettings.workDuration * 60
+              : sessionType === 'short_break' ? newSettings.shortBreakDuration * 60
+              : newSettings.longBreakDuration * 60;
+            setTimeLeft(dur);
+            setTotalTime(dur);
+          }
+          toast.success('Settings updated');
+        }}
         selectedAlertSound={selectedAlertSound}
         onSelectAlertSound={setSelectedAlertSound}
       />

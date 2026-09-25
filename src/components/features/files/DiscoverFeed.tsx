@@ -523,7 +523,7 @@ export const DiscoverFeed = () => {
       </div>
 
       <Dialog open={showAddUrlModal} onOpenChange={setShowAddUrlModal}>
-        <DialogContent className="sm:max-w-md bg-[#050505] border-white/10 rounded-[2rem]">
+        <DialogContent className="sm:max-w-md bg-[#202020] border-[#2a2a2a] rounded-[2rem]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Globe className="w-5 h-5 text-primary" /> Ingest New Resource

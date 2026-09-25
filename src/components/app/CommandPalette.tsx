@@ -168,7 +168,7 @@ export function CommandPalette({ open, onOpenChange, onViewChange }: CommandPale
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -8 }}
             transition={{ type: "spring", damping: 25, stiffness: 400 }}
-            className="relative w-full max-w-xl bg-[#0d0d0d] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-xl bg-[#202020] border border-[#2a2a2a] rounded-2xl shadow-2xl overflow-hidden"
           >
             {/* Search Input */}
             <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.06]">

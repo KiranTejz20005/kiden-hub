@@ -2,6 +2,8 @@ import { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw, Play, Pause, SkipForward, PictureInPicture2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { NowPlayingBar } from '@/components/audio/now-playing-bar';
+import { useLofiAudio } from '@/lib/focus/lofiAudioStore';
 
 export type FocusSessionType = 'focus' | 'short_break' | 'long_break';
 
@@ -17,7 +19,9 @@ interface FocusModeViewProps {
   onReset: () => void;
   onSkip: () => void;
   onSwitchType: (type: FocusSessionType) => void;
+  onSetSessionCount?: (count: number) => void;
   onCompleteEarly?: () => void;
+  onOpenMusicModal?: () => void;
 }
 
 export const FocusModeView = ({
@@ -32,8 +36,18 @@ export const FocusModeView = ({
   onReset,
   onSkip,
   onSwitchType,
+  onSetSessionCount,
   onCompleteEarly,
+  onOpenMusicModal,
 }: FocusModeViewProps) => {
+  const {
+    playing: isAudioPlaying,
+    progress: audioProgress,
+    currentTrack,
+    togglePlay: toggleAudio,
+    nextTrack: nextAudioTrack,
+    prevTrack: prevAudioTrack,
+  } = useLofiAudio();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [pipActive, setPipActive] = useState(false);
@@ -141,33 +155,43 @@ export const FocusModeView = ({
     { label: 'Long Break', value: 'long_break' },
   ];
 
+  const activeSessionIndex = sessionCount % longBreakInterval;
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-6 select-none relative z-10 py-6">
+    <div className="flex-1 flex flex-col items-center justify-center gap-5 select-none relative z-10 py-4">
       {/* Hidden elements for Picture-in-Picture */}
       <canvas ref={canvasRef} width={500} height={500} className="hidden" />
       <video ref={videoRef} className="hidden" muted playsInline />
 
-      {/* Session type selector tabs */}
+      {/* Session type selector tabs with animated active background pill */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="flex items-center gap-2 p-1 rounded-full bg-black/40 border border-white/10 backdrop-blur-md"
+        className="relative flex items-center gap-1 p-1.5 rounded-full bg-black/50 border border-white/15 backdrop-blur-xl shadow-2xl"
       >
         {sessionTabs.map((tab) => {
           const isActive = sessionType === tab.value;
           return (
             <button
               key={tab.value}
+              type="button"
               onClick={() => onSwitchType(tab.value)}
               className={cn(
-                "px-5 sm:px-6 py-2 text-xs sm:text-sm font-bold rounded-full transition-all duration-300",
+                "relative px-5 sm:px-6 py-2 text-xs sm:text-sm font-bold rounded-full transition-colors duration-200 cursor-pointer select-none outline-none",
                 isActive
-                  ? "bg-white text-black shadow-lg scale-[1.02]"
+                  ? "text-black"
                   : "text-white/70 hover:text-white hover:bg-white/10"
               )}
             >
-              {tab.label}
+              {isActive && (
+                <motion.div
+                  layoutId="active-focus-mode-tab"
+                  className="absolute inset-0 bg-white rounded-full shadow-lg"
+                  transition={{ type: 'spring', stiffness: 450, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10">{tab.label}</span>
             </button>
           );
         })}
@@ -178,19 +202,26 @@ export const FocusModeView = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.15 }}
-        className="flex items-center gap-2"
+        className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-md"
+        title={`${activeSessionIndex} of ${longBreakInterval} sessions completed before long break`}
       >
-        {Array.from({ length: longBreakInterval }).map((_, i) => (
-          <div
-            key={i}
-            className={cn(
-              "w-2.5 h-2.5 rounded-full transition-all duration-300",
-              i < sessionCount % longBreakInterval
-                ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] scale-110"
-                : "bg-white/20"
-            )}
-          />
-        ))}
+        {Array.from({ length: longBreakInterval }).map((_, i) => {
+          const isCompleted = i < activeSessionIndex;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onSetSessionCount?.(i + 1)}
+              className={cn(
+                "w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer outline-none",
+                isCompleted
+                  ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)] scale-110"
+                  : "bg-white/20 hover:bg-white/40"
+              )}
+              title={`Session ${i + 1}${isCompleted ? ' (Completed)' : ''} — Click to update count`}
+            />
+          );
+        })}
       </motion.div>
 
       {/* Massive Timer Display */}
@@ -286,6 +317,27 @@ export const FocusModeView = ({
           <span>Finish & Log {Math.max(1, Math.floor((totalTime - timeLeft) / 60))}m Focus</span>
         </motion.button>
       )}
+
+      {/* Lo-Fi Beats Now Playing Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="mt-2 flex flex-col items-center"
+      >
+        <NowPlayingBar
+          title={currentTrack.title}
+          artist={currentTrack.artist}
+          artwork={currentTrack.artwork}
+          progress={audioProgress}
+          playing={isAudioPlaying}
+          onTogglePlay={toggleAudio}
+          onNext={nextAudioTrack}
+          onPrev={prevAudioTrack}
+          onClickInfo={onOpenMusicModal}
+          className="bg-neutral-950/80 border-white/10 backdrop-blur-xl shadow-2xl hover:border-white/20 transition-all cursor-default"
+        />
+      </motion.div>
     </div>
   );
 };

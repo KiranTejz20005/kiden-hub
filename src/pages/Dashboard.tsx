@@ -7,12 +7,14 @@ import AppSidebar from '@/components/app/AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { useVisibility } from '@/components/providers/VisibilityManager';
 import { useAppCache } from '@/components/providers/CacheProvider';
+import { toast } from 'sonner';
 
 import DashboardHome from '@/components/features/dashboard/DashboardHome';
 import FileStorage from '@/components/features/files/FileStorage';
 import AIChat from '@/components/features/ai/AIChat';
 import NotesEditor from '@/components/features/notes/NotesEditor';
 import MyBoards from '@/components/features/boards/MyBoards';
+import KanbanView from '@/components/features/kanban/KanbanView';
 import { SettingsModal } from '@/components/features/settings/SettingsModal';
 import CalendarView from '@/components/features/calendar/CalendarView';
 import FocusTimer from '@/components/features/focus/FocusTimer';
@@ -33,41 +35,51 @@ const Dashboard = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [createBoardIntent, setCreateBoardIntent] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
 
-  const fetchBoards = useCallback(async () => {
+  const fetchBoards = useCallback(async (options?: { force?: boolean }) => {
     if (!user) { return; }
 
-    // Layer 4: Check cache
     const cacheKey = `boards:${user.id}`;
-    const cached = get<any[]>(cacheKey);
-    if (cached && cached.length > 0) {
-      setBoards(cached);
-      setSelectedBoard((curr: any) => curr || cached[0]);
-      return;
+
+    if (options?.force) {
+      // Mutations (create/delete/template) must always hit the server,
+      // otherwise a stale cache resurrects the board we just removed.
+      invalidate(cacheKey);
+    } else {
+      const cached = get<any[]>(cacheKey);
+      if (cached && cached.length > 0) {
+        setBoards(cached);
+        setSelectedBoard((curr: any) => curr || cached[0]);
+        return;
+      }
     }
 
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('research_boards' as any)
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (data) {
-        setBoards(data);
-        set(cacheKey, data); // 5m TTL
-        setSelectedBoard((curr: any) => {
-          if (curr && data.some((b: any) => b.id === curr.id)) return curr;
-          return data.length > 0 ? data[0] : null;
-        });
-      }
+      if (error) { throw error; }
+
+      setBoards(data ?? []);
+      set(cacheKey, data ?? []); // 5m TTL
+      setSelectedBoard((curr: any) => {
+        if (curr && data && data.some((b: any) => b.id === curr.id)) return curr;
+        return data && data.length > 0 ? data[0] : null;
+      });
     } catch (err) {
       console.error('[Dashboard] Error fetching boards:', err);
+      if (options?.force) {
+        toast.error('Failed to refresh boards');
+      }
     }
-  }, [user, get, set]);
+  }, [user, get, set, invalidate]);
 
   const addBoardOptimistically = useCallback((newBoard: any) => {
     setBoards(prev => [newBoard, ...prev]);
@@ -78,7 +90,7 @@ const Dashboard = () => {
   useEffect(() => {
     const match = location.pathname.match(/^\/dashboard(?:\/([a-zA-Z0-9_-]+))?\/?$/);
     const subRoute = (match ? match[1] : undefined) || 'dashboard';
-    const validViews: ActiveView[] = ['dashboard', 'files', 'chat', 'notes', 'boards', 'calendar', 'focus', 'habits', 'team', 'settings'];
+    const validViews: ActiveView[] = ['dashboard', 'files', 'chat', 'notes', 'kanban', 'boards', 'calendar', 'focus', 'habits', 'team', 'settings', 'discover', 'custom-ai', 'publish'];
 
     if (validViews.includes(subRoute as ActiveView)) {
       if (subRoute !== activeView) {
@@ -199,7 +211,7 @@ const Dashboard = () => {
 
   if (isInitialLoading) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#050505] gap-4">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#181818] gap-4">
         <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center animate-pulse">
           <div className="w-4 h-4 bg-white rounded-full animate-ping" />
         </div>
@@ -217,7 +229,7 @@ const Dashboard = () => {
             onViewChange={handleViewChange}
             profile={profile}
             onProfileUpdate={initializeData}
-            isCollapsed={activeView === 'focus' ? true : isSidebarCollapsed}
+            isCollapsed={isSidebarCollapsed}
             setIsCollapsed={setIsSidebarCollapsed}
             boards={boards}
             selectedBoard={selectedBoard}
@@ -225,7 +237,8 @@ const Dashboard = () => {
               setSelectedBoard(board);
               handleViewChange('boards');
             }}
-            onBoardsUpdate={fetchBoards}
+            onBoardsUpdate={() => { void fetchBoards({ force: true }); }}
+            onCreateBoard={() => { setCreateBoardIntent(true); }}
           />
         </div>
 
@@ -233,13 +246,13 @@ const Dashboard = () => {
           {activeView === 'dashboard' && (
             <DashboardHome profile={profile} onViewChange={handleViewChange} />
           )}
-          {activeView === 'files' && (
+          {(activeView === 'files' || activeView === 'discover') && (
             <FileStorage />
           )}
-          {activeView === 'chat' && (
+          {(activeView === 'chat' || activeView === 'custom-ai') && (
             <AIChat />
           )}
-          {activeView === 'notes' && (
+          {(activeView === 'notes' || activeView === 'publish') && (
             <NotesEditor />
           )}
           {activeView === 'boards' && (
@@ -247,8 +260,10 @@ const Dashboard = () => {
               selectedBoard={selectedBoard} 
               onBoardSelect={setSelectedBoard}
               boards={boards}
-              onBoardsUpdate={fetchBoards}
+              onBoardsUpdate={() => { void fetchBoards({ force: true }); }}
               onBoardCreateOptimistic={addBoardOptimistically}
+              createBoardIntent={createBoardIntent}
+              onCreateBoardHandled={() => { setCreateBoardIntent(false); }}
               resetCounter={resetCounter} 
             />
           )}
@@ -263,6 +278,9 @@ const Dashboard = () => {
           )}
           {activeView === 'habits' && (
             <HabitTracker />
+          )}
+          {activeView === 'kanban' && (
+            <KanbanView onBoardsChange={() => { void fetchBoards({ force: true }); }} />
           )}
         </main>
       </div>

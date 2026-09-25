@@ -113,7 +113,7 @@ export function SmartSearch({ isOpen, onClose, onNavigate }: SmartSearchProps) {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="absolute right-0 top-0 h-full w-full max-w-md bg-[#0d0d0d] border-l border-white/10 shadow-2xl flex flex-col"
+            className="absolute right-0 top-0 h-full w-full max-w-md bg-[#1c1c1c] border-l border-[#2a2a2a] shadow-2xl flex flex-col"
           >
             {/* Header */}
             <div className="p-5 border-b border-white/5">

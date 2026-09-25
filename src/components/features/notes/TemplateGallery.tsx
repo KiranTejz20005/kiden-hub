@@ -225,7 +225,7 @@ export function TemplateGallery({ isOpen, onClose, onSelectTemplate }: TemplateG
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="bg-[#0d0d0d] border border-white/10 rounded-3xl w-full max-w-3xl max-h-[80vh] overflow-hidden shadow-2xl flex flex-col"
+            className="bg-[#202020] border border-[#2a2a2a] rounded-3xl w-full max-w-3xl max-h-[80vh] overflow-hidden shadow-2xl flex flex-col"
           >
             {/* Header */}
             <div className="p-6 border-b border-white/5 flex items-center justify-between">

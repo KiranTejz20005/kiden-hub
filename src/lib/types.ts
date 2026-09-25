@@ -4,11 +4,15 @@ export type ActiveView =
   | 'chat'
   | 'notes'
   | 'boards'
+  | 'kanban'
   | 'calendar'
   | 'focus'
   | 'habits'
   | 'team'
-  | 'settings';
+  | 'settings'
+  | 'discover'
+  | 'custom-ai'
+  | 'publish';
 
 export interface Profile {
   id: string;

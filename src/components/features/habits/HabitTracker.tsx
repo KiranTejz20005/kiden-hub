@@ -146,7 +146,7 @@ export default function HabitTracker() {
   const overallProgress = totalToday > 0 ? completedToday / totalToday : 0;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#050505] scrollbar-hide">
+    <div className="flex-1 overflow-y-auto bg-[#181818] scrollbar-hide">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -339,7 +339,7 @@ export default function HabitTracker() {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-[#111] border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5"
+                className="bg-[#202020] border border-[#2a2a2a] rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5"
               >
                 <div className="flex items-center justify-between">
                   <h2 className="text-[15px] font-bold text-white">

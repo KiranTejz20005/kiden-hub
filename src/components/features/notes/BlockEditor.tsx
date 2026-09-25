@@ -91,7 +91,7 @@ const BlockEditor = ({ content, onChange }: BlockEditorProps) => {
       {editor && (
         <BubbleMenu 
           editor={editor} 
-          className="flex items-center gap-1 p-1 bg-[#111111] border border-white/10 rounded-xl shadow-2xl backdrop-blur-md"
+          className="flex items-center gap-1 p-1 bg-[#202020] border border-[#2a2a2a] rounded-xl shadow-2xl backdrop-blur-md"
         >
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}
