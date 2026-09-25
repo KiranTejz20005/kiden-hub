@@ -234,7 +234,7 @@ const NoteSidebar = ({
   return (
     <aside 
       style={{ width: sidebarWidth }}
-      className="relative border-r border-border/50 flex flex-col bg-card/20 backdrop-blur-xl shrink-0 select-none group"
+      className="relative border-r border-[#2a2a2a] flex flex-col bg-[#1c1c1c] shrink-0 select-none group"
     >
       <div className="p-5 border-b border-border/30 space-y-4">
         <div className="flex items-center justify-between">

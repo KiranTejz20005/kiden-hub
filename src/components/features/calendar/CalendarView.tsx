@@ -306,7 +306,7 @@ const CalendarView = () => {
   };
 
   return (
-    <div id="calendar-view-container" className="flex-1 flex flex-col bg-[#050505] overflow-hidden text-white font-sans h-full">
+    <div id="calendar-view-container" className="flex-1 flex flex-col bg-[#181818] overflow-hidden text-white font-sans h-full">
       <CalendarCommandPalette />
       
       {/* Header */}
@@ -770,7 +770,7 @@ const CalendarView = () => {
                   animate={{ scale: 1, opacity: 1 }} 
                   exit={{ scale: 0.95, opacity: 0 }} 
                   transition={{ type: "spring", damping: 25, stiffness: 400 }}
-                  className="w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden"
+                  className="w-full max-w-md bg-[#202020] border border-[#2a2a2a] rounded-3xl p-8 shadow-2xl relative overflow-hidden"
                 >
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-blue-500" />
                   <div className="flex justify-between items-center mb-6">

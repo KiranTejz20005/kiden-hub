@@ -197,7 +197,7 @@ export const VideoPlayerModal = ({ video, isOpen, onClose }: VideoPlayerModalPro
             initial={{ opacity: 0, scale: 0.98, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: 20 }}
-            className="relative w-full max-w-6xl h-full max-h-[90vh] bg-[#050505] border border-white/10 rounded-[2rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,1)] flex flex-col md:flex-row overflow-hidden"
+            className="relative w-full max-w-6xl h-full max-h-[90vh] bg-[#181818] border border-[#2a2a2a] rounded-[2rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,1)] flex flex-col md:flex-row overflow-hidden"
           >
             {/* Left Column: Player & Info */}
             <div className="flex-1 flex flex-col overflow-y-auto scrollbar-hide">
