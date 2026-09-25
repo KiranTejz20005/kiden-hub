@@ -25,10 +25,11 @@ class NVIDIAService {
   /**
    * Make API call through Supabase Edge Function
    */
-  private async makeRequest(messages: NVIDIAMessage[]): Promise<string> {
+  private async makeRequest(messages: NVIDIAMessage[], customModel?: string): Promise<string> {
     try {
+      const selectedModel = customModel || this.model;
       const { data, error } = await supabase.functions.invoke('nvidia-chat', {
-        body: { action: 'chat', messages, model: this.model },
+        body: { action: 'chat', messages, model: selectedModel },
         headers: {
           'Content-Type': 'application/json',
         }
@@ -41,7 +42,6 @@ class NVIDIAService {
       return data.choices[0]?.message?.content || 'No response generated';
     } catch (error: any) {
       console.error('NVIDIA Service Error:', error);
-      // Detailed error message for the UI
       const msg = error.message || 'Check if Supabase Edge Function "nvidia-chat" is deployed and CORS is configured.';
       throw new Error(`AI Service Error: ${msg}`);
     }
@@ -72,9 +72,9 @@ class NVIDIAService {
   }
 
   /**
-   * Generate a chat response with optional document context
+   * Generate a chat response with optional document context and model
    */
-  async chat(userMessage: string, documentContext?: DocumentContext[], conversationHistory?: NVIDIAMessage[]): Promise<string> {
+  async chat(userMessage: string, documentContext?: DocumentContext[], conversationHistory?: NVIDIAMessage[], customModel?: string): Promise<string> {
     // Build system prompt
     let systemPrompt = `You are Kiden AI, a helpful assistant integrated into the Kiden productivity workspace.
 Format responses with markdown. Be concise and professional.`;
@@ -96,7 +96,11 @@ Format responses with markdown. Be concise and professional.`;
       { role: 'user', content: userMessage },
     ];
 
-    return this.makeRequest(messages);
+    return this.makeRequest(messages, customModel);
+  }
+
+  async chatCompletion(messages: { role: 'user' | 'assistant' | 'system'; content: string }[], customModel?: string): Promise<string> {
+    return this.makeRequest(messages, customModel);
   }
 
   /**
